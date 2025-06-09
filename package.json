@@ -2,7 +2,7 @@
     "name": "controlforge-structured-text",
     "displayName": "Structured Text",
     "description": "Full-featured Structured Text (IEC 61131-3) development environment with syntax highlighting, code completion, and validation for PLC programming",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Michael Distel",
     "publisher": "ControlForgeSystems",
     "license": "BUSL-1.1",
@@ -66,7 +66,8 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "package": "vsce package"
+        "package": "vsce package",
+        "publish": "vsce publish"
     },
     "devDependencies": {
         "@types/node": "16.x",
