@@ -45,9 +45,5 @@ TEST_RESULTS.md
 PROJECT_SUMMARY.md
 MIGRATION_SUMMARY.md
 
-# Misc
-controlforge_structured-test-icon-128x128.png
-icon.png
-
 # Don't ignore the .gitignore file itself
 !.gitignore

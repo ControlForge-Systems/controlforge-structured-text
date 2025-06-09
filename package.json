@@ -4,7 +4,7 @@
     "description": "VS Code extension for Structured Text (IEC 61131-3) support",
     "version": "1.0.0",
     "author": "Michael Distel",
-    "publisher": "ControlForge",
+    "publisher": "ControlForgeSystems",
     "license": "BUSL-1.1",
     "repository": {
         "type": "git",
@@ -14,7 +14,7 @@
         "url": "https://github.com/controlforge/structured-text-extension/issues"
     },
     "homepage": "https://github.com/controlforge/structured-text-extension#readme",
-    "icon": "controlforge_structured-test-icon-128x128.png",
+    "icon": "icon.png",
     "engines": {
         "vscode": "^1.74.0"
     },
@@ -27,6 +27,9 @@
         "IEC 61131-3",
         "automation",
         "industrial"
+    ],
+    "activationEvents": [
+        "onLanguage:structured-text"
     ],
     "main": "./out/extension.js",
     "contributes": {
