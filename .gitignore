@@ -1,0 +1,53 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# package-lock.json is often committed, but can be ignored if desired. 
+# For VS Code extensions, it's good to commit it to ensure reproducible dependency installation.
+
+# VS Code specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# Build output
+out/
+*.vsix
+
+# TypeScript
+*.tsbuildinfo
+# Source maps are often not committed, but can be useful for debugging deployed versions.
+# *.map
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Test Results & Coverage
+coverage/
+TEST_RESULTS.md
+PROJECT_SUMMARY.md
+MIGRATION_SUMMARY.md
+
+# Misc
+controlforge_structured-test-icon-128x128.png
+icon.png
+
+# Don't ignore the .gitignore file itself
+!.gitignore

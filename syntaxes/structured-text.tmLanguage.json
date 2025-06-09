@@ -1,0 +1,146 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Structured Text",
+    "patterns": [
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#operators"
+        },
+        {
+            "include": "#data-types"
+        },
+        {
+            "include": "#functions"
+        }
+    ],
+    "repository": {
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.st",
+                    "match": "\\b(IF|THEN|ELSE|ELSIF|END_IF|CASE|OF|END_CASE|FOR|TO|BY|DO|END_FOR|WHILE|END_WHILE|REPEAT|UNTIL|END_REPEAT|EXIT|RETURN|CONTINUE)\\b"
+                },
+                {
+                    "name": "keyword.declaration.st",
+                    "match": "\\b(VAR|VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR_GLOBAL|VAR_ACCESS|VAR_CONFIG|VAR_EXTERNAL|END_VAR|CONSTANT|RETAIN|NON_RETAIN|PERSISTENT|AT|PROGRAM|END_PROGRAM|FUNCTION|END_FUNCTION|FUNCTION_BLOCK|END_FUNCTION_BLOCK|TYPE|END_TYPE|STRUCT|END_STRUCT|ARRAY|STRING|WSTRING)\\b"
+                },
+                {
+                    "name": "keyword.other.st",
+                    "match": "\\b(TRUE|FALSE|NULL|THIS|SUPER|ABSTRACT|FINAL|IMPLEMENTS|EXTENDS|INTERFACE|METHOD|PROPERTY|NAMESPACE|USING|WITH|CONFIGURATION|RESOURCE|TASK|ON|PRIORITY|SINGLE|INTERVAL|PROGRAM|WITH|VAR_GLOBAL|VAR_ACCESS|READ_WRITE|READ_ONLY|WRITE_ONLY)\\b"
+                }
+            ]
+        },
+        "data-types": {
+            "patterns": [
+                {
+                    "name": "storage.type.st",
+                    "match": "\\b(BOOL|BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL|TIME|DATE|TIME_OF_DAY|TOD|DATE_AND_TIME|DT|STRING|WSTRING|POINTER|REFERENCE|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_BIT|ANY_STRING|ANY_DATE)\\b"
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.st",
+                    "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.single.st",
+                    "begin": "'",
+                    "end": "'",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.st",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.double.st",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.st",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.st",
+                    "begin": "//",
+                    "end": "$"
+                },
+                {
+                    "name": "comment.block.st",
+                    "begin": "\\(\\*",
+                    "end": "\\*\\)"
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.integer.st",
+                    "match": "\\b([0-9]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.float.st",
+                    "match": "\\b([0-9]+\\.[0-9]+([eE][+-]?[0-9]+)?)\\b"
+                },
+                {
+                    "name": "constant.numeric.hex.st",
+                    "match": "\\b(16#[0-9A-Fa-f]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.binary.st",
+                    "match": "\\b(2#[01]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.octal.st",
+                    "match": "\\b(8#[0-7]+)\\b"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.logical.st",
+                    "match": "\\b(AND|OR|XOR|NOT)\\b"
+                },
+                {
+                    "name": "keyword.operator.comparison.st",
+                    "match": "(=|<>|<|>|<=|>=)"
+                },
+                {
+                    "name": "keyword.operator.arithmetic.st",
+                    "match": "(\\+|\\-|\\*|\\/|MOD|\\*\\*)"
+                },
+                {
+                    "name": "keyword.operator.assignment.st",
+                    "match": "(:=)"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.structured-text"
+}

@@ -1,0 +1,78 @@
+{
+    "name": "controlforge-structured-text",
+    "displayName": "Structured Text",
+    "description": "VS Code extension for Structured Text (IEC 61131-3) support",
+    "version": "1.0.0",
+    "author": "Michael Distel",
+    "publisher": "ControlForge",
+    "license": "BUSL-1.1",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/controlforge/structured-text-extension.git"
+    },
+    "bugs": {
+        "url": "https://github.com/controlforge/structured-text-extension/issues"
+    },
+    "homepage": "https://github.com/controlforge/structured-text-extension#readme",
+    "icon": "controlforge_structured-test-icon-128x128.png",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "keywords": [
+        "PLC",
+        "Structured Text",
+        "IEC 61131-3",
+        "automation",
+        "industrial"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "structured-text",
+                "aliases": [
+                    "Structured Text",
+                    "ST",
+                    "IEC 61131-3"
+                ],
+                "extensions": [
+                    ".st",
+                    ".iecst"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "structured-text",
+                "scopeName": "source.structured-text",
+                "path": "./syntaxes/structured-text.tmLanguage.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "controlforge-structured-text.helloWorld",
+                "title": "ControlForge Structured Text: Hello World"
+            },
+            {
+                "command": "controlforge-structured-text.validateSyntax",
+                "title": "ControlForge Structured Text: Validate Syntax"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "package": "vsce package"
+    },
+    "devDependencies": {
+        "@types/node": "16.x",
+        "@types/vscode": "^1.74.0",
+        "@vscode/vsce": "^3.5.0",
+        "typescript": "^4.9.4"
+    }
+}

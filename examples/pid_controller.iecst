@@ -1,0 +1,55 @@
+(* Example IEC Structured Text File *)
+FUNCTION_BLOCK FB_PIDController
+VAR_INPUT
+    SetPoint : REAL;        // Desired value
+    ProcessValue : REAL;    // Current value
+    Kp : REAL := 1.0;      // Proportional gain
+    Ki : REAL := 0.1;      // Integral gain
+    Kd : REAL := 0.01;     // Derivative gain
+    Enable : BOOL := FALSE; // Enable PID control
+END_VAR
+
+VAR_OUTPUT
+    Output : REAL;         // Control output
+    Error : REAL;         // Current error
+END_VAR
+
+VAR
+    LastError : REAL;     // Previous error value
+    Integral : REAL;      // Integral term
+    Derivative : REAL;    // Derivative term
+    dt : TIME := T#100ms; // Sample time
+END_VAR
+
+// PID Controller Implementation
+IF Enable THEN
+    // Calculate error
+    Error := SetPoint - ProcessValue;
+    
+    // Calculate integral term
+    Integral := Integral + Error * TIME_TO_REAL(dt);
+    
+    // Calculate derivative term
+    Derivative := (Error - LastError) / TIME_TO_REAL(dt);
+    
+    // Calculate PID output
+    Output := Kp * Error + Ki * Integral + Kd * Derivative;
+    
+    // Limit output to reasonable range
+    IF Output > 100.0 THEN
+        Output := 100.0;
+    ELSIF Output < -100.0 THEN
+        Output := -100.0;
+    END_IF;
+    
+    // Store current error for next cycle
+    LastError := Error;
+ELSE
+    // Reset when disabled
+    Output := 0.0;
+    Error := 0.0;
+    Integral := 0.0;
+    LastError := 0.0;
+END_IF;
+
+END_FUNCTION_BLOCK
