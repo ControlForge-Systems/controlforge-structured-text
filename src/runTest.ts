@@ -5,7 +5,8 @@ async function main() {
     try {
         await runTests({
             extensionDevelopmentPath: path.resolve(__dirname, '../'),
-            extensionTestsPath: path.resolve(__dirname, './test/runTest')
+            extensionTestsPath: path.resolve(__dirname, './test/runTests'),
+            launchArgs: [path.resolve(__dirname, '../')] // Open the extension folder as workspace
         });
     } catch (err) {
         console.error('Failed to run tests');

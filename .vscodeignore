@@ -16,6 +16,9 @@ examples/**
 **/*.test.*
 **/runTest.*
 # Exclude development files
-CHANGELOG.md
-README.md
-LICENSE
+.husky/**
+TESTING.md
+# Keep these in the package
+# CHANGELOG.md
+# README.md
+# LICENSE

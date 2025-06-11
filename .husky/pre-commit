@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit tests..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo "${2}${1}${NC}"
+}
+
+print_status "⚡ Step 1/2: Running unit tests..." "$YELLOW"
+
+# Run unit tests first (they're fast)
+if npm run test:unit; then
+    print_status "✅ Unit tests passed!" "$GREEN"
+else
+    print_status "❌ Unit tests failed! Commit aborted." "$RED"
+    print_status "💡 Fix unit test failures before committing." "$YELLOW"
+    exit 1
+fi
+
+print_status "🧪 Step 2/2: Running E2E tests..." "$YELLOW"
+
+# Run E2E tests (slower but comprehensive)
+if npm run test:e2e; then
+    print_status "✅ E2E tests passed!" "$GREEN"
+    print_status "🎉 All tests passed! Proceeding with commit..." "$GREEN"
+else
+    print_status "❌ E2E tests failed! Commit aborted." "$RED"
+    print_status "💡 Fix E2E test failures before committing." "$YELLOW"
+    exit 1
+fi
+
+print_status "✨ Pre-commit validation complete!" "$GREEN"

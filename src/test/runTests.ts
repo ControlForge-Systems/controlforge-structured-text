@@ -9,11 +9,20 @@ export function run(): Promise<void> {
         color: true
     });
 
+    // Make Mocha globals available
+    (global as any).suite = Mocha.suite;
+    (global as any).test = Mocha.test;
+    (global as any).setup = Mocha.setup;
+    (global as any).teardown = Mocha.teardown;
+    (global as any).suiteSetup = Mocha.suiteSetup;
+    (global as any).suiteTeardown = Mocha.suiteTeardown;
+
     const testsRoot = path.resolve(__dirname, '..');
 
     return new Promise(async (c, e) => {
         try {
-            const files = await glob('**/**.test.js', { cwd: testsRoot });
+            // Only include E2E test files
+            const files = await glob('**/*.e2e.test.js', { cwd: testsRoot });
 
             // Add files to the test suite
             files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
