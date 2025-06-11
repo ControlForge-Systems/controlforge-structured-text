@@ -3,11 +3,6 @@ import * as vscode from 'vscode';
 export function activate(context: vscode.ExtensionContext) {
     console.log('ControlForge Structured Text extension is now active!');
 
-    // Register the hello world command
-    const helloWorldCommand = vscode.commands.registerCommand('controlforge-structured-text.helloWorld', () => {
-        vscode.window.showInformationMessage('Hello from ControlForge Structured Text!');
-    });
-
     // Register the validate syntax command
     const validateSyntaxCommand = vscode.commands.registerCommand('controlforge-structured-text.validateSyntax', () => {
         const editor = vscode.window.activeTextEditor;
@@ -52,7 +47,6 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Add commands to the extension context
-    context.subscriptions.push(helloWorldCommand);
     context.subscriptions.push(validateSyntaxCommand);
     context.subscriptions.push(onDidOpenTextDocument);
 }
