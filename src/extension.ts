@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { validateStructuredText, formatValidationMessage } from './validator';
+import { extractVariables, extractFunctionBlocks, getCompletionKeywords, getCodeSnippets } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('ControlForge Structured Text extension is now active!');
@@ -37,28 +38,69 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // Register IntelliSense (completion) provider for Structured Text
-    const structuredTextKeywords = [
-        'IF', 'THEN', 'ELSE', 'ELSIF', 'END_IF', 'CASE', 'OF', 'END_CASE', 'FOR', 'TO', 'BY', 'DO', 'END_FOR', 'WHILE', 'END_WHILE', 'REPEAT', 'UNTIL', 'END_REPEAT', 'EXIT', 'RETURN', 'CONTINUE',
-        'VAR', 'VAR_INPUT', 'VAR_OUTPUT', 'VAR_IN_OUT', 'VAR_TEMP', 'VAR_GLOBAL', 'VAR_ACCESS', 'VAR_CONFIG', 'VAR_EXTERNAL', 'END_VAR', 'CONSTANT', 'RETAIN', 'NON_RETAIN', 'PERSISTENT', 'AT',
-        'PROGRAM', 'END_PROGRAM', 'FUNCTION', 'END_FUNCTION', 'FUNCTION_BLOCK', 'END_FUNCTION_BLOCK', 'TYPE', 'END_TYPE', 'STRUCT', 'END_STRUCT', 'ARRAY', 'STRING', 'WSTRING',
-        'TRUE', 'FALSE', 'NULL', 'THIS', 'SUPER', 'ABSTRACT', 'FINAL', 'IMPLEMENTS', 'EXTENDS', 'INTERFACE', 'METHOD', 'PROPERTY', 'NAMESPACE', 'USING', 'WITH', 'CONFIGURATION', 'RESOURCE', 'TASK', 'ON', 'PRIORITY', 'SINGLE', 'INTERVAL', 'READ_WRITE', 'READ_ONLY', 'WRITE_ONLY',
-        'BOOL', 'BYTE', 'WORD', 'DWORD', 'LWORD', 'SINT', 'USINT', 'INT', 'UINT', 'DINT', 'UDINT', 'LINT', 'ULINT', 'REAL', 'LREAL', 'TIME', 'DATE', 'TIME_OF_DAY', 'TOD', 'DATE_AND_TIME', 'DT', 'POINTER', 'REFERENCE', 'ANY', 'ANY_DERIVED', 'ANY_ELEMENTARY', 'ANY_MAGNITUDE', 'ANY_NUM', 'ANY_REAL', 'ANY_INT', 'ANY_BIT', 'ANY_STRING', 'ANY_DATE'
-    ];
-
+    // Enhanced IntelliSense (completion) provider for Structured Text
     const completionProvider = vscode.languages.registerCompletionItemProvider(
-        { language: 'structured-text', scheme: 'file' },
+        [
+            { language: 'structured-text', scheme: 'file' },
+            { language: 'structured-text', scheme: 'untitled' }
+        ],
         {
-            provideCompletionItems(document, position) {
-                const completions = structuredTextKeywords.map(keyword => {
+            provideCompletionItems(document, position, token, context) {
+                const completions: vscode.CompletionItem[] = [];
+                const line = document.lineAt(position).text;
+                const linePrefix = line.substring(0, position.character).toLowerCase();
+
+                // Get keyword categories from parser
+                const { controlKeywords, declarationKeywords, dataTypes, literals } = getCompletionKeywords();
+
+                // Add all keyword types to completions
+                const allKeywords = [...controlKeywords, ...declarationKeywords, ...dataTypes, ...literals];
+
+                allKeywords.forEach(({ keyword, detail, documentation }) => {
                     const item = new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword);
+                    item.detail = detail;
+                    item.documentation = new vscode.MarkdownString(documentation);
                     item.insertText = keyword;
+                    completions.push(item);
+                });
+
+                // Add code snippets for common patterns
+                const snippetTemplates = getCodeSnippets();
+                const snippets = snippetTemplates.map(template => {
+                    const item = new vscode.CompletionItem(template.label, vscode.CompletionItemKind.Snippet);
+                    item.insertText = new vscode.SnippetString(template.insertText);
+                    item.detail = template.detail;
+                    item.documentation = template.documentation;
                     return item;
                 });
+
+                completions.push(...snippets);
+
+                // Extract variables from current document
+                const documentText = document.getText();
+                const variables = extractVariables(documentText);
+                variables.forEach(variable => {
+                    const item = new vscode.CompletionItem(variable.name, vscode.CompletionItemKind.Variable);
+                    item.detail = `${variable.type} variable`;
+                    item.documentation = new vscode.MarkdownString(`Variable of type ${variable.type}`);
+                    item.insertText = variable.name;
+                    completions.push(item);
+                });
+
+                // Extract function blocks from current document
+                const functionBlocks = extractFunctionBlocks(documentText);
+                functionBlocks.forEach(fb => {
+                    const item = new vscode.CompletionItem(fb.name, vscode.CompletionItemKind.Class);
+                    item.detail = `Function block`;
+                    item.documentation = new vscode.MarkdownString(`Function block: ${fb.name}`);
+                    item.insertText = fb.name;
+                    completions.push(item);
+                });
+
                 return completions;
             }
         },
-        '.' // Trigger on dot, can add more trigger characters if needed
+        '.', ' ', ':', '(' // Multiple trigger characters
     );
 
     // Add commands to the extension context
