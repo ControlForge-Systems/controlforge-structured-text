@@ -16,7 +16,7 @@
     "homepage": "https://controlforge.dev/",
     "icon": "icon.png",
     "engines": {
-        "vscode": "^1.74.0"
+        "vscode": "^1.100.0"
     },
     "categories": [
         "Programming Languages"
@@ -27,9 +27,6 @@
         "IEC 61131-3",
         "automation",
         "industrial"
-    ],
-    "activationEvents": [
-        "onLanguage:structured-text"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -63,6 +60,12 @@
         ]
     },
     "scripts": {
+        "test": "npm run test:unit && npm run test:e2e",
+        "test:unit": "npm run compile && node ./out/runUnitTests.js",
+        "test:e2e": "npm run compile && node ./out/runTest.js",
+        "test:watch": "npm run watch",
+        "test:pre-commit": "npm run test:unit && npm run test:e2e",
+        "prepare": "husky",
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
@@ -70,9 +73,14 @@
         "publish": "vsce publish"
     },
     "devDependencies": {
+        "@types/mocha": "^10.0.10",
         "@types/node": "16.x",
-        "@types/vscode": "^1.74.0",
+        "@types/vscode": "^1.100.0",
+        "@vscode/test-electron": "^2.5.2",
         "@vscode/vsce": "^3.5.0",
+        "glob": "^11.0.2",
+        "husky": "^9.1.7",
+        "mocha": "^11.6.0",
         "typescript": "^4.9.4"
     }
 }

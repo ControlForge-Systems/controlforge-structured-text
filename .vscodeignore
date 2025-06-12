@@ -11,3 +11,14 @@ vsc-extension-quickstart.md
 node_modules/**
 *.vsix
 examples/**
+# Exclude test files from packaged extension
+**/test/**
+**/*.test.*
+**/runTest.*
+# Exclude development files
+.husky/**
+TESTING.md
+# Keep these in the package
+# CHANGELOG.md
+# README.md
+# LICENSE

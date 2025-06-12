@@ -1,12 +1,8 @@
 import * as vscode from 'vscode';
+import { validateStructuredText, formatValidationMessage } from './validator';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('ControlForge Structured Text extension is now active!');
-
-    // Register the hello world command
-    const helloWorldCommand = vscode.commands.registerCommand('controlforge-structured-text.helloWorld', () => {
-        vscode.window.showInformationMessage('Hello from ControlForge Structured Text!');
-    });
 
     // Register the validate syntax command
     const validateSyntaxCommand = vscode.commands.registerCommand('controlforge-structured-text.validateSyntax', () => {
@@ -22,25 +18,15 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Basic syntax validation (placeholder)
+        // Validate syntax using extracted validation logic
         const text = document.getText();
-        const lines = text.split('\n');
-        let errorCount = 0;
+        const result = validateStructuredText(text);
+        const message = formatValidationMessage(result);
 
-        lines.forEach((line, index) => {
-            // Simple validation: check for unmatched parentheses
-            const openParens = (line.match(/\(/g) || []).length;
-            const closeParens = (line.match(/\)/g) || []).length;
-
-            if (openParens !== closeParens) {
-                errorCount++;
-            }
-        });
-
-        if (errorCount === 0) {
-            vscode.window.showInformationMessage('✅ No basic syntax errors found!');
+        if (result.errorCount === 0) {
+            vscode.window.showInformationMessage(message);
         } else {
-            vscode.window.showWarningMessage(`⚠️ Found ${errorCount} potential syntax issues.`);
+            vscode.window.showWarningMessage(message);
         }
     });
 
@@ -76,7 +62,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Add commands to the extension context
-    context.subscriptions.push(helloWorldCommand);
     context.subscriptions.push(validateSyntaxCommand);
     context.subscriptions.push(onDidOpenTextDocument);
     context.subscriptions.push(completionProvider);
