@@ -178,6 +178,9 @@ END_FUNCTION_BLOCK`;
             assert.ok(keywords.declarationKeywords, 'Should have declaration keywords');
             assert.ok(keywords.dataTypes, 'Should have data types');
             assert.ok(keywords.literals, 'Should have literals');
+            assert.ok(keywords.standardFunctionBlocks, 'Should have standard function blocks');
+            assert.ok(keywords.standardFunctions, 'Should have standard functions');
+            assert.ok(keywords.conversionFunctions, 'Should have conversion functions');
 
             // Test some specific keywords
             const controlKeywordNames = keywords.controlKeywords.map(k => k.keyword);
@@ -189,6 +192,31 @@ END_FUNCTION_BLOCK`;
             assert.ok(dataTypeNames.includes('BOOL'), 'Should include BOOL data type');
             assert.ok(dataTypeNames.includes('INT'), 'Should include INT data type');
             assert.ok(dataTypeNames.includes('REAL'), 'Should include REAL data type');
+
+            // Test standard function blocks
+            const functionBlockNames = keywords.standardFunctionBlocks.map(k => k.keyword);
+            assert.ok(functionBlockNames.includes('TON'), 'Should include TON timer');
+            assert.ok(functionBlockNames.includes('CTU'), 'Should include CTU counter');
+            assert.ok(functionBlockNames.includes('R_TRIG'), 'Should include R_TRIG edge detector');
+
+            // Test standard functions
+            const functionNames = keywords.standardFunctions.map(k => k.keyword);
+            assert.ok(functionNames.includes('ABS'), 'Should include ABS function');
+            assert.ok(functionNames.includes('SQRT'), 'Should include SQRT function');
+            assert.ok(functionNames.includes('SIN'), 'Should include SIN function');
+            assert.ok(functionNames.includes('ADD'), 'Should include ADD function');
+            assert.ok(functionNames.includes('GT'), 'Should include GT comparison function');
+
+            // Test conversion functions
+            const conversionNames = keywords.conversionFunctions.map(k => k.keyword);
+            assert.ok(conversionNames.includes('REAL_TO_TIME'), 'Should include REAL_TO_TIME conversion');
+            assert.ok(conversionNames.includes('INT_TO_STRING'), 'Should include INT_TO_STRING conversion');
+
+            // Test extended data types including generic types
+            assert.ok(dataTypeNames.includes('ANY'), 'Should include ANY generic type');
+            assert.ok(dataTypeNames.includes('ANY_NUM'), 'Should include ANY_NUM generic type');
+            assert.ok(dataTypeNames.includes('LTIME'), 'Should include LTIME extended time type');
+            assert.ok(dataTypeNames.includes('CHAR'), 'Should include CHAR character type');
         });
 
         test('should provide keyword documentation', () => {
@@ -214,6 +242,10 @@ END_FUNCTION_BLOCK`;
             assert.ok(snippetLabels.includes('if-then-end'), 'Should have IF-THEN-END snippet');
             assert.ok(snippetLabels.includes('for-loop'), 'Should have FOR loop snippet');
             assert.ok(snippetLabels.includes('function-block'), 'Should have function block snippet');
+            assert.ok(snippetLabels.includes('configuration'), 'Should have configuration snippet');
+            assert.ok(snippetLabels.includes('timer-on-delay'), 'Should have timer on-delay snippet');
+            assert.ok(snippetLabels.includes('counter-up'), 'Should have counter up snippet');
+            assert.ok(snippetLabels.includes('state-machine'), 'Should have state machine snippet');
         });
 
         test('should provide IF-THEN-END snippet with placeholders', () => {

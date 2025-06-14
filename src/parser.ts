@@ -131,7 +131,12 @@ export function getCompletionKeywords() {
             { keyword: 'END_STRUCT', detail: 'End structure', documentation: 'Closes STRUCT declaration' },
             { keyword: 'ARRAY', detail: 'Array declaration', documentation: 'ARRAY[range] OF type' },
             { keyword: 'STRING', detail: 'String type', documentation: 'String data type' },
-            { keyword: 'WSTRING', detail: 'Wide string type', documentation: 'Wide string data type' }
+            { keyword: 'WSTRING', detail: 'Wide string type', documentation: 'Wide string data type' },
+            { keyword: 'CONFIGURATION', detail: 'Configuration declaration', documentation: 'CONFIGURATION name ... END_CONFIGURATION' },
+            { keyword: 'END_CONFIGURATION', detail: 'End configuration', documentation: 'Closes CONFIGURATION block' },
+            { keyword: 'TASK', detail: 'Task declaration', documentation: 'TASK name(INTERVAL := time)' },
+            { keyword: 'INTERVAL', detail: 'Task interval', documentation: 'Specifies task execution interval' },
+            { keyword: 'WITH', detail: 'Program association', documentation: 'Associates program with task' }
         ],
         dataTypes: [
             { keyword: 'BOOL', detail: 'Boolean type', documentation: 'Boolean data type (TRUE/FALSE)' },
@@ -150,13 +155,35 @@ export function getCompletionKeywords() {
             { keyword: 'REAL', detail: '32-bit float', documentation: '32-bit floating point number' },
             { keyword: 'LREAL', detail: '64-bit float', documentation: '64-bit floating point number' },
             { keyword: 'TIME', detail: 'Time duration', documentation: 'Time duration type (e.g., T#10s)' },
+            { keyword: 'LTIME', detail: 'Long time duration', documentation: 'Extended time duration with nanosecond precision' },
             { keyword: 'DATE', detail: 'Date type', documentation: 'Date type (e.g., D#2023-01-01)' },
+            { keyword: 'LDATE', detail: 'Long date type', documentation: 'Extended date type with nanosecond precision since 1970-01-01' },
             { keyword: 'TIME_OF_DAY', detail: 'Time of day', documentation: 'Time of day type (e.g., TOD#12:30:45)' },
             { keyword: 'TOD', detail: 'Time of day', documentation: 'Short form of TIME_OF_DAY' },
+            { keyword: 'LTIME_OF_DAY', detail: 'Long time of day', documentation: 'Extended time of day with nanosecond precision' },
+            { keyword: 'LTOD', detail: 'Long time of day', documentation: 'Short form of LTIME_OF_DAY' },
             { keyword: 'DATE_AND_TIME', detail: 'Date and time', documentation: 'Combined date and time type' },
             { keyword: 'DT', detail: 'Date and time', documentation: 'Short form of DATE_AND_TIME' },
+            { keyword: 'LDATE_AND_TIME', detail: 'Long date and time', documentation: 'Extended date and time with nanosecond precision' },
+            { keyword: 'LDT', detail: 'Long date and time', documentation: 'Short form of LDATE_AND_TIME' },
+            { keyword: 'CHAR', detail: 'Single-byte character', documentation: 'Single-byte character (ISO/IEC 10646)' },
+            { keyword: 'WCHAR', detail: 'Double-byte character', documentation: 'Double-byte character (ISO/IEC 10646)' },
+            { keyword: 'STRING', detail: 'String type', documentation: 'String data type' },
+            { keyword: 'WSTRING', detail: 'Wide string type', documentation: 'Wide string data type' },
             { keyword: 'POINTER', detail: 'Pointer type', documentation: 'Pointer to memory location' },
-            { keyword: 'REFERENCE', detail: 'Reference type', documentation: 'Reference to another variable' }
+            { keyword: 'REFERENCE', detail: 'Reference type', documentation: 'Reference to another variable' },
+            // Generic data types
+            { keyword: 'ANY', detail: 'Generic any type', documentation: 'Generic type for any data type' },
+            { keyword: 'ANY_DERIVED', detail: 'Any derived type', documentation: 'Generic type for user-defined types' },
+            { keyword: 'ANY_ELEMENTARY', detail: 'Any elementary type', documentation: 'Generic type for elementary data types' },
+            { keyword: 'ANY_MAGNITUDE', detail: 'Any magnitude type', documentation: 'Generic type for comparable types' },
+            { keyword: 'ANY_NUM', detail: 'Any numeric type', documentation: 'Generic type for numeric data types' },
+            { keyword: 'ANY_REAL', detail: 'Any real type', documentation: 'Generic type for real number types' },
+            { keyword: 'ANY_INT', detail: 'Any integer type', documentation: 'Generic type for integer types' },
+            { keyword: 'ANY_BIT', detail: 'Any bit string type', documentation: 'Generic type for bit string types' },
+            { keyword: 'ANY_STRING', detail: 'Any string type', documentation: 'Generic type for string types' },
+            { keyword: 'ANY_CHAR', detail: 'Any character type', documentation: 'Generic type for character types' },
+            { keyword: 'ANY_DATE', detail: 'Any date/time type', documentation: 'Generic type for date/time types' }
         ],
         literals: [
             { keyword: 'TRUE', detail: 'Boolean true', documentation: 'Boolean true value' },
@@ -167,6 +194,65 @@ export function getCompletionKeywords() {
             { keyword: 'XOR', detail: 'Logical XOR', documentation: 'Logical exclusive OR operator' },
             { keyword: 'NOT', detail: 'Logical NOT', documentation: 'Logical NOT operator' },
             { keyword: 'MOD', detail: 'Modulo operator', documentation: 'Modulo (remainder) operator' }
+        ],
+        standardFunctionBlocks: [
+            { keyword: 'TON', detail: 'Timer On-Delay', documentation: 'Timer function block for on-delay timing' },
+            { keyword: 'TOF', detail: 'Timer Off-Delay', documentation: 'Timer function block for off-delay timing' },
+            { keyword: 'TP', detail: 'Timer Pulse', documentation: 'Timer function block for pulse generation' },
+            { keyword: 'CTU', detail: 'Counter Up', documentation: 'Counter function block for up counting' },
+            { keyword: 'CTD', detail: 'Counter Down', documentation: 'Counter function block for down counting' },
+            { keyword: 'CTUD', detail: 'Counter Up/Down', documentation: 'Counter function block for up/down counting' },
+            { keyword: 'R_TRIG', detail: 'Rising Edge Trigger', documentation: 'Detects rising edge of boolean signal' },
+            { keyword: 'F_TRIG', detail: 'Falling Edge Trigger', documentation: 'Detects falling edge of boolean signal' },
+            { keyword: 'RS', detail: 'Reset-Set Flip-Flop', documentation: 'Reset-dominant bistable function block' },
+            { keyword: 'SR', detail: 'Set-Reset Flip-Flop', documentation: 'Set-dominant bistable function block' }
+        ],
+        standardFunctions: [
+            { keyword: 'ABS', detail: 'Absolute value', documentation: 'Returns absolute value of input' },
+            { keyword: 'SQRT', detail: 'Square root', documentation: 'Returns square root of input' },
+            { keyword: 'LN', detail: 'Natural logarithm', documentation: 'Returns natural logarithm of input' },
+            { keyword: 'LOG', detail: 'Base-10 logarithm', documentation: 'Returns base-10 logarithm of input' },
+            { keyword: 'EXP', detail: 'Exponential', documentation: 'Returns e raised to the power of input' },
+            { keyword: 'SIN', detail: 'Sine function', documentation: 'Returns sine of input (in radians)' },
+            { keyword: 'COS', detail: 'Cosine function', documentation: 'Returns cosine of input (in radians)' },
+            { keyword: 'TAN', detail: 'Tangent function', documentation: 'Returns tangent of input (in radians)' },
+            { keyword: 'ASIN', detail: 'Arc sine', documentation: 'Returns arc sine of input' },
+            { keyword: 'ACOS', detail: 'Arc cosine', documentation: 'Returns arc cosine of input' },
+            { keyword: 'ATAN', detail: 'Arc tangent', documentation: 'Returns arc tangent of input' },
+            { keyword: 'MIN', detail: 'Minimum value', documentation: 'Returns minimum of input values' },
+            { keyword: 'MAX', detail: 'Maximum value', documentation: 'Returns maximum of input values' },
+            { keyword: 'LIMIT', detail: 'Limit value', documentation: 'Limits value between min and max bounds' },
+            { keyword: 'MUX', detail: 'Multiplexer', documentation: 'Selects one of multiple inputs based on selector' },
+            { keyword: 'SEL', detail: 'Binary selector', documentation: 'Selects between two inputs based on boolean' },
+            // Arithmetic functions mentioned in IEC 61131-3
+            { keyword: 'ADD', detail: 'Addition', documentation: 'Adds two or more values' },
+            { keyword: 'SUB', detail: 'Subtraction', documentation: 'Subtracts second value from first' },
+            { keyword: 'MUL', detail: 'Multiplication', documentation: 'Multiplies two or more values' },
+            { keyword: 'DIV', detail: 'Division', documentation: 'Divides first value by second' },
+            // Comparison functions
+            { keyword: 'GT', detail: 'Greater than', documentation: 'Returns TRUE if first input > second input' },
+            { keyword: 'GE', detail: 'Greater or equal', documentation: 'Returns TRUE if first input >= second input' },
+            { keyword: 'LT', detail: 'Less than', documentation: 'Returns TRUE if first input < second input' },
+            { keyword: 'LE', detail: 'Less or equal', documentation: 'Returns TRUE if first input <= second input' },
+            { keyword: 'EQ', detail: 'Equal', documentation: 'Returns TRUE if inputs are equal' },
+            { keyword: 'NE', detail: 'Not equal', documentation: 'Returns TRUE if inputs are not equal' }
+        ],
+        conversionFunctions: [
+            { keyword: 'BOOL_TO_INT', detail: 'Boolean to Integer', documentation: 'Converts BOOL to INT' },
+            { keyword: 'BOOL_TO_DINT', detail: 'Boolean to Double Integer', documentation: 'Converts BOOL to DINT' },
+            { keyword: 'BOOL_TO_REAL', detail: 'Boolean to Real', documentation: 'Converts BOOL to REAL' },
+            { keyword: 'INT_TO_BOOL', detail: 'Integer to Boolean', documentation: 'Converts INT to BOOL' },
+            { keyword: 'INT_TO_DINT', detail: 'Integer to Double Integer', documentation: 'Converts INT to DINT' },
+            { keyword: 'INT_TO_REAL', detail: 'Integer to Real', documentation: 'Converts INT to REAL' },
+            { keyword: 'DINT_TO_BOOL', detail: 'Double Integer to Boolean', documentation: 'Converts DINT to BOOL' },
+            { keyword: 'DINT_TO_INT', detail: 'Double Integer to Integer', documentation: 'Converts DINT to INT' },
+            { keyword: 'DINT_TO_REAL', detail: 'Double Integer to Real', documentation: 'Converts DINT to REAL' },
+            { keyword: 'REAL_TO_INT', detail: 'Real to Integer', documentation: 'Converts REAL to INT' },
+            { keyword: 'REAL_TO_DINT', detail: 'Real to Double Integer', documentation: 'Converts REAL to DINT' },
+            { keyword: 'REAL_TO_TIME', detail: 'Real to Time', documentation: 'Converts REAL to TIME' },
+            { keyword: 'TIME_TO_REAL', detail: 'Time to Real', documentation: 'Converts TIME to REAL' },
+            { keyword: 'STRING_TO_INT', detail: 'String to Integer', documentation: 'Converts STRING to INT' },
+            { keyword: 'INT_TO_STRING', detail: 'Integer to String', documentation: 'Converts INT to STRING' }
         ]
     };
 }
@@ -223,6 +309,30 @@ export function getCodeSnippets() {
             insertText: 'PROGRAM ${1:ProgramName}\nVAR\n\t${2:variable} : ${3:INT} := ${4:0};\nEND_VAR\n\n${5:// Program code}\n\nEND_PROGRAM',
             detail: 'Program template',
             documentation: 'Creates a program template'
+        },
+        {
+            label: 'configuration',
+            insertText: 'CONFIGURATION ${1:DefaultCfg}\nVAR_GLOBAL\n\t${2:global_var} : ${3:BOOL};\nEND_VAR\n\nTASK ${4:MainTask}(INTERVAL := ${5:t#20ms});\nPROGRAM ${6:Main} WITH ${4:MainTask} : ${7:ProgramName};\nEND_CONFIGURATION',
+            detail: 'Configuration template',
+            documentation: 'Creates a PLC configuration with task and program'
+        },
+        {
+            label: 'timer-on-delay',
+            insertText: '${1:myTimer} : TON;\n${1:myTimer}(\n\tIN := ${2:trigger},\n\tPT := ${3:T#1S}\n);\n${4:output} := ${1:myTimer}.Q;',
+            detail: 'Timer On-Delay (TON)',
+            documentation: 'Creates a timer on-delay function block instance'
+        },
+        {
+            label: 'counter-up',
+            insertText: '${1:myCounter} : CTU;\n${1:myCounter}(\n\tCU := ${2:count_trigger},\n\tR := ${3:reset},\n\tPV := ${4:100}\n);\n${5:current_value} := ${1:myCounter}.CV;',
+            detail: 'Counter Up (CTU)',
+            documentation: 'Creates a counter up function block instance'
+        },
+        {
+            label: 'state-machine',
+            insertText: 'CASE ${1:StateMachine} OF\n\t${2:1}: ${3:// State 1 code}\n\t\t${1:StateMachine} := ${4:2};\n\t${4:2}: ${5:// State 2 code}\n\t\t${1:StateMachine} := ${6:1};\nELSE\n\t${7:// Default case}\nEND_CASE',
+            detail: 'State machine template',
+            documentation: 'Creates a basic state machine structure'
         }
     ];
 }

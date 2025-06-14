@@ -186,6 +186,28 @@ END_FUNCTION_BLOCK
             assert.ok(completionLabels.includes('BOOL'), 'Should include BOOL data type');
             assert.ok(completionLabels.includes('INT'), 'Should include INT data type');
             assert.ok(completionLabels.includes('REAL'), 'Should include REAL data type');
+
+            // Check for new standard function blocks
+            assert.ok(completionLabels.includes('TON'), 'Should include TON timer');
+            assert.ok(completionLabels.includes('CTU'), 'Should include CTU counter');
+            assert.ok(completionLabels.includes('R_TRIG'), 'Should include R_TRIG edge detector');
+
+            // Check for configuration keywords
+            assert.ok(completionLabels.includes('CONFIGURATION'), 'Should include CONFIGURATION keyword');
+            assert.ok(completionLabels.includes('TASK'), 'Should include TASK keyword');
+            assert.ok(completionLabels.includes('INTERVAL'), 'Should include INTERVAL keyword');
+
+            // Check for conversion functions
+            assert.ok(completionLabels.includes('REAL_TO_TIME'), 'Should include REAL_TO_TIME conversion');
+            assert.ok(completionLabels.includes('INT_TO_STRING'), 'Should include INT_TO_STRING conversion');
+
+            // Check for additional standard functions
+            assert.ok(completionLabels.includes('ADD'), 'Should include ADD function');
+            assert.ok(completionLabels.includes('GT'), 'Should include GT comparison function');
+
+            // Check for generic data types
+            assert.ok(completionLabels.includes('ANY'), 'Should include ANY generic type');
+            assert.ok(completionLabels.includes('LTIME'), 'Should include LTIME extended time type');
         });
 
         test('Should provide variable completions from document', async function () {
@@ -277,6 +299,10 @@ END_FUNCTION_BLOCK
             assert.ok(completionLabels.includes('while-loop'), 'Should include WHILE loop snippet');
             assert.ok(completionLabels.includes('function-block'), 'Should include function block snippet');
             assert.ok(completionLabels.includes('var-block'), 'Should include VAR block snippet');
+            assert.ok(completionLabels.includes('configuration'), 'Should include configuration snippet');
+            assert.ok(completionLabels.includes('timer-on-delay'), 'Should include timer on-delay snippet');
+            assert.ok(completionLabels.includes('counter-up'), 'Should include counter up snippet');
+            assert.ok(completionLabels.includes('state-machine'), 'Should include state machine snippet');
         });
 
         test('Should provide completion items with proper kinds', async function () {
