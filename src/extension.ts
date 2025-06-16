@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { validateStructuredText, formatValidationMessage } from './validator';
-import { extractVariables, extractFunctionBlocks, getCompletionKeywords, getCodeSnippets } from './parser';
+import { extractVariables, extractFunctionBlocks, extractFunctionBlockInstances, getFunctionBlockMembers, getCompletionKeywords, getCodeSnippets } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('ControlForge Structured Text extension is now active!');
@@ -48,7 +48,35 @@ export function activate(context: vscode.ExtensionContext) {
             provideCompletionItems(document, position, token, context) {
                 const completions: vscode.CompletionItem[] = [];
                 const line = document.lineAt(position).text;
-                const linePrefix = line.substring(0, position.character).toLowerCase();
+                const linePrefix = line.substring(0, position.character);
+                const documentText = document.getText();
+
+                // Check if we're completing after a dot (function block instance member access)
+                const dotMatch = linePrefix.match(/(\w+)\.$/);
+                if (dotMatch) {
+                    const instanceName = dotMatch[1];
+
+                    // Extract function block instances from current document
+                    const fbInstances = extractFunctionBlockInstances(documentText);
+                    const instance = fbInstances.find(inst => inst.name === instanceName);
+
+                    if (instance) {
+                        // Get the members for this function block type
+                        const members = getFunctionBlockMembers(instance.type);
+                        members.forEach(member => {
+                            const item = new vscode.CompletionItem(member.name, vscode.CompletionItemKind.Property);
+                            item.detail = `${member.type} - ${instance.type}.${member.name}`;
+                            item.documentation = new vscode.MarkdownString(member.description);
+                            item.insertText = member.name;
+                            completions.push(item);
+                        });
+
+                        return completions; // Return only member completions for dot notation
+                    }
+                }
+
+                // Regular completion (not after dot)
+                const linePrefixLower = linePrefix.toLowerCase();
 
                 // Get keyword categories from parser
                 const { controlKeywords, declarationKeywords, dataTypes, literals, standardFunctionBlocks, standardFunctions, conversionFunctions } = getCompletionKeywords();
@@ -195,8 +223,8 @@ export function activate(context: vscode.ExtensionContext) {
                 completions.push(...snippets);
 
                 // Extract variables from current document
-                const documentText = document.getText();
-                const variables = extractVariables(documentText);
+                const currentDocumentText = document.getText();
+                const variables = extractVariables(currentDocumentText);
                 variables.forEach(variable => {
                     const item = new vscode.CompletionItem(variable.name, vscode.CompletionItemKind.Variable);
                     item.detail = `${variable.type} variable`;
@@ -206,12 +234,22 @@ export function activate(context: vscode.ExtensionContext) {
                 });
 
                 // Extract function blocks from current document
-                const functionBlocks = extractFunctionBlocks(documentText);
+                const functionBlocks = extractFunctionBlocks(currentDocumentText);
                 functionBlocks.forEach(fb => {
                     const item = new vscode.CompletionItem(fb.name, vscode.CompletionItemKind.Class);
                     item.detail = `Function block`;
                     item.documentation = new vscode.MarkdownString(`Function block: ${fb.name}`);
                     item.insertText = fb.name;
+                    completions.push(item);
+                });
+
+                // Extract function block instances from current document
+                const fbInstances = extractFunctionBlockInstances(currentDocumentText);
+                fbInstances.forEach(instance => {
+                    const item = new vscode.CompletionItem(instance.name, vscode.CompletionItemKind.Variable);
+                    item.detail = `${instance.type} instance`;
+                    item.documentation = new vscode.MarkdownString(`Function block instance of type ${instance.type}`);
+                    item.insertText = instance.name;
                     completions.push(item);
                 });
 

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { extractVariables, extractFunctionBlocks, getCompletionKeywords, getCodeSnippets } from '../../parser';
+import { extractVariables, extractFunctionBlocks, extractFunctionBlockInstances, getFunctionBlockMembers, getCompletionKeywords, getCodeSnippets } from '../../parser';
 
 // Test the parser functions that support completion functionality
 
@@ -281,6 +281,179 @@ END_FUNCTION_BLOCK`;
             assert.ok(fbSnippet!.insertText.includes('VAR_OUTPUT'), 'Should contain VAR_OUTPUT section');
             assert.ok(fbSnippet!.insertText.includes('VAR'), 'Should contain VAR section');
             assert.ok(fbSnippet!.insertText.includes('END_FUNCTION_BLOCK'), 'Should contain END_FUNCTION_BLOCK keyword');
+        });
+    });
+
+    suite('Function Block Instance Extraction', () => {
+        test('should extract function block instances from VAR block', () => {
+            const code = `PROGRAM Test
+VAR
+    myTimer : TON;
+    counter : CTU;
+    edge : R_TRIG;
+    temperature : REAL := 25.5;
+END_VAR
+END_PROGRAM`;
+
+            const instances = extractFunctionBlockInstances(code);
+
+            assert.strictEqual(instances.length, 3);
+            assert.strictEqual(instances[0].name, 'myTimer');
+            assert.strictEqual(instances[0].type, 'TON');
+            assert.strictEqual(instances[1].name, 'counter');
+            assert.strictEqual(instances[1].type, 'CTU');
+            assert.strictEqual(instances[2].name, 'edge');
+            assert.strictEqual(instances[2].type, 'R_TRIG');
+        });
+
+        test('should extract function block instances with initialization', () => {
+            const code = `VAR
+    upCounter : CTU := (PV := 100);
+    timer : TON := (PT := T#5s);
+    normalVar : INT := 42;
+END_VAR`;
+
+            const instances = extractFunctionBlockInstances(code);
+
+            assert.strictEqual(instances.length, 2);
+            assert.strictEqual(instances[0].name, 'upCounter');
+            assert.strictEqual(instances[0].type, 'CTU');
+            assert.strictEqual(instances[1].name, 'timer');
+            assert.strictEqual(instances[1].type, 'TON');
+        });
+
+        test('should handle multiple VAR blocks', () => {
+            const code = `FUNCTION_BLOCK FB_Test
+VAR_INPUT
+    start : BOOL;
+END_VAR
+VAR_OUTPUT
+    running : BOOL;
+END_VAR
+VAR
+    internalTimer : TP;
+    state : INT;
+END_VAR
+END_FUNCTION_BLOCK
+
+PROGRAM Main
+VAR
+    motor : FB_Test;
+    pulseGen : TP;
+END_VAR
+END_PROGRAM`;
+
+            const instances = extractFunctionBlockInstances(code);
+
+            assert.strictEqual(instances.length, 2);
+            assert.strictEqual(instances[0].name, 'internalTimer');
+            assert.strictEqual(instances[0].type, 'TP');
+            assert.strictEqual(instances[1].name, 'pulseGen');
+            assert.strictEqual(instances[1].type, 'TP');
+        });
+
+        test('should only extract standard function block types', () => {
+            const code = `VAR
+    timer : TON;
+    counter : CTU;
+    customFB : MyCustomFB;
+    normalVar : INT;
+    edge : R_TRIG;
+END_VAR`;
+
+            const instances = extractFunctionBlockInstances(code);
+
+            // Should only find standard FB types, not MyCustomFB or INT
+            assert.strictEqual(instances.length, 3);
+            const names = instances.map(i => i.name);
+            assert.ok(names.includes('timer'));
+            assert.ok(names.includes('counter'));
+            assert.ok(names.includes('edge'));
+            assert.ok(!names.includes('customFB'));
+            assert.ok(!names.includes('normalVar'));
+        });
+    });
+
+    suite('Function Block Members', () => {
+        test('should return correct members for TON timer', () => {
+            const members = getFunctionBlockMembers('TON');
+
+            assert.strictEqual(members.length, 2);
+            assert.strictEqual(members[0].name, 'Q');
+            assert.strictEqual(members[0].type, 'BOOL');
+            assert.ok(members[0].description.includes('Timer output'));
+
+            assert.strictEqual(members[1].name, 'ET');
+            assert.strictEqual(members[1].type, 'TIME');
+            assert.ok(members[1].description.includes('Elapsed Time'));
+        });
+
+        test('should return correct members for CTU counter', () => {
+            const members = getFunctionBlockMembers('CTU');
+
+            assert.strictEqual(members.length, 2);
+            assert.strictEqual(members[0].name, 'Q');
+            assert.strictEqual(members[0].type, 'BOOL');
+            assert.strictEqual(members[1].name, 'CV');
+            assert.strictEqual(members[1].type, 'INT');
+        });
+
+        test('should return correct members for CTUD counter', () => {
+            const members = getFunctionBlockMembers('CTUD');
+
+            assert.strictEqual(members.length, 3);
+            assert.strictEqual(members[0].name, 'QU');
+            assert.strictEqual(members[0].type, 'BOOL');
+            assert.strictEqual(members[1].name, 'QD');
+            assert.strictEqual(members[1].type, 'BOOL');
+            assert.strictEqual(members[2].name, 'CV');
+            assert.strictEqual(members[2].type, 'INT');
+        });
+
+        test('should return correct members for edge triggers', () => {
+            const rTrigMembers = getFunctionBlockMembers('R_TRIG');
+            const fTrigMembers = getFunctionBlockMembers('F_TRIG');
+
+            assert.strictEqual(rTrigMembers.length, 1);
+            assert.strictEqual(rTrigMembers[0].name, 'Q');
+            assert.strictEqual(rTrigMembers[0].type, 'BOOL');
+
+            assert.strictEqual(fTrigMembers.length, 1);
+            assert.strictEqual(fTrigMembers[0].name, 'Q');
+            assert.strictEqual(fTrigMembers[0].type, 'BOOL');
+        });
+
+        test('should return correct members for bistable function blocks', () => {
+            const rsMembers = getFunctionBlockMembers('RS');
+            const srMembers = getFunctionBlockMembers('SR');
+
+            assert.strictEqual(rsMembers.length, 1);
+            assert.strictEqual(rsMembers[0].name, 'Q1');
+            assert.strictEqual(rsMembers[0].type, 'BOOL');
+
+            assert.strictEqual(srMembers.length, 1);
+            assert.strictEqual(srMembers[0].name, 'Q1');
+            assert.strictEqual(srMembers[0].type, 'BOOL');
+        });
+
+        test('should return empty array for unknown function block type', () => {
+            const members = getFunctionBlockMembers('UnknownType');
+            assert.strictEqual(members.length, 0);
+        });
+
+        test('should return correct members for all timer types', () => {
+            const tonMembers = getFunctionBlockMembers('TON');
+            const tofMembers = getFunctionBlockMembers('TOF');
+            const tpMembers = getFunctionBlockMembers('TP');
+
+            // All timers should have Q and ET
+            [tonMembers, tofMembers, tpMembers].forEach(members => {
+                assert.strictEqual(members.length, 2);
+                assert.strictEqual(members[0].name, 'Q');
+                assert.strictEqual(members[0].type, 'BOOL');
+                assert.strictEqual(members[1].name, 'ET');
+                assert.strictEqual(members[1].type, 'TIME');
+            });
         });
     });
 });

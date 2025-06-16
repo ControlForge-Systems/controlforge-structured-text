@@ -33,11 +33,11 @@
                 },
                 {
                     "name": "keyword.declaration.st",
-                    "match": "\\b(VAR|VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR_GLOBAL|VAR_ACCESS|VAR_CONFIG|VAR_EXTERNAL|END_VAR|CONSTANT|RETAIN|NON_RETAIN|PERSISTENT|AT|PROGRAM|END_PROGRAM|FUNCTION|END_FUNCTION|FUNCTION_BLOCK|END_FUNCTION_BLOCK|TYPE|END_TYPE|STRUCT|END_STRUCT|ARRAY|STRING|WSTRING)\\b"
+                    "match": "\\b(VAR|VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR_GLOBAL|VAR_ACCESS|VAR_CONFIG|VAR_EXTERNAL|END_VAR|CONSTANT|RETAIN|NON_RETAIN|PERSISTENT|AT|PROGRAM|END_PROGRAM|FUNCTION|END_FUNCTION|FUNCTION_BLOCK|END_FUNCTION_BLOCK|TYPE|END_TYPE|STRUCT|END_STRUCT|ARRAY|STRING|WSTRING|CONFIGURATION|END_CONFIGURATION|RESOURCE|END_RESOURCE|TASK)\\b"
                 },
                 {
                     "name": "keyword.other.st",
-                    "match": "\\b(TRUE|FALSE|NULL|THIS|SUPER|ABSTRACT|FINAL|IMPLEMENTS|EXTENDS|INTERFACE|METHOD|PROPERTY|NAMESPACE|USING|WITH|CONFIGURATION|RESOURCE|TASK|ON|PRIORITY|SINGLE|INTERVAL|PROGRAM|WITH|VAR_GLOBAL|VAR_ACCESS|READ_WRITE|READ_ONLY|WRITE_ONLY)\\b"
+                    "match": "\\b(TRUE|FALSE|NULL|THIS|SUPER|ABSTRACT|FINAL|IMPLEMENTS|EXTENDS|INTERFACE|METHOD|PROPERTY|NAMESPACE|USING|WITH|RESOURCE|ON|PRIORITY|SINGLE|INTERVAL|PROGRAM|WITH|VAR_GLOBAL|VAR_ACCESS|READ_WRITE|READ_ONLY|WRITE_ONLY)\\b"
                 }
             ]
         },
@@ -45,7 +45,7 @@
             "patterns": [
                 {
                     "name": "storage.type.st",
-                    "match": "\\b(BOOL|BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL|TIME|LTIME|DATE|LDATE|TIME_OF_DAY|TOD|DATE_AND_TIME|DT|STRING|WSTRING|CHAR|WCHAR|POINTER|REFERENCE|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_BIT|ANY_STRING|ANY_DATE)\\b"
+                    "match": "\\b(BOOL|BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL|TIME|LTIME|DATE|LDATE|TIME_OF_DAY|TOD|DATE_AND_TIME|DT|STRING|WSTRING|CHAR|WCHAR|POINTER|REFERENCE|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_BIT|ANY_STRING|ANY_DATE|TON|TOF|TP|CTU|CTD|CTUD|R_TRIG|F_TRIG|RS|SR)\\b"
                 }
             ]
         },
@@ -99,6 +99,54 @@
         },
         "numbers": {
             "patterns": [
+                {
+                    "name": "constant.numeric.time.st",
+                    "match": "\\b(L?TIME#[0-9]+(?:[dhms]|ms|us|ns)(?:_[0-9]+(?:[dhms]|ms|us|ns))*)\\b"
+                },
+                {
+                    "name": "constant.numeric.time.st",
+                    "match": "\\b(T#[0-9]+(?:[dhms]|ms|us|ns)(?:_[0-9]+(?:[dhms]|ms|us|ns))*)\\b"
+                },
+                {
+                    "name": "constant.numeric.date.st",
+                    "match": "\\b(L?DATE#[0-9]{4}-[0-9]{2}-[0-9]{2})\\b"
+                },
+                {
+                    "name": "constant.numeric.date.st",
+                    "match": "\\b(D#[0-9]{4}-[0-9]{2}-[0-9]{2})\\b"
+                },
+                {
+                    "name": "constant.numeric.time-of-day.st",
+                    "match": "\\b(L?TIME_OF_DAY#[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?)\\b"
+                },
+                {
+                    "name": "constant.numeric.time-of-day.st",
+                    "match": "\\b(L?TOD#[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?)\\b"
+                },
+                {
+                    "name": "constant.numeric.datetime.st",
+                    "match": "\\b(L?DATE_AND_TIME#[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?)\\b"
+                },
+                {
+                    "name": "constant.numeric.datetime.st",
+                    "match": "\\b(L?DT#[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?)\\b"
+                },
+                {
+                    "name": "constant.numeric.typed-hex.st",
+                    "match": "\\b((?:BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT)#16#[0-9A-Fa-f]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.typed-binary.st",
+                    "match": "\\b((?:BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT)#2#[01]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.typed-octal.st",
+                    "match": "\\b((?:BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT)#8#[0-7]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.typed-decimal.st",
+                    "match": "\\b((?:SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL)#[0-9]+(?:\\.[0-9]+(?:[eE][+-]?[0-9]+)?)?)\\b"
+                },
                 {
                     "name": "constant.numeric.integer.st",
                     "match": "\\b([0-9]+)\\b"

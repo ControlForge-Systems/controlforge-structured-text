@@ -463,4 +463,262 @@ END_FUNCTION_BLOCK
             await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
         });
     });
+
+    suite('Function Block Instance Member Completion', () => {
+        test('Should provide member completion for function block instances', async () => {
+            if (!workspaceFolder) {
+                console.warn('Skipping test: No workspace folder available');
+                return;
+            }
+
+            // Create a test document with function block instances
+            const testCode = `PROGRAM TestInstanceMembers
+VAR
+    pulseTimer : TP;
+    upCounter : CTU;
+    downCounter : CTD;
+    upDownCounter : CTUD;
+    risingEdge : R_TRIG;
+    fallingEdge : F_TRIG;
+    setReset : RS;
+    resetSet : SR;
+    onTimer : TON;
+    offTimer : TOF;
+END_VAR
+
+// Test completion here
+`;
+
+            const doc = await vscode.workspace.openTextDocument({
+                content: testCode,
+                language: 'structured-text'
+            });
+
+            const editor = await vscode.window.showTextDocument(doc);
+
+            // Test TP (pulse timer) member completion
+            const testPosition = new vscode.Position(14, 0); // Start of the comment line
+            await editor.edit(edit => {
+                edit.replace(new vscode.Range(14, 0, 14, 21), 'pulseTimer.'); // Replace the comment
+            });
+
+            const tpCompletions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                new vscode.Position(14, 11) // After "pulseTimer."
+            );
+
+            assert.ok(tpCompletions, 'Should get completions for TP instance');
+            const tpLabels = tpCompletions.items.map(item => item.label as string);
+            assert.ok(tpLabels.includes('Q'), 'TP should have Q output');
+            assert.ok(tpLabels.includes('ET'), 'TP should have ET output');
+            assert.strictEqual(tpLabels.length, 2, 'TP should have exactly 2 outputs');
+
+            // Test CTU (up counter) member completion
+            await editor.edit(edit => {
+                edit.insert(new vscode.Position(15, 0), 'upCounter.');
+            });
+
+            const ctuCompletions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                new vscode.Position(15, 10) // After "upCounter."
+            );
+
+            assert.ok(ctuCompletions, 'Should get completions for CTU instance');
+            const ctuLabels = ctuCompletions.items.map(item => item.label as string);
+            assert.ok(ctuLabels.includes('Q'), 'CTU should have Q output');
+            assert.ok(ctuLabels.includes('CV'), 'CTU should have CV output');
+            assert.strictEqual(ctuLabels.length, 2, 'CTU should have exactly 2 outputs');
+
+            // Test CTUD (up/down counter) member completion
+            await editor.edit(edit => {
+                edit.insert(new vscode.Position(16, 0), 'upDownCounter.');
+            });
+
+            const ctudCompletions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                new vscode.Position(16, 14) // After "upDownCounter."
+            );
+
+            assert.ok(ctudCompletions, 'Should get completions for CTUD instance');
+            const ctudLabels = ctudCompletions.items.map(item => item.label as string);
+            assert.ok(ctudLabels.includes('QU'), 'CTUD should have QU output');
+            assert.ok(ctudLabels.includes('QD'), 'CTUD should have QD output');
+            assert.ok(ctudLabels.includes('CV'), 'CTUD should have CV output');
+            assert.strictEqual(ctudLabels.length, 3, 'CTUD should have exactly 3 outputs');
+
+            // Test R_TRIG (rising edge) member completion
+            await editor.edit(edit => {
+                edit.insert(new vscode.Position(17, 0), 'risingEdge.');
+            });
+
+            const rtrigCompletions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                new vscode.Position(17, 11) // After "risingEdge."
+            );
+
+            assert.ok(rtrigCompletions, 'Should get completions for R_TRIG instance');
+            const rtrigLabels = rtrigCompletions.items.map(item => item.label as string);
+            assert.ok(rtrigLabels.includes('Q'), 'R_TRIG should have Q output');
+            assert.strictEqual(rtrigLabels.length, 1, 'R_TRIG should have exactly 1 output');
+
+            // Close the document
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        });
+
+        test('Should provide member completion details and documentation', async () => {
+            if (!workspaceFolder) {
+                console.warn('Skipping test: No workspace folder available');
+                return;
+            }
+
+            const testCode = `PROGRAM TestMemberDetails
+VAR
+    myTimer : TON;
+END_VAR
+
+// Test: myTimer.
+`;
+
+            const doc = await vscode.workspace.openTextDocument({
+                content: testCode,
+                language: 'structured-text'
+            });
+
+            const editor = await vscode.window.showTextDocument(doc);
+
+            // Position after "myTimer."
+            await editor.edit(edit => {
+                edit.insert(new vscode.Position(5, 17), 'myTimer.');
+            });
+
+            const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                new vscode.Position(5, 26)
+            );
+
+            assert.ok(completions, 'Should get completions');
+
+            // Check Q member details
+            const qItem = completions.items.find(item => item.label === 'Q');
+            assert.ok(qItem, 'Should find Q member');
+            assert.strictEqual(qItem.kind, vscode.CompletionItemKind.Property, 'Q should be a Property');
+            assert.ok(qItem.detail?.includes('BOOL'), 'Q detail should include BOOL type');
+            assert.ok(qItem.detail?.includes('TON'), 'Q detail should include TON type');
+
+            // Check ET member details
+            const etItem = completions.items.find(item => item.label === 'ET');
+            assert.ok(etItem, 'Should find ET member');
+            assert.strictEqual(etItem.kind, vscode.CompletionItemKind.Property, 'ET should be a Property');
+            assert.ok(etItem.detail?.includes('TIME'), 'ET detail should include TIME type');
+            assert.ok(etItem.detail?.includes('TON'), 'ET detail should include TON type');
+
+            // Close the document
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        });
+
+        test('Should not provide member completion for non-function-block variables', async () => {
+            if (!workspaceFolder) {
+                console.warn('Skipping test: No workspace folder available');
+                return;
+            }
+
+            const testCode = `PROGRAM TestNonFB
+VAR
+    normalVar : INT;
+    boolVar : BOOL;
+END_VAR
+
+// Test: normalVar.
+`;
+
+            const doc = await vscode.workspace.openTextDocument({
+                content: testCode,
+                language: 'structured-text'
+            });
+
+            const editor = await vscode.window.showTextDocument(doc);
+
+            // Position after "normalVar."
+            await editor.edit(edit => {
+                edit.insert(new vscode.Position(6, 19), 'normalVar.');
+            });
+
+            const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                new vscode.Position(6, 29)
+            );
+
+            // Should get general completions, not specific member completions
+            assert.ok(completions, 'Should get completions');
+
+            // Check that we get general completions (keywords, etc.), not member-specific ones
+            const labels = completions.items.map(item => item.label as string);
+            assert.ok(labels.length > 10, 'Should get many general completions');
+            assert.ok(labels.includes('IF'), 'Should include general keywords');
+            assert.ok(labels.includes('WHILE'), 'Should include general keywords');
+
+            // Close the document
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        });
+
+        test('Should provide function block instances in general completion', async () => {
+            if (!workspaceFolder) {
+                console.warn('Skipping test: No workspace folder available');
+                return;
+            }
+
+            const testCode = `PROGRAM TestFBInstances
+VAR
+    timer1 : TON;
+    counter1 : CTU;
+    edge1 : R_TRIG;
+    normalVar : INT;
+END_VAR
+
+// Test completion here
+`;
+
+            const doc = await vscode.workspace.openTextDocument({
+                content: testCode,
+                language: 'structured-text'
+            });
+
+            const editor = await vscode.window.showTextDocument(doc);
+
+            // Position at the end for general completion
+            const position = new vscode.Position(8, 23);
+
+            const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+                'vscode.executeCompletionItemProvider',
+                doc.uri,
+                position
+            );
+
+            assert.ok(completions, 'Should get completions');
+            const labels = completions.items.map(item => item.label as string);
+
+            // Should include function block instances
+            assert.ok(labels.includes('timer1'), 'Should include timer1 instance');
+            assert.ok(labels.includes('counter1'), 'Should include counter1 instance');
+            assert.ok(labels.includes('edge1'), 'Should include edge1 instance');
+
+            // Should also include normal variables
+            assert.ok(labels.includes('normalVar'), 'Should include normalVar');
+
+            // Check that FB instances have correct details
+            const timer1Item = completions.items.find(item => item.label === 'timer1');
+            assert.ok(timer1Item, 'Should find timer1 item');
+            assert.strictEqual(timer1Item.kind, vscode.CompletionItemKind.Variable, 'FB instance should be Variable kind');
+            assert.ok(timer1Item.detail?.includes('TON'), 'timer1 detail should include TON type');
+
+            // Close the document
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        });
+    });
 });

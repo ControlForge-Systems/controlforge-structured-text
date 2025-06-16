@@ -26,10 +26,22 @@ VAR
     ulintVar : ULINT := 18446744073709551615;
     lrealVar : LREAL := 2.71828182845904523536;
     
+    // Typed numeric literals (alternative IEC 61131-3 syntax)
+    typedLWord : LWORD := LWORD#16#123456789ABCDEF0;
+    typedWord : WORD := WORD#16#ABCD;
+    typedByte : BYTE := BYTE#16#FF;
+    
     // Generic types
     anyVar : ANY;
     anyNumVar : ANY_NUM;
     anyRealVar : ANY_REAL;
+    
+    // Standard function block types (should be highlighted)
+    myTimer : TON;
+    myPulse : TP;
+    myCounter : CTU;
+    myEdgeDetector : R_TRIG;
+    myFlipFlop : RS;
 END_VAR
 
 // Test control structures with highlighting

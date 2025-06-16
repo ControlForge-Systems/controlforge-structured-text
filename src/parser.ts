@@ -13,6 +13,17 @@ export interface FunctionBlock {
     name: string;
 }
 
+export interface FunctionBlockInstance {
+    name: string;
+    type: string;
+}
+
+export interface FunctionBlockMember {
+    name: string;
+    type: string;
+    description: string;
+}
+
 /**
  * Extracts variable declarations from Structured Text code
  * @param text The Structured Text code to parse
@@ -335,4 +346,108 @@ export function getCodeSnippets() {
             documentation: 'Creates a basic state machine structure'
         }
     ];
+}
+
+/**
+ * Extracts function block instances from Structured Text code
+ * @param text The Structured Text code to parse
+ * @returns Array of function block instances found in VAR blocks
+ */
+export function extractFunctionBlockInstances(text: string): FunctionBlockInstance[] {
+    const instances: FunctionBlockInstance[] = [];
+    const lines = text.split('\n');
+    let inVarBlock = false;
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        // Check if we're entering a VAR block
+        if (trimmedLine.match(/^VAR(?:_INPUT|_OUTPUT|_IN_OUT|_TEMP|_GLOBAL|_ACCESS|_CONFIG|_EXTERNAL)?$/)) {
+            inVarBlock = true;
+            continue;
+        }
+
+        // Check if we're leaving a VAR block
+        if (trimmedLine === 'END_VAR') {
+            inVarBlock = false;
+            continue;
+        }
+
+        // If we're in a VAR block, extract function block instance declarations
+        if (inVarBlock && trimmedLine.includes(':')) {
+            // Match variable declarations like: myTimer : TON; or upCounter : CTU := (PV := 100);
+            const match = trimmedLine.match(/^\s*(\w+)\s*:\s*(\w+)(?:\s*:=.*)?;?/);
+            if (match) {
+                const variableName = match[1];
+                const typeName = match[2];
+
+                // Check if the type is a known function block type
+                if (isStandardFunctionBlockType(typeName)) {
+                    instances.push({
+                        name: variableName,
+                        type: typeName
+                    });
+                }
+            }
+        }
+    }
+
+    return instances;
+}
+
+/**
+ * Checks if a type name is a standard function block type
+ */
+function isStandardFunctionBlockType(typeName: string): boolean {
+    const standardFBTypes = [
+        'TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'RS', 'SR'
+    ];
+    return standardFBTypes.includes(typeName);
+}
+
+/**
+ * Gets the members (outputs) for a function block type
+ */
+export function getFunctionBlockMembers(fbType: string): FunctionBlockMember[] {
+    const memberMap: { [key: string]: FunctionBlockMember[] } = {
+        'TON': [
+            { name: 'Q', type: 'BOOL', description: 'Timer output - TRUE when timer is running and PT time has elapsed' },
+            { name: 'ET', type: 'TIME', description: 'Elapsed Time - Current timer value' }
+        ],
+        'TOF': [
+            { name: 'Q', type: 'BOOL', description: 'Timer output - FALSE when timer is running and PT time has elapsed' },
+            { name: 'ET', type: 'TIME', description: 'Elapsed Time - Current timer value' }
+        ],
+        'TP': [
+            { name: 'Q', type: 'BOOL', description: 'Timer output - TRUE for PT duration when IN goes TRUE' },
+            { name: 'ET', type: 'TIME', description: 'Elapsed Time - Current timer value' }
+        ],
+        'CTU': [
+            { name: 'Q', type: 'BOOL', description: 'Counter output - TRUE when CV >= PV' },
+            { name: 'CV', type: 'INT', description: 'Current Value - Current counter value' }
+        ],
+        'CTD': [
+            { name: 'Q', type: 'BOOL', description: 'Counter output - TRUE when CV <= 0' },
+            { name: 'CV', type: 'INT', description: 'Current Value - Current counter value' }
+        ],
+        'CTUD': [
+            { name: 'QU', type: 'BOOL', description: 'Count Up output - TRUE when CV >= PV' },
+            { name: 'QD', type: 'BOOL', description: 'Count Down output - TRUE when CV <= 0' },
+            { name: 'CV', type: 'INT', description: 'Current Value - Current counter value' }
+        ],
+        'R_TRIG': [
+            { name: 'Q', type: 'BOOL', description: 'Rising edge output - TRUE for one cycle when CLK rises' }
+        ],
+        'F_TRIG': [
+            { name: 'Q', type: 'BOOL', description: 'Falling edge output - TRUE for one cycle when CLK falls' }
+        ],
+        'RS': [
+            { name: 'Q1', type: 'BOOL', description: 'Set-dominant bistable output' }
+        ],
+        'SR': [
+            { name: 'Q1', type: 'BOOL', description: 'Reset-dominant bistable output' }
+        ]
+    };
+
+    return memberMap[fbType] || [];
 }
