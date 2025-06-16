@@ -18,7 +18,12 @@ examples/**
 # Exclude development files
 .husky/**
 TESTING.md
+MANUAL_QA_PLAN.md
+RELEASE_PLAN.md
+images/README.md
 # Keep these in the package
 # CHANGELOG.md
 # README.md
 # LICENSE
+# icon.png
+# images/ (for screenshots)
