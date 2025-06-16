@@ -63,7 +63,6 @@ END_PROGRAM
 - **Code Snippets**: Templates for common patterns (IF-THEN, FOR loops, etc.)
 
 ### 🎨 Syntax Highlighting
-### 🎨 Syntax Highlighting
 - **Keywords**: `IF`, `THEN`, `ELSE`, `FOR`, `WHILE`, `CASE`, `VAR`, `END_VAR`
 - **Data Types**: `BOOL`, `INT`, `REAL`, `TIME`, `STRING`, `ARRAY`, `STRUCT`
 - **Operators**: `AND`, `OR`, `NOT`, `XOR`, `:=`, `+`, `-`, `*`, `/`
@@ -94,8 +93,6 @@ Access these commands via the Command Palette (`Ctrl+Shift+P`):
 - 🔍 **Enhanced Parser** - Better variable and FB instance detection
 - 🧪 **Comprehensive Testing** - Automated tests ensure reliability
 - 📚 **Improved Documentation** - Better examples and guides
-
-## 🤝 Support & Feedback
 
 ## 🤝 Support & Feedback
 
