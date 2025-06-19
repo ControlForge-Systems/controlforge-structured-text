@@ -8,13 +8,15 @@
     "license": "BUSL-1.1",
     "repository": {
         "type": "git",
-        "url": "git@github.com:ControlForge-Systems/controlforge-structured-text.git"
+        "url": "https://github.com/ControlForge-Systems/controlforge-structured-text"
     },
     "bugs": {
         "url": "https://github.com/ControlForge-Systems/controlforge-structured-text/issues"
     },
     "homepage": "https://controlforge.dev/",
     "icon": "icon.png",
+    "baseContentUrl": "https://github.com/ControlForge-Systems/controlforge-structured-text/raw/main",
+    "baseImagesUrl": "https://github.com/ControlForge-Systems/controlforge-structured-text/raw/main/images",
     "engines": {
         "vscode": "^1.100.0"
     },
@@ -85,11 +87,8 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "package": "vsce package",
-        "publish": "vsce publish",
-        "set-pat": "vsce login ControlForgeSystems",
-        "publish:secure": "./publish-extension.sh",
-        "publish:pat": "vsce publish -p $VSCE_PAT"
+        "package": "vsce package --baseContentUrl=https://github.com/ControlForge-Systems/controlforge-structured-text/raw/main --baseImagesUrl=https://github.com/ControlForge-Systems/controlforge-structured-text/raw/main/images",
+        "publish": "vsce publish --baseContentUrl=https://github.com/ControlForge-Systems/controlforge-structured-text/raw/main --baseImagesUrl=https://github.com/ControlForge-Systems/controlforge-structured-text/raw/main/images"
     },
     "dependencies": {
         "vscode-languageclient": "^9.0.1",
