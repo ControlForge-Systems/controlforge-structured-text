@@ -15,7 +15,6 @@ VAR
     counter : INT := 0;
     temperature : REAL := 25.5;
 END_VAR
-test
 // Press Ctrl+Space here to test completion
 // You should see:
 // - Keywords: IF, WHILE, FOR, etc.

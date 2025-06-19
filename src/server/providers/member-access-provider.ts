@@ -31,76 +31,76 @@ export class MemberAccessProvider {
 
         // Timer function blocks
         this.standardFBMembers.set('TON', [
-            { name: 'IN', dataType: 'BOOL', direction: 'INPUT', description: 'Timer input signal', fbType: 'TON' },
-            { name: 'PT', dataType: 'TIME', direction: 'INPUT', description: 'Preset time', fbType: 'TON' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Timer output', fbType: 'TON' },
-            { name: 'ET', dataType: 'TIME', direction: 'OUTPUT', description: 'Elapsed time', fbType: 'TON' }
+            { name: 'IN', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Timer input signal', fbType: 'TON' },
+            { name: 'PT', dataType: 'TIME', direction: 'VAR_INPUT', description: 'Preset time', fbType: 'TON' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Timer output', fbType: 'TON' },
+            { name: 'ET', dataType: 'TIME', direction: 'VAR_OUTPUT', description: 'Elapsed time', fbType: 'TON' }
         ]);
 
         this.standardFBMembers.set('TOF', [
-            { name: 'IN', dataType: 'BOOL', direction: 'INPUT', description: 'Timer input signal', fbType: 'TOF' },
-            { name: 'PT', dataType: 'TIME', direction: 'INPUT', description: 'Preset time', fbType: 'TOF' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Timer output', fbType: 'TOF' },
-            { name: 'ET', dataType: 'TIME', direction: 'OUTPUT', description: 'Elapsed time', fbType: 'TOF' }
+            { name: 'IN', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Timer input signal', fbType: 'TOF' },
+            { name: 'PT', dataType: 'TIME', direction: 'VAR_INPUT', description: 'Preset time', fbType: 'TOF' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Timer output', fbType: 'TOF' },
+            { name: 'ET', dataType: 'TIME', direction: 'VAR_OUTPUT', description: 'Elapsed time', fbType: 'TOF' }
         ]);
 
         this.standardFBMembers.set('TP', [
-            { name: 'IN', dataType: 'BOOL', direction: 'INPUT', description: 'Timer input signal', fbType: 'TP' },
-            { name: 'PT', dataType: 'TIME', direction: 'INPUT', description: 'Preset time', fbType: 'TP' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Timer output', fbType: 'TP' },
-            { name: 'ET', dataType: 'TIME', direction: 'OUTPUT', description: 'Elapsed time', fbType: 'TP' }
+            { name: 'IN', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Timer input signal', fbType: 'TP' },
+            { name: 'PT', dataType: 'TIME', direction: 'VAR_INPUT', description: 'Preset time', fbType: 'TP' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Timer output', fbType: 'TP' },
+            { name: 'ET', dataType: 'TIME', direction: 'VAR_OUTPUT', description: 'Elapsed time', fbType: 'TP' }
         ]);
 
         // Counter function blocks
         this.standardFBMembers.set('CTU', [
-            { name: 'CU', dataType: 'BOOL', direction: 'INPUT', description: 'Count up input', fbType: 'CTU' },
-            { name: 'R', dataType: 'BOOL', direction: 'INPUT', description: 'Reset input', fbType: 'CTU' },
-            { name: 'PV', dataType: 'INT', direction: 'INPUT', description: 'Preset value', fbType: 'CTU' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Counter output', fbType: 'CTU' },
-            { name: 'CV', dataType: 'INT', direction: 'OUTPUT', description: 'Current value', fbType: 'CTU' }
+            { name: 'CU', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Count up input', fbType: 'CTU' },
+            { name: 'R', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Reset input', fbType: 'CTU' },
+            { name: 'PV', dataType: 'INT', direction: 'VAR_INPUT', description: 'Preset value', fbType: 'CTU' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Counter output', fbType: 'CTU' },
+            { name: 'CV', dataType: 'INT', direction: 'VAR_OUTPUT', description: 'Current value', fbType: 'CTU' }
         ]);
 
         this.standardFBMembers.set('CTD', [
-            { name: 'CD', dataType: 'BOOL', direction: 'INPUT', description: 'Count down input', fbType: 'CTD' },
-            { name: 'LD', dataType: 'BOOL', direction: 'INPUT', description: 'Load input', fbType: 'CTD' },
-            { name: 'PV', dataType: 'INT', direction: 'INPUT', description: 'Preset value', fbType: 'CTD' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Counter output', fbType: 'CTD' },
-            { name: 'CV', dataType: 'INT', direction: 'OUTPUT', description: 'Current value', fbType: 'CTD' }
+            { name: 'CD', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Count down input', fbType: 'CTD' },
+            { name: 'LD', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Load input', fbType: 'CTD' },
+            { name: 'PV', dataType: 'INT', direction: 'VAR_INPUT', description: 'Preset value', fbType: 'CTD' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Counter output', fbType: 'CTD' },
+            { name: 'CV', dataType: 'INT', direction: 'VAR_OUTPUT', description: 'Current value', fbType: 'CTD' }
         ]);
 
         this.standardFBMembers.set('CTUD', [
-            { name: 'CU', dataType: 'BOOL', direction: 'INPUT', description: 'Count up input', fbType: 'CTUD' },
-            { name: 'CD', dataType: 'BOOL', direction: 'INPUT', description: 'Count down input', fbType: 'CTUD' },
-            { name: 'R', dataType: 'BOOL', direction: 'INPUT', description: 'Reset input', fbType: 'CTUD' },
-            { name: 'LD', dataType: 'BOOL', direction: 'INPUT', description: 'Load input', fbType: 'CTUD' },
-            { name: 'PV', dataType: 'INT', direction: 'INPUT', description: 'Preset value', fbType: 'CTUD' },
-            { name: 'QU', dataType: 'BOOL', direction: 'OUTPUT', description: 'Count up output', fbType: 'CTUD' },
-            { name: 'QD', dataType: 'BOOL', direction: 'OUTPUT', description: 'Count down output', fbType: 'CTUD' },
-            { name: 'CV', dataType: 'INT', direction: 'OUTPUT', description: 'Current value', fbType: 'CTUD' }
+            { name: 'CU', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Count up input', fbType: 'CTUD' },
+            { name: 'CD', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Count down input', fbType: 'CTUD' },
+            { name: 'R', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Reset input', fbType: 'CTUD' },
+            { name: 'LD', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Load input', fbType: 'CTUD' },
+            { name: 'PV', dataType: 'INT', direction: 'VAR_INPUT', description: 'Preset value', fbType: 'CTUD' },
+            { name: 'QU', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Count up output', fbType: 'CTUD' },
+            { name: 'QD', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Count down output', fbType: 'CTUD' },
+            { name: 'CV', dataType: 'INT', direction: 'VAR_OUTPUT', description: 'Current value', fbType: 'CTUD' }
         ]);
 
         // Edge detection function blocks
         this.standardFBMembers.set('R_TRIG', [
-            { name: 'CLK', dataType: 'BOOL', direction: 'INPUT', description: 'Clock input', fbType: 'R_TRIG' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Rising edge output', fbType: 'R_TRIG' }
+            { name: 'CLK', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Clock input', fbType: 'R_TRIG' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Rising edge output', fbType: 'R_TRIG' }
         ]);
 
         this.standardFBMembers.set('F_TRIG', [
-            { name: 'CLK', dataType: 'BOOL', direction: 'INPUT', description: 'Clock input', fbType: 'F_TRIG' },
-            { name: 'Q', dataType: 'BOOL', direction: 'OUTPUT', description: 'Falling edge output', fbType: 'F_TRIG' }
+            { name: 'CLK', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Clock input', fbType: 'F_TRIG' },
+            { name: 'Q', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Falling edge output', fbType: 'F_TRIG' }
         ]);
 
         // Bistable function blocks
         this.standardFBMembers.set('RS', [
-            { name: 'S', dataType: 'BOOL', direction: 'INPUT', description: 'Set input', fbType: 'RS' },
-            { name: 'R1', dataType: 'BOOL', direction: 'INPUT', description: 'Reset input', fbType: 'RS' },
-            { name: 'Q1', dataType: 'BOOL', direction: 'OUTPUT', description: 'Output', fbType: 'RS' }
+            { name: 'S', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Set input', fbType: 'RS' },
+            { name: 'R1', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Reset input', fbType: 'RS' },
+            { name: 'Q1', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Output', fbType: 'RS' }
         ]);
 
         this.standardFBMembers.set('SR', [
-            { name: 'S1', dataType: 'BOOL', direction: 'INPUT', description: 'Set input', fbType: 'SR' },
-            { name: 'R', dataType: 'BOOL', direction: 'INPUT', description: 'Reset input', fbType: 'SR' },
-            { name: 'Q1', dataType: 'BOOL', direction: 'OUTPUT', description: 'Output', fbType: 'SR' }
+            { name: 'S1', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Set input', fbType: 'SR' },
+            { name: 'R', dataType: 'BOOL', direction: 'VAR_INPUT', description: 'Reset input', fbType: 'SR' },
+            { name: 'Q1', dataType: 'BOOL', direction: 'VAR_OUTPUT', description: 'Output', fbType: 'SR' }
         ]);
     }
 
@@ -241,10 +241,25 @@ export class MemberAccessProvider {
             // Add parameters as members
             if (customFB.parameters) {
                 customFB.parameters.forEach(param => {
+                    let memberDirection: FBMemberDefinition['direction'];
+                    switch (param.direction) {
+                        case 'INPUT':
+                            memberDirection = 'VAR_INPUT';
+                            break;
+                        case 'OUTPUT':
+                            memberDirection = 'VAR_OUTPUT';
+                            break;
+                        case 'IN_OUT':
+                            memberDirection = 'VAR_IN_OUT';
+                            break;
+                        default:
+                            // This case should ideally not be hit if parsing is correct
+                            memberDirection = 'VAR';
+                    }
                     members.push({
                         name: param.name,
                         dataType: param.dataType,
-                        direction: param.direction,
+                        direction: memberDirection,
                         description: param.defaultValue ? `Default: ${param.defaultValue}` : undefined,
                         fbType: instanceType
                     });
@@ -258,7 +273,7 @@ export class MemberAccessProvider {
                         members.push({
                             name: variable.name,
                             dataType: variable.dataType || 'UNKNOWN',
-                            direction: variable.scope === STScope.Output ? 'OUTPUT' : 'VAR',
+                            direction: variable.scope === STScope.Output ? 'VAR_OUTPUT' : 'VAR',
                             description: variable.description,
                             fbType: instanceType
                         });
@@ -306,7 +321,7 @@ export class MemberAccessProvider {
         }
 
         // Fallback: assume current directory structure
-        return parts.slice(0, -2).join('/'); // Remove filename and examples/
+        return parts.slice(0, -2).join('/'); // Remove filename and parent directory
     }
 
     /**

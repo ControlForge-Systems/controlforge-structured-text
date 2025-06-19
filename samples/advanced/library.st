@@ -1,5 +1,5 @@
 // Library file with reusable function blocks and functions
-// File: examples/library.st
+// File: samples/advanced/library.st
 
 // Global constants
 VAR_GLOBAL CONSTANT

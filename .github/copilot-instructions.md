@@ -3,6 +3,21 @@
 ## Project Overview
 This is a VS Code extension providing comprehensive support for Structured Text (ST) programming language used in industrial automation and PLC programming according to IEC 61131-3 standard.
 
+## CRITICAL: IEC 61131-3 Specification Compliance
+**ALWAYS consult `docs/IEC61131_SPECIFICATION.md` before making any language-related changes.** This document is the authoritative source for:
+- Correct Structured Text syntax, keywords, and operators
+- Standard function blocks (TON, TOF, CTU, R_TRIG, etc.) and their members
+- Data types (BOOL, INT, REAL, STRING, etc.) and type conversion rules
+- Vendor compatibility notes and cross-platform considerations
+- Standard functions and their proper usage
+
+**Before suggesting any code changes:**
+1. Reference the specification for correct IEC 61131-3 syntax
+2. Ensure all language features conform to the specification
+3. Consider vendor compatibility notes for cross-platform support
+4. Never introduce syntax or elements that conflict with the specification
+5. For function block member completion, use the standard FB definitions in the spec
+
 ## Code Style Guidelines
 - Use TypeScript for all new code
 - Follow 4-space indentation consistently
@@ -12,22 +27,33 @@ This is a VS Code extension providing comprehensive support for Structured Text 
 - Include JSDoc comments for all public functions and classes
 
 ## Architecture Patterns
-- Extension follows VS Code extension API patterns
+- Extension follows VS Code extension API patterns with Language Server Protocol (LSP)
 - Main extension entry point: `src/extension.ts`
-- Language features implemented using VS Code's language APIs
+- **Client-Server Architecture**: LSP client in `src/client/` communicates with language server in `src/server/`
+- Language features implemented via LSP providers for completion, definition, and member access
 - Syntax highlighting via TextMate grammar: `syntaxes/structured-text.tmLanguage.json`
 - Language configuration: `language-configuration.json`
+- Workspace indexing for cross-file navigation and IntelliSense
 
 ## File Organization
 ```
 /src/extension.ts           - Main extension activation and commands
 /src/validator.ts           - Syntax validation logic
 /src/parser.ts             - ST language parsing utilities
+/src/client/lsp-client.ts  - Language Server Protocol client
+/src/server/server.ts      - LSP server implementation
+/src/server/ast-parser.ts  - AST parsing for semantic analysis
+/src/server/workspace-indexer.ts - Workspace symbol indexing
+/src/server/providers/     - LSP feature providers (completion, definition, etc.)
+/src/shared/types.ts       - Shared type definitions
 /syntaxes/                 - TextMate grammar files
-/examples/                 - Sample ST code files (.st, .iecst)
+/samples/                  - Sample ST code files (.st, .iecst)
+/manual-tests/            - Manual test files for QA
+/iec61131-definitions/     - Standard IEC 61131-3 function block definitions
 /src/test/unit/            - Fast unit tests
 /src/test/e2e/             - End-to-end integration tests
 /docs/                     - Project documentation
+/docs/IEC61131_SPECIFICATION.md - **AUTHORITATIVE IEC 61131-3 language specification**
 ```
 
 ## Naming Conventions
@@ -74,8 +100,10 @@ try {
 ## Dependencies Management
 - Prefer built-in VS Code APIs over external libraries
 - Use @types/vscode for VS Code API types
+- **LSP Dependencies**: `vscode-languageclient` and `vscode-languageserver` for language server protocol
 - Keep devDependencies for development tools only
 - Update package.json engines.vscode when using newer APIs
+- Current engine requirement: `^1.100.0`
 
 ## Structured Text Language Rules
 - Keywords are case-insensitive: `IF`, `if`, `If` all valid
@@ -93,13 +121,25 @@ const disposable = vscode.commands.registerCommand('controlforge-structured-text
 });
 context.subscriptions.push(disposable);
 
-// Language provider registration
+// Language provider registration (legacy - prefer LSP providers)
 const provider = vscode.languages.registerHoverProvider('structured-text', {
     provideHover(document, position, token) {
         // Provider implementation
     }
 });
 context.subscriptions.push(provider);
+
+// LSP Client activation pattern
+import { activateLanguageServer, deactivateLanguageServer } from './client/lsp-client';
+
+export function activate(context: vscode.ExtensionContext) {
+    activateLanguageServer(context);
+    // Other activation code
+}
+
+export function deactivate() {
+    return deactivateLanguageServer();
+}
 ```
 
 ## What NOT to Do

@@ -1,5 +1,5 @@
 // Main application using library components
-// File: examples/main-app.st
+// File: samples/advanced/main-app.st
 // This file demonstrates cross-file references to library.st
 
 PROGRAM MainApplication

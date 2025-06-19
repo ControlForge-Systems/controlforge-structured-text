@@ -54,6 +54,7 @@ export interface FileSymbols {
 }
 
 /**
+ * @deprecated Use WorkspaceSymbolIndex instead for a more structured and comprehensive index.
  * Workspace symbol index
  */
 export interface SymbolIndex {
@@ -68,8 +69,10 @@ export interface STSymbolExtended extends STSymbol {
     parentSymbol?: string;          // Parent function/FB/program name
     parameters?: STParameter[];     // For functions and function blocks
     returnType?: string;           // For functions
-    members?: STSymbol[];          // For function blocks
+    members?: STSymbolExtended[];          // For function blocks and programs
     references?: Location[];       // All reference locations
+    literalType?: string;          // For literals, e.g., 'LTIME', 'WSTRING'
+    normalizedName?: string;       // Lowercase name for case-insensitive lookups (IEC 61131-3 is case-insensitive)
 }
 
 /**
@@ -101,7 +104,14 @@ export enum ASTNodeType {
     Assignment = 'assignment',
     FunctionCall = 'function_call',
     MemberAccess = 'member_access',
-    Identifier = 'identifier'
+    Identifier = 'identifier',
+    IfStatement = 'if_statement',
+    CaseStatement = 'case_statement',
+    ForLoop = 'for_loop',
+    WhileLoop = 'while_loop',
+    RepeatLoop = 'repeat_loop',
+    ExitStatement = 'exit_statement',
+    ReturnStatement = 'return_statement'
 }
 
 /**
@@ -152,7 +162,7 @@ export interface MemberAccessExpression {
 export interface FBMemberDefinition {
     name: string;               // Member name (Q, ET, etc.)
     dataType: string;           // BOOL, TIME, etc.
-    direction: 'INPUT' | 'OUTPUT' | 'IN_OUT' | 'VAR';
+    direction: 'VAR_INPUT' | 'VAR_OUTPUT' | 'VAR_IN_OUT' | 'VAR' | 'VAR_TEMP' | 'VAR_GLOBAL';
     description?: string;       // Member description
     fbType: string;             // Parent FB type
 }

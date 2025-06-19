@@ -24,7 +24,7 @@ This directory contains screenshots for the README.md file.
 5. Export as GIF, keep under 3MB for GitHub
 
 ### For syntax-highlighting.png:
-1. Open `examples/test_instance_members.st` or similar
+1. Open `manual-tests/completion/test_instance_members.st` or similar
 2. Make sure all syntax highlighting is visible
 3. Take a screenshot showing the full file
 4. Crop to show relevant code with good highlighting

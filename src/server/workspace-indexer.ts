@@ -1,6 +1,6 @@
 /**
  * Workspace Symbol Indexer for Cross-File References
- * Handles file watching, workspace scanning, and persistent symbol indexing
+ * Handles file watching, workspace scanning, and indexing
  */
 
 import * as fs from 'fs';
@@ -106,10 +106,11 @@ export class WorkspaceIndexer {
     }
 
     /**
-     * Update index for a specific document (called when file changes)
+     * Update file index for a document
      */
     public updateFileIndex(document: TextDocument): void {
         const uri = document.uri;
+        console.log(`WorkspaceIndexer: Updating file index for ${uri}`);
 
         // Remove existing symbols for this file
         this.removeFileFromIndex(uri);
@@ -117,6 +118,13 @@ export class WorkspaceIndexer {
         // Parse symbols from the document
         const parser = new STASTParser(document);
         const symbols = parser.parseSymbols();
+
+        console.log(`WorkspaceIndexer: Parsed ${symbols.length} symbols`);
+
+        // Log all symbols for verification
+        symbols.forEach(symbol => {
+            console.log(`  Symbol: ${symbol.name} (${symbol.kind}) - Type: ${symbol.dataType || 'unknown'}`);
+        });
 
         // Update file symbols
         const fileSymbols: FileSymbols = {
@@ -126,9 +134,14 @@ export class WorkspaceIndexer {
         };
         this.index.fileSymbols.set(uri, fileSymbols);
 
-        // Add symbols to their respective categories
+        // Add symbols to their respective categories and create normalized (lowercase) versions
         symbols.forEach(symbol => {
             this.categorizeSymbol(symbol);
+
+            // Store normalized version for case-insensitive lookups
+            if (symbol.normalizedName && symbol.normalizedName !== symbol.name) {
+                console.log(`  Adding normalized symbol: ${symbol.normalizedName} (original: ${symbol.name})`);
+            }
         });
 
         this.index.lastUpdated = Date.now();
@@ -158,22 +171,52 @@ export class WorkspaceIndexer {
      * Categorize a symbol into the appropriate index maps
      */
     private categorizeSymbol(symbol: STSymbolExtended): void {
+        console.log(`Categorizing symbol: ${symbol.name} (${symbol.kind}), type: ${symbol.dataType || 'unknown'}`);
+
+        // Ensure we have a normalized name (lowercase)
+        if (!symbol.normalizedName) {
+            symbol.normalizedName = symbol.name.toLowerCase();
+        }
+
         switch (symbol.kind) {
             case STSymbolKind.Program:
                 // For programs, functions, and function blocks, store as extended symbols
                 // We'll create a simplified declaration for the index
                 this.index.programs.set(symbol.name, this.createDeclarationFromSymbol(symbol));
+                // Also store with normalized name if different
+                if (symbol.normalizedName !== symbol.name) {
+                    this.index.programs.set(symbol.normalizedName, this.createDeclarationFromSymbol(symbol));
+                }
                 break;
             case STSymbolKind.Function:
                 this.index.functions.set(symbol.name, this.createDeclarationFromSymbol(symbol));
+                if (symbol.normalizedName !== symbol.name) {
+                    this.index.functions.set(symbol.normalizedName, this.createDeclarationFromSymbol(symbol));
+                }
                 break;
             case STSymbolKind.FunctionBlock:
                 this.index.functionBlocks.set(symbol.name, this.createDeclarationFromSymbol(symbol));
+                if (symbol.normalizedName !== symbol.name) {
+                    this.index.functionBlocks.set(symbol.normalizedName, this.createDeclarationFromSymbol(symbol));
+                }
                 break;
             case STSymbolKind.Variable:
                 if (symbol.scope === STScope.Global) {
                     this.index.globalVariables.set(symbol.name, symbol);
+                    if (symbol.normalizedName !== symbol.name) {
+                        this.index.globalVariables.set(symbol.normalizedName, symbol);
+                    }
                 }
+
+                // Special handling for string variables which may be missed
+                if (symbol.dataType &&
+                    (symbol.dataType.toUpperCase() === 'STRING' ||
+                        symbol.dataType.toUpperCase() === 'WSTRING' ||
+                        symbol.dataType.toUpperCase().startsWith('STRING[') ||
+                        symbol.dataType.toUpperCase().startsWith('WSTRING['))) {
+                    console.log(`  Special handling for string variable: ${symbol.name}`);
+                }
+
                 // Note: Local variables are stored in fileSymbols and found via getAllSymbols()
                 break;
         }
@@ -254,112 +297,100 @@ export class WorkspaceIndexer {
         // For now, we'll add the symbol definitions as references
         // In a more sophisticated implementation, we'd parse the actual usage
         fileSymbols.symbols.forEach(symbol => {
-            if (!this.index.symbolReferences.has(symbol.name)) {
-                this.index.symbolReferences.set(symbol.name, []);
+            const lowerCaseName = symbol.name.toLowerCase();
+            if (!this.index.symbolReferences.has(lowerCaseName)) {
+                this.index.symbolReferences.set(lowerCaseName, []);
             }
-            this.index.symbolReferences.get(symbol.name)!.push(symbol.location);
+            this.index.symbolReferences.get(lowerCaseName)!.push(symbol.location);
         });
     }
 
     /**
      * Find symbol definition by name (cross-file lookup)
+     * Uses case-insensitive matching as per IEC 61131-3 standard
      */
     public findSymbolDefinition(symbolName: string): Location[] {
-        console.log(`Searching for symbol: ${symbolName}`);
-        console.log(`Index stats: ${JSON.stringify(this.getIndexStats())}`);
-
         const locations: Location[] = [];
+        const allSymbols = this.getAllSymbols();
+        const normalizedName = symbolName.toLowerCase();
 
-        // Check programs
-        const program = this.index.programs.get(symbolName);
-        if (program) {
-            console.log(`Found program: ${symbolName}`);
-            // We need to find the original symbol to get the full location
-            const originalSymbol = this.findOriginalSymbol(symbolName, STSymbolKind.Program);
-            if (originalSymbol) {
-                locations.push(originalSymbol.location);
-            }
-        }
+        console.log(`Workspace indexer looking for symbol: ${symbolName} (normalized: ${normalizedName})`);
+        console.log(`Total symbols in workspace: ${allSymbols.length}`);
 
-        // Check functions
-        const func = this.index.functions.get(symbolName);
-        if (func) {
-            console.log(`Found function: ${symbolName}`);
-            const originalSymbol = this.findOriginalSymbol(symbolName, STSymbolKind.Function);
-            if (originalSymbol) {
-                locations.push(originalSymbol.location);
-            }
-        }
+        // First, try finding exact case match
+        const exactMatches = allSymbols.filter(symbol => symbol.name === symbolName);
+        if (exactMatches.length > 0) {
+            console.log(`Found ${exactMatches.length} exact case matches`);
+            exactMatches.forEach(symbol => {
+                locations.push(symbol.location);
+                console.log(`  Found exact match: ${symbol.name} (${symbol.kind}) - Type: ${symbol.dataType || 'unknown'} in ${symbol.location.uri}`);
+            });
+        } else {
+            // Fall back to case-insensitive matching
+            console.log(`No exact matches, trying case-insensitive lookup`);
+            const caseInsensitiveMatches = allSymbols.filter(symbol =>
+                symbol.name.toLowerCase() === normalizedName ||
+                (symbol.normalizedName && symbol.normalizedName === normalizedName)
+            );
 
-        // Check function blocks
-        const fb = this.index.functionBlocks.get(symbolName);
-        if (fb) {
-            console.log(`Found function block: ${symbolName}`);
-            const originalSymbol = this.findOriginalSymbol(symbolName, STSymbolKind.FunctionBlock);
-            if (originalSymbol) {
-                locations.push(originalSymbol.location);
-            }
-        }
+            caseInsensitiveMatches.forEach(symbol => {
+                locations.push(symbol.location);
+                console.log(`  Found case-insensitive match: ${symbol.name} (${symbol.kind}) - Type: ${symbol.dataType || 'unknown'} in ${symbol.location.uri}`);
+            });
 
-        // Check global variables
-        const globalVar = this.index.globalVariables.get(symbolName);
-        if (globalVar) {
-            console.log(`Found global variable: ${symbolName}`);
-            locations.push(globalVar.location);
-        }
+            // Special handling for string variables
+            if (caseInsensitiveMatches.length === 0) {
+                console.log(`Looking specifically for string variables matching: ${symbolName}`);
+                const stringVarMatches = allSymbols.filter(symbol =>
+                    (symbol.name.toLowerCase().includes(normalizedName) ||
+                        (symbol.normalizedName && symbol.normalizedName.includes(normalizedName))) &&
+                    symbol.dataType &&
+                    (symbol.dataType.toUpperCase() === 'STRING' ||
+                        symbol.dataType.toUpperCase() === 'WSTRING' ||
+                        symbol.dataType.toUpperCase().startsWith('STRING[') ||
+                        symbol.dataType.toUpperCase().startsWith('WSTRING['))
+                );
 
-        // Check local variables in all files
-        console.log(`Checking ${this.index.fileSymbols.size} files for local symbols`);
-        for (const [fileUri, fileSymbols] of this.index.fileSymbols.entries()) {
-            const matchingSymbols = fileSymbols.symbols.filter(symbol => symbol.name === symbolName);
-            if (matchingSymbols.length > 0) {
-                console.log(`Found ${matchingSymbols.length} symbols named '${symbolName}' in file: ${fileUri}`);
-                matchingSymbols.forEach(symbol => {
-                    console.log(`  - Symbol: ${symbol.name} (${symbol.kind}) at line ${symbol.location.range.start.line + 1}`);
-                    if (!locations.some(loc =>
-                        loc.uri === symbol.location.uri &&
-                        loc.range.start.line === symbol.location.range.start.line
-                    )) {
+                if (stringVarMatches.length > 0) {
+                    console.log(`Found ${stringVarMatches.length} string variables that might match`);
+                    stringVarMatches.forEach(symbol => {
                         locations.push(symbol.location);
-                    }
-                });
+                        console.log(`  Found string variable: ${symbol.name} (${symbol.dataType}) in ${symbol.location.uri}`);
+                    });
+                }
             }
         }
 
-        console.log(`Found ${locations.length} locations for ${symbolName}`);
         return locations;
     }
 
     /**
-     * Find the original symbol in file symbols by name and kind
+     * Find symbols by name across the entire workspace
      */
-    private findOriginalSymbol(symbolName: string, kind: STSymbolKind): STSymbolExtended | undefined {
-        for (const fileSymbols of this.index.fileSymbols.values()) {
-            for (const symbol of fileSymbols.symbols) {
-                if (symbol.name === symbolName && symbol.kind === kind) {
-                    return symbol;
-                }
+    public findSymbolsByName(symbolName: string): STSymbolExtended[] {
+        const symbols: STSymbolExtended[] = [];
+        const allSymbols = this.getAllSymbols();
+
+        allSymbols.forEach(symbol => {
+            if (symbol.name.toLowerCase() === symbolName.toLowerCase()) {
+                symbols.push(symbol);
             }
-        }
-        return undefined;
+        });
+
+        return symbols;
     }
 
     /**
-     * Find all references to a symbol (cross-file)
+     * Find all references for a symbol name.
+     * @param symbolName The name of the symbol to find references for.
+     * @returns An array of locations where the symbol is referenced.
      */
     public findSymbolReferences(symbolName: string): Location[] {
-        return this.index.symbolReferences.get(symbolName) || [];
+        return this.index.symbolReferences.get(symbolName.toLowerCase()) || [];
     }
 
     /**
-     * Get function block definition for instance type resolution
-     */
-    public getFunctionBlockDefinition(fbTypeName: string): STDeclaration | undefined {
-        return this.index.functionBlocks.get(fbTypeName);
-    }
-
-    /**
-     * Get all symbols in the workspace
+     * Get all symbols from all indexed files
      */
     public getAllSymbols(): STSymbolExtended[] {
         const allSymbols: STSymbolExtended[] = [];

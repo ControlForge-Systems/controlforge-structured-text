@@ -37,7 +37,7 @@ suite('Structured Text Extension E2E Tests', () => {
             return;
         }
 
-        const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'examples', 'sample.st'));
+        const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'samples', 'basic', 'sample.st'));
         const doc = await vscode.workspace.openTextDocument(uri);
 
         assert.strictEqual(doc.languageId, 'structured-text', 'ST files should have structured-text language ID');
@@ -50,7 +50,7 @@ suite('Structured Text Extension E2E Tests', () => {
             return;
         }
 
-        const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'examples', 'pid_controller.iecst'));
+        const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'samples', 'advanced', 'pid_controller.iecst'));
         const doc = await vscode.workspace.openTextDocument(uri);
 
         assert.strictEqual(doc.languageId, 'structured-text', 'IECST files should have structured-text language ID');
@@ -71,7 +71,7 @@ suite('Structured Text Extension E2E Tests', () => {
             return;
         }
 
-        const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'examples', 'sample.st'));
+        const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'samples', 'basic', 'sample.st'));
         const doc = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(doc);
 
@@ -419,7 +419,7 @@ END_FUNCTION_BLOCK
             assert.ok(completions.items.length > 0, 'Should have completion items after space');
         });
 
-        test('Should work with sample.st file from examples', async function () {
+        test('Should work with sample.st file from samples', async function () {
             this.timeout(10000);
 
             if (!workspaceFolder) {
@@ -428,7 +428,7 @@ END_FUNCTION_BLOCK
             }
 
             // Open the sample.st file
-            const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'examples', 'sample.st'));
+            const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'samples', 'basic', 'sample.st'));
             const doc = await vscode.workspace.openTextDocument(uri);
             const editor = await vscode.window.showTextDocument(doc);
 

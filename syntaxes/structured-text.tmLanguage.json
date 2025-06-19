@@ -172,8 +172,8 @@
         "operators": {
             "patterns": [
                 {
-                    "name": "keyword.operator.logical.st",
-                    "match": "\\b(AND|OR|XOR|NOT)\\b"
+                    "name": "keyword.control.logical.st",
+                    "match": "\\b(AND|OR|XOR|NOT|AND_THEN|OR_ELSE)\\b"
                 },
                 {
                     "name": "keyword.operator.comparison.st",

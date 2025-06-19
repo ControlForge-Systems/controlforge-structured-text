@@ -17,13 +17,19 @@ export interface ValidationError {
  * Validates structured text content for basic syntax errors
  */
 export function validateStructuredText(text: string): ValidationResult {
-    const lines = text.split('\n');
+    // Per IEC 61131-3, comments should be ignored. Strip them before validation.
+    // Block comments (*...*) can be multi-line, so remove them first.
+    const textWithoutBlockComments = text.replace(/\(\*[^]*?\*\)/g, '');
+    const lines = textWithoutBlockComments.split('\n');
     const errors: ValidationError[] = [];
 
     lines.forEach((line, index) => {
+        // Now, strip single-line comments //
+        const cleanLine = line.replace(/\/\/.*/, '');
+
         // Check for unmatched parentheses
-        const openParens = (line.match(/\(/g) || []).length;
-        const closeParens = (line.match(/\)/g) || []).length;
+        const openParens = (cleanLine.match(/\(/g) || []).length;
+        const closeParens = (cleanLine.match(/\)/g) || []).length;
 
         if (openParens !== closeParens) {
             errors.push({
@@ -34,8 +40,8 @@ export function validateStructuredText(text: string): ValidationResult {
         }
 
         // Check for unclosed string literals
-        const singleQuotes = (line.match(/'/g) || []).length;
-        const doubleQuotes = (line.match(/"/g) || []).length;
+        const singleQuotes = (cleanLine.match(/'/g) || []).length;
+        const doubleQuotes = (cleanLine.match(/"/g) || []).length;
 
         if (singleQuotes % 2 !== 0) {
             errors.push({

@@ -132,7 +132,15 @@ connection.onInitialized(() => {
  */
 function parseSTSymbols(document: TextDocument): STSymbolExtended[] {
     const parser = new STASTParser(document);
-    return parser.parseSymbols();
+    const symbols = parser.parseSymbols();
+
+    // Add detailed logging for debugging
+    connection.console.log(`Parsed ${symbols.length} symbols from ${document.uri}`);
+    symbols.forEach(symbol => {
+        connection.console.log(`  Symbol: ${symbol.name} (${symbol.kind}) - Type: ${symbol.dataType || 'unknown'}`);
+    });
+
+    return symbols;
 }
 
 /**
@@ -146,63 +154,123 @@ function updateSymbolIndex(document: TextDocument): void {
         lastModified: Date.now()
     };
 
+    // Display all parsed symbols for verification
+    connection.console.log(`Updating symbol index for ${document.uri} with ${symbols.length} symbols:`);
+    symbols.forEach(symbol => {
+        connection.console.log(`  Symbol: ${symbol.name} (${symbol.kind}), Type: ${symbol.dataType || 'unknown'}`);
+    });
+
     // Update file symbols
     symbolIndex.files.set(document.uri, fileSymbols);
 
     // Clear existing symbols for this file from the name index
+    connection.console.log(`Clearing old symbols from name index for ${document.uri}`);
     for (const [name, symbolList] of symbolIndex.symbolsByName.entries()) {
         const filtered = symbolList.filter(symbol => symbol.location.uri !== document.uri);
         if (filtered.length === 0) {
+            connection.console.log(`  Removing empty symbol: ${name}`);
             symbolIndex.symbolsByName.delete(name);
         } else {
+            connection.console.log(`  Keeping ${filtered.length} instances of ${name}`);
             symbolIndex.symbolsByName.set(name, filtered);
         }
     }
 
     // Update symbols by name index with new symbols
+    connection.console.log(`Adding ${symbols.length} new symbols to name index`);
     symbols.forEach(symbol => {
+        // Always set the normalized name if not already set
+        if (!symbol.normalizedName) {
+            symbol.normalizedName = symbol.name.toLowerCase();
+        }
+
+        connection.console.log(`  Adding symbol: ${symbol.name} (normalized: ${symbol.normalizedName})`);
+
+        // First add by exact name
         if (!symbolIndex.symbolsByName.has(symbol.name)) {
             symbolIndex.symbolsByName.set(symbol.name, []);
         }
         symbolIndex.symbolsByName.get(symbol.name)!.push(symbol);
 
+        // Always add a normalized (lowercase) entry too to ensure case-insensitive lookups work
+        const normalizedName = symbol.name.toLowerCase();
+        if (normalizedName !== symbol.name) {
+            connection.console.log(`    Also adding normalized entry: ${normalizedName}`);
+            if (!symbolIndex.symbolsByName.has(normalizedName)) {
+                symbolIndex.symbolsByName.set(normalizedName, []);
+            }
+            symbolIndex.symbolsByName.get(normalizedName)!.push(symbol);
+        }
+
         // Also add members if present (for function blocks, functions, programs)
         if (symbol.members) {
+            connection.console.log(`  Processing ${symbol.members.length} members for ${symbol.name}`);
             symbol.members.forEach(member => {
+                // Set normalized name for members too
+                if (!member.normalizedName) {
+                    member.normalizedName = member.name.toLowerCase();
+                }
+
+                connection.console.log(`    Adding member: ${member.name} (normalized: ${member.normalizedName})`);
+
+                // Add by exact name
                 if (!symbolIndex.symbolsByName.has(member.name)) {
                     symbolIndex.symbolsByName.set(member.name, []);
                 }
                 symbolIndex.symbolsByName.get(member.name)!.push(member);
+
+                // Always add a normalized entry for the member too
+                const memberNormalizedName = member.name.toLowerCase();
+                if (memberNormalizedName !== member.name) {
+                    connection.console.log(`      Also adding normalized entry: ${memberNormalizedName}`);
+                    if (!symbolIndex.symbolsByName.has(memberNormalizedName)) {
+                        symbolIndex.symbolsByName.set(memberNormalizedName, []);
+                    }
+                    symbolIndex.symbolsByName.get(memberNormalizedName)!.push(member);
+                }
             });
         }
     });
 }
 
 /**
- * Find symbol at position
+ * Find symbol at position with improved identifier detection
  */
 function findSymbolAtPosition(document: TextDocument, position: Position): string | null {
     const text = document.getText();
     const lines = text.split('\n');
     const line = lines[position.line];
 
-    if (!line) return null;
-
-    // Simple word extraction at position
-    const wordMatch = line.match(/\b\w+\b/g);
-    if (!wordMatch) return null;
-
-    let currentPos = 0;
-    for (const word of wordMatch) {
-        const wordStart = line.indexOf(word, currentPos);
-        const wordEnd = wordStart + word.length;
-
-        if (position.character >= wordStart && position.character <= wordEnd) {
-            return word;
-        }
-        currentPos = wordEnd;
+    if (!line) {
+        connection.console.log(`No line found at position ${position.line}`);
+        return null;
     }
 
+    connection.console.log(`Finding symbol in line ${position.line}: "${line}"`);
+
+    // Improved regex for ST identifiers (including those with underscores)
+    const wordRegex = /[A-Za-z_][A-Za-z0-9_]*/g;
+    let match;
+    let matches = [];
+
+    // Find all identifiers in the line
+    while ((match = wordRegex.exec(line)) !== null) {
+        const word = match[0];
+        const start = match.index;
+        const end = start + word.length;
+        matches.push({ word, start, end });
+        connection.console.log(`  Found identifier: "${word}" at ${start}-${end}`);
+    }
+
+    // Check which identifier contains the cursor position
+    for (const { word, start, end } of matches) {
+        if (position.character >= start && position.character <= end) {
+            connection.console.log(`  Position ${position.character} is inside word "${word}"`);
+            return word;
+        }
+    }
+
+    connection.console.log(`No identifier found at position ${position.character}`);
     return null;
 }
 
@@ -240,8 +308,24 @@ connection.onDefinition((params: DefinitionParams): Location[] => {
         return workspaceDefinitions;
     }
 
-    // Fallback to local file definitions
-    const symbols = symbolIndex.symbolsByName.get(symbolName);
+    // Fallback to local file definitions - try exact match first
+    let symbols = symbolIndex.symbolsByName.get(symbolName);
+
+    // If not found with exact match, try case-insensitive lookup
+    if (!symbols || symbols.length === 0) {
+        const normalizedName = symbolName.toLowerCase();
+        connection.console.log(`Trying case-insensitive lookup for: ${normalizedName}`);
+
+        // Check all symbols for a case-insensitive match
+        for (const [name, symbolList] of symbolIndex.symbolsByName.entries()) {
+            if (name.toLowerCase() === normalizedName) {
+                symbols = symbolList;
+                connection.console.log(`Found case-insensitive match: ${name}`);
+                break;
+            }
+        }
+    }
+
     connection.console.log(`Local index found ${symbols?.length || 0} symbols for ${symbolName}`);
 
     if (!symbols) return [];

@@ -22,7 +22,7 @@ export const IEC61131Specification = {
      * Keywords used for declarations in Structured Text
      */
     declarationKeywords: [
-        'VAR', 'VAR_INPUT', 'VAR_OUTPUT', 'VAR_IN_OUT', 'VAR_TEMP', 
+        'VAR', 'VAR_INPUT', 'VAR_OUTPUT', 'VAR_IN_OUT', 'VAR_TEMP',
         'VAR_GLOBAL', 'VAR_ACCESS', 'VAR_CONFIG', 'VAR_EXTERNAL', 'END_VAR',
         'CONSTANT', 'RETAIN', 'NON_RETAIN', 'PERSISTENT', 'AT',
         'PROGRAM', 'END_PROGRAM',
@@ -33,7 +33,15 @@ export const IEC61131Specification = {
         'ARRAY', 'STRING', 'WSTRING',
         'CONFIGURATION', 'END_CONFIGURATION',
         'RESOURCE', 'END_RESOURCE',
-        'TASK'
+        'TASK',
+        // OOP keywords (Edition 3)
+        'CLASS', 'END_CLASS',
+        'INTERFACE', 'END_INTERFACE',
+        'METHOD', 'END_METHOD',
+        'EXTENDS', 'IMPLEMENTS',
+        'PRIVATE', 'PROTECTED', 'PUBLIC', 'INTERNAL',
+        'NAMESPACE', 'END_NAMESPACE',
+        'USING'
     ],
 
     /**
@@ -89,11 +97,12 @@ export const IEC61131Specification = {
         'REAL', 'LREAL',
         'TIME', 'LTIME', 'DATE', 'LDATE', 'TIME_OF_DAY', 'TOD', 'DATE_AND_TIME', 'DT',
         'STRING', 'WSTRING', 'CHAR', 'WCHAR',
-        
+
         // Generic data types
         'POINTER', 'REFERENCE',
         'ANY', 'ANY_DERIVED', 'ANY_ELEMENTARY', 'ANY_MAGNITUDE', 'ANY_NUM',
-        'ANY_REAL', 'ANY_INT', 'ANY_BIT', 'ANY_STRING', 'ANY_DATE'
+        'ANY_REAL', 'ANY_INT', 'ANY_BIT', 'ANY_STRING', 'ANY_DATE',
+        'ANY_CHAR', 'ANY_CHARS'
     ],
 
     /**
@@ -102,13 +111,13 @@ export const IEC61131Specification = {
     standardFunctionBlocks: [
         // Timer function blocks
         'TON', 'TOF', 'TP',
-        
+
         // Counter function blocks
         'CTU', 'CTD', 'CTUD',
-        
+
         // Edge detection function blocks
         'R_TRIG', 'F_TRIG',
-        
+
         // Bistable function blocks
         'RS', 'SR'
     ],
@@ -123,15 +132,19 @@ export const IEC61131Specification = {
         'DINT_TO_BOOL', 'DINT_TO_INT', 'DINT_TO_REAL', 'DINT_TO_STRING',
         'REAL_TO_BOOL', 'REAL_TO_INT', 'REAL_TO_DINT', 'REAL_TO_STRING',
         'STRING_TO_BOOL', 'STRING_TO_INT', 'STRING_TO_DINT', 'STRING_TO_REAL',
-        
+
         // Numerical functions
-        'ABS', 'SQRT', 'LN', 'LOG', 'EXP',
+        'ABS', 'SQRT', 'LN', 'LOG', 'EXP', 'EXPT',
         'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN',
         'TRUNC', 'ROUND', 'CEIL', 'FLOOR',
-        
+        'MIN', 'MAX', 'LIMIT',
+
+        // Selection functions
+        'SEL', 'MUX',
+
         // String functions
         'LEN', 'LEFT', 'RIGHT', 'MID', 'CONCAT', 'INSERT', 'DELETE', 'REPLACE', 'FIND',
-        
+
         // Date and time functions
         'ADD_TIME', 'SUB_TIME', 'CONCAT_DATE_TOD'
     ],
@@ -150,16 +163,16 @@ export const IEC61131Specification = {
         'TON': ['IN', 'PT', 'Q', 'ET'],
         'TOF': ['IN', 'PT', 'Q', 'ET'],
         'TP': ['IN', 'PT', 'Q', 'ET'],
-        
+
         // Counter function blocks
         'CTU': ['CU', 'R', 'PV', 'Q', 'CV'],
         'CTD': ['CD', 'LD', 'PV', 'Q', 'CV'],
         'CTUD': ['CU', 'CD', 'R', 'LD', 'PV', 'QU', 'QD', 'CV'],
-        
+
         // Edge detection function blocks
         'R_TRIG': ['CLK', 'Q'],
         'F_TRIG': ['CLK', 'Q'],
-        
+
         // Bistable function blocks
         'RS': ['S', 'R1', 'Q1'],
         'SR': ['S1', 'R', 'Q1']
@@ -193,10 +206,10 @@ export function isDeclarationKeyword(text: string): boolean {
  * Helper to check if a string is any keyword
  */
 export function isKeyword(text: string): boolean {
-    return isControlKeyword(text) || 
-           isDeclarationKeyword(text) || 
-           IEC61131Specification.otherKeywords.includes(text.toUpperCase()) ||
-           IEC61131Specification.logicalOperators.includes(text.toUpperCase());
+    return isControlKeyword(text) ||
+        isDeclarationKeyword(text) ||
+        IEC61131Specification.otherKeywords.includes(text.toUpperCase()) ||
+        IEC61131Specification.logicalOperators.includes(text.toUpperCase());
 }
 
 /**
@@ -204,7 +217,7 @@ export function isKeyword(text: string): boolean {
  */
 export function isDataType(text: string): boolean {
     return IEC61131Specification.dataTypes.includes(text.toUpperCase()) ||
-           IEC61131Specification.standardFunctionBlocks.includes(text.toUpperCase());
+        IEC61131Specification.standardFunctionBlocks.includes(text.toUpperCase());
 }
 
 /**

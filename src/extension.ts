@@ -56,13 +56,13 @@ export function activate(context: vscode.ExtensionContext) {
                 const documentText = document.getText();
 
                 // Check if we're completing after a dot (function block instance member access)
-                const dotMatch = linePrefix.match(/(\w+)\.$/);
+                const dotMatch = linePrefix.match(/(\w+)\.$/i);
                 if (dotMatch) {
                     const instanceName = dotMatch[1];
 
                     // Extract function block instances from current document
                     const fbInstances = extractFunctionBlockInstances(documentText);
-                    const instance = fbInstances.find(inst => inst.name === instanceName);
+                    const instance = fbInstances.find(inst => inst.name.toLowerCase() === instanceName.toLowerCase());
 
                     if (instance) {
                         // Get the members for this function block type

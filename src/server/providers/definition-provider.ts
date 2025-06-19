@@ -32,13 +32,21 @@ export class EnhancedDefinitionProvider {
         workspaceIndexer: WorkspaceIndexer,
         localSymbolIndex: SymbolIndex
     ): Location[] {
+        console.log(`EnhancedDefinitionProvider: Looking for definition at ${position.line}:${position.character} in ${document.uri}`);
         const locations: Location[] = [];
 
         // Parse member access expressions in the document
         const memberExpressions = this.memberAccessProvider.parseMemberAccess(document);
+        console.log(`Found ${memberExpressions.length} member access expressions in document`);
 
         // Check if position is within a member access expression
         const memberAccess = this.memberAccessProvider.getMemberAccessAtPosition(memberExpressions, position);
+
+        // Debug info for local symbols index
+        console.log(`Local symbol index has ${localSymbolIndex.symbolsByName.size} unique symbols`);
+        for (const [name, symbols] of localSymbolIndex.symbolsByName.entries()) {
+            console.log(`  Symbol name: "${name}" has ${symbols.length} entries`);
+        }
 
         if (memberAccess) {
             // Handle member access navigation
@@ -64,15 +72,79 @@ export class EnhancedDefinitionProvider {
                     locations.push(memberLocation);
                 }
             }
-        } else {
-            // Standard symbol navigation
+        } else {                // Standard symbol navigation
             const symbolName = this.findSymbolAtPosition(document, position);
             if (symbolName) {
-                const symbolLocations = workspaceIndexer.findSymbolDefinition(symbolName);
-                locations.push(...symbolLocations);
+                console.log(`Looking for definition of symbol: ${symbolName}`);
+
+                // Try exact match first
+                let localSymbols = localSymbolIndex.symbolsByName.get(symbolName);
+
+                // Try case-insensitive lookup if exact match failed
+                if (!localSymbols || localSymbols.length === 0) {
+                    const normalizedName = symbolName.toLowerCase();
+                    console.log(`Trying case-insensitive lookup for: ${normalizedName}`);
+
+                    // Search all entries with case-insensitive comparison
+                    for (const [name, symbols] of localSymbolIndex.symbolsByName.entries()) {
+                        if (name.toLowerCase() === normalizedName) {
+                            console.log(`Found case-insensitive match with key: "${name}"`);
+                            localSymbols = symbols;
+                            break;
+                        }
+                    }
+                }
+
+                // Use local symbols if found
+                // Use local symbols if found
+                if (localSymbols && localSymbols.length > 0) {
+                    console.log(`  Found ${localSymbols.length} local symbols`);
+
+                    // Check if any of these are string variables
+                    const stringVars = localSymbols.filter(s =>
+                        s.dataType &&
+                        (s.dataType.toUpperCase() === 'STRING' ||
+                            s.dataType.toUpperCase() === 'WSTRING' ||
+                            s.dataType.toUpperCase().startsWith('STRING[') ||
+                            s.dataType.toUpperCase().startsWith('WSTRING['))
+                    );
+
+                    if (stringVars.length > 0) {
+                        console.log(`  Found ${stringVars.length} string variables among local symbols`);
+                        stringVars.forEach(s => console.log(`    String var: ${s.name} (${s.dataType})`));
+                    }
+
+                    locations.push(...localSymbols.map(s => s.location));
+                } else {
+                    // Fallback to workspace index
+                    console.log(`  No local symbols found, checking workspace index`);
+                    const symbolLocations = workspaceIndexer.findSymbolDefinition(symbolName);
+                    locations.push(...symbolLocations);
+
+                    // If still not found, try special string variable lookup
+                    if (symbolLocations.length === 0) {
+                        console.log(`  No workspace symbols found, trying special string variable lookup`);
+                        const allSymbols = workspaceIndexer.getAllSymbols();
+                        const stringVars = allSymbols.filter(s =>
+                            s.name.toLowerCase() === symbolName.toLowerCase() &&
+                            s.dataType &&
+                            (s.dataType.toUpperCase() === 'STRING' ||
+                                s.dataType.toUpperCase() === 'WSTRING' ||
+                                s.dataType.toUpperCase().startsWith('STRING[') ||
+                                s.dataType.toUpperCase().startsWith('WSTRING['))
+                        );
+
+                        if (stringVars.length > 0) {
+                            console.log(`  Found ${stringVars.length} matching string variables`);
+                            stringVars.forEach(s => console.log(`    String var: ${s.name} (${s.dataType})`));
+                            locations.push(...stringVars.map(s => s.location));
+                        }
+                    }
+                }
             }
         }
 
+        console.log(`Definition locations found: ${locations.length}`);
         return locations;
     }
 
@@ -147,28 +219,76 @@ export class EnhancedDefinitionProvider {
      * Find symbol at position (existing logic)
      */
     private findSymbolAtPosition(document: TextDocument, position: Position): string | null {
-        const text = document.getText();
-        const lines = text.split('\n');
-        const line = lines[position.line];
+        const lineText = document.getText({
+            start: { line: position.line, character: 0 },
+            end: { line: position.line, character: Number.MAX_VALUE }
+        });
 
-        if (!line) return null;
+        console.log(`Finding symbol in line: "${lineText}" at position ${position.character}`);
 
-        // Simple word extraction at position
-        const wordMatch = line.match(/\b\w+\b/g);
-        if (!wordMatch) return null;
+        // Use a regex that better matches ST identifiers (including those with underscores)
+        const wordRegex = /[A-Za-z_][A-Za-z0-9_]*/g;
+        let match;
+        let foundWord: string | null = null;
+        let foundStart = -1;
+        let foundEnd = -1;
 
-        let currentPos = 0;
-        for (const word of wordMatch) {
-            const wordStart = line.indexOf(word, currentPos);
-            const wordEnd = wordStart + word.length;
+        while ((match = wordRegex.exec(lineText)) !== null) {
+            const word = match[0];
+            const start = match.index;
+            const end = start + word.length;
 
-            if (position.character >= wordStart && position.character <= wordEnd) {
-                return word;
+            if (position.character >= start && position.character <= end) {
+                foundWord = word;
+                foundStart = start;
+                foundEnd = end;
+                console.log(`Found symbol at position: "${foundWord}" (${start}-${end})`);
+
+                // Special handling for string variables - check if the word is used with string operations
+                const lineContext = lineText.substring(Math.max(0, start - 20), Math.min(lineText.length, end + 20));
+                if (lineContext.includes("'") || lineContext.includes('"') ||
+                    lineContext.toLowerCase().includes('string') ||
+                    lineContext.toLowerCase().includes('wstring')) {
+                    console.log(`  Symbol appears to be used in string context: "${lineContext}"`);
+                }
+
+                break;
             }
-            currentPos = wordEnd;
         }
 
-        return null;
+        // If no match found with cursor directly on a word, try finding the closest word
+        if (!foundWord) {
+            let closestDistance = Number.MAX_SAFE_INTEGER;
+            while ((match = wordRegex.exec(lineText)) !== null) {
+                const word = match[0];
+                const start = match.index;
+                const end = start + word.length;
+
+                // Calculate distance from cursor to word
+                let distance = Number.MAX_SAFE_INTEGER;
+                if (position.character < start) {
+                    distance = start - position.character;
+                } else if (position.character > end) {
+                    distance = position.character - end;
+                }
+
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    foundWord = word;
+                    foundStart = start;
+                    foundEnd = end;
+                }
+            }
+
+            // Only use the closest word if it's reasonably close (within 5 characters)
+            if (closestDistance <= 5 && foundWord) {
+                console.log(`Found nearest symbol: "${foundWord}" (${foundStart}-${foundEnd}), distance: ${closestDistance}`);
+            } else {
+                foundWord = null;
+            }
+        }
+
+        return foundWord;
     }
 
     /**
@@ -263,17 +383,32 @@ export class EnhancedDefinitionProvider {
 
         // If not found as FunctionBlockInstance, try as Variable with FB dataType
         if (!instanceSymbol) {
-            instanceSymbol = allSymbols.find(symbol =>
-                symbol.name === memberAccess.instance &&
-                symbol.kind === STSymbolKind.Variable &&
-                symbol.dataType &&
-                this.memberAccessProvider.isStandardFBType(symbol.dataType)
-            );
+            instanceSymbol = allSymbols.find(symbol => {
+                if (symbol.name === memberAccess.instance && symbol.kind === STSymbolKind.Variable && symbol.dataType) {
+                    if (this.memberAccessProvider.isStandardFBType(symbol.dataType)) {
+                        return true;
+                    }
+                    const fbDefinitions = workspaceIndexer.findSymbolsByName(symbol.dataType);
+                    return fbDefinitions.some(def => def.kind === STSymbolKind.FunctionBlock);
+                }
+                return false;
+            });
         }
 
         if (instanceSymbol) {
-            const kindDisplay = instanceSymbol.kind === STSymbolKind.Variable ? 'Function Block Instance' : instanceSymbol.kind;
-            return `**${instanceSymbol.name}** (${kindDisplay})\n\nType: \`${instanceSymbol.dataType}\`${instanceSymbol.description ? `\n\n${instanceSymbol.description}` : ''}`;
+            const kindDisplay = (instanceSymbol.kind === STSymbolKind.Variable ? 'Function Block Instance' : instanceSymbol.kind).replace(/_/g, ' ');
+            const displayType = instanceSymbol.literalType || instanceSymbol.dataType;
+            let hoverText = `**${instanceSymbol.name}** (*${kindDisplay}*)\n\nType: \`${displayType}\``;
+
+            if (instanceSymbol.literalType && instanceSymbol.literalType !== instanceSymbol.dataType) {
+                hoverText += ` (Declared as \`${instanceSymbol.dataType}\`)`;
+            }
+
+            if (instanceSymbol.description) {
+                hoverText += `\n\n${instanceSymbol.description}`;
+            }
+
+            return hoverText;
         }
 
         return null;
@@ -286,10 +421,22 @@ export class EnhancedDefinitionProvider {
         symbolName: string,
         workspaceIndexer: WorkspaceIndexer
     ): string | null {
-        const definitions = workspaceIndexer.findSymbolDefinition(symbolName);
-        if (definitions.length > 0) {
-            // For now, just indicate that a definition exists
-            return `**${symbolName}**\n\nDefinition found (${definitions.length} location${definitions.length > 1 ? 's' : ''})`;
+        const symbols = workspaceIndexer.findSymbolsByName(symbolName);
+        if (symbols.length > 0) {
+            const symbol = symbols[0]; // Use the first definition found
+            const kindDisplay = symbol.kind.replace(/_/g, ' ');
+            const displayType = symbol.literalType || symbol.dataType;
+            let hoverText = `**${symbol.name}** (*${kindDisplay}*)\n\nType: \`${displayType}\``;
+
+            if (symbol.literalType && symbol.literalType !== symbol.dataType) {
+                hoverText += ` (Declared as \`${symbol.dataType}\`)`;
+            }
+
+            if (symbol.description) {
+                hoverText += `\n\n${symbol.description}`;
+            }
+
+            return hoverText;
         }
 
         return null;

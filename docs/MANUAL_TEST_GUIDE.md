@@ -3,7 +3,7 @@
 ## 🧪 **Manual Testing Checklist**
 
 ### **Setup**
-1. ✅ Extension installed: `controlforge-structured-text-1.1.0.vsix`
+1. ✅ Extension installed and active in development workspace
 2. 📁 Open workspace: `/home/michael/projects/controlforge-structured-text`
 3. 📄 Test files available in `manual-tests/` folder
 

@@ -1,21 +1,40 @@
-⚡️ Faster, Smarter Coding
-Intelligent Code Completion: Instantly suggests keywords, data types, and declared variables—reducing coding time and errors.
+# Features
 
-Function Block Auto-Complete: Quickly access standard IEC 61131-3 function block members (Timers, Counters, Edge Detectors, Bistables) with intuitive suggestions.
+## Code Completion & IntelliSense
+- Function block member completion with dot notation (`myTimer.Q`, `upCounter.CV`)
+- Context-aware keyword and data type suggestions
+- Parameter templates with snippet placeholders for function calls
+- Variable and function block instance completion from current document
+- Code snippets for common control logic patterns
 
-Code Snippets: Accelerate your workflow using ready-to-use code templates for common control logic structures.
+## Code Navigation
+- Go to Definition (F12) for variables, function blocks, and members
+- Find All References across entire project
+- Cross-file navigation between instances and standard library definitions
+- Hover information for variables and function block members
 
-✅ Reliable Code Validation
-Real-Time Error Detection: Catch syntax errors instantly, improving overall code quality and reducing troubleshooting time.
+## Syntax Validation
+- Real-time error detection while typing
+- IEC 61131-3 compliance checking
+- Function block parameter validation
+- Manual syntax validation command
 
-Manual Syntax Checks: Quickly verify code integrity before deployment, reducing costly debugging in production.
+## Language Support
+- Syntax highlighting for Structured Text elements
+- Support for .st and .iecst file formats
+- Case-insensitive keyword recognition
+- Comment toggling (line and block comments)
 
-🖥️ Improved Development Experience
-Clear Syntax Highlighting: Enhanced readability with detailed color-coding of Structured Text elements like keywords, data types, and operators.
+## Standard Function Blocks
+- Complete IEC 61131-3 standard library support
+- Timers: TON, TOF, TP
+- Counters: CTU, CTD, CTUD  
+- Edge detectors: R_TRIG, F_TRIG
+- Bistables: RS, SR
+- Built-in member definitions and documentation
 
-Quick Commenting: Efficiently toggle comments for faster debugging and code reviews.
-
-Automatic File Handling: Seamlessly recognizes Structured Text file formats (.st, .iecst), ensuring smooth integration into your existing workflows.
-
-🚧 Engineered for Reliability
-Extensively Tested: Rigorously validated against real-world PLC coding scenarios, ensuring dependable performanc
+## Development Environment
+- Language Server Protocol architecture
+- Multi-file project support
+- Workspace-wide symbol indexing
+- Cross-platform compatibility (Windows, macOS, Linux)

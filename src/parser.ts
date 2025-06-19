@@ -31,27 +31,35 @@ export interface FunctionBlockMember {
  */
 export function extractVariables(text: string): Variable[] {
     const variables: Variable[] = [];
-    const lines = text.split('\n');
+    // Per IEC 61131-3, comments should be ignored. Strip them before validation.
+    // Block comments (*...*) can be multi-line, so remove them first.
+    const textWithoutBlockComments = text.replace(/\(\*[^]*?\*\)/g, '');
+    const lines = textWithoutBlockComments.split('\n');
     let inVarBlock = false;
 
     for (const line of lines) {
-        const trimmedLine = line.trim();
+        // Now, strip single-line comments and trim
+        const cleanLine = line.replace(/\/\/.*$/, '').trim();
 
-        // Check if we're entering a VAR block
-        if (trimmedLine.match(/^VAR(?:_INPUT|_OUTPUT|_IN_OUT|_TEMP|_GLOBAL|_ACCESS|_CONFIG|_EXTERNAL)?$/)) {
+        if (cleanLine.length === 0) {
+            continue;
+        }
+
+        // Check if we're entering a VAR block (case-insensitive)
+        if (cleanLine.match(/^VAR(?:_INPUT|_OUTPUT|_IN_OUT|_TEMP|_GLOBAL|_ACCESS|_CONFIG|_EXTERNAL)?$/i)) {
             inVarBlock = true;
             continue;
         }
 
-        // Check if we're leaving a VAR block
-        if (trimmedLine === 'END_VAR') {
+        // Check if we're leaving a VAR block (case-insensitive)
+        if (cleanLine.match(/^END_VAR$/i)) {
             inVarBlock = false;
             continue;
         }
 
         // If we're in a VAR block, extract variable declarations
-        if (inVarBlock && trimmedLine.includes(':')) {
-            const match = trimmedLine.match(/^\s*(\w+)\s*:\s*(\w+)/);
+        if (inVarBlock && cleanLine.includes(':')) {
+            const match = cleanLine.match(/^\s*(\w+)\s*:\s*(\w+)/);
             if (match) {
                 variables.push({
                     name: match[1],
@@ -71,11 +79,13 @@ export function extractVariables(text: string): Variable[] {
  */
 export function extractFunctionBlocks(text: string): FunctionBlock[] {
     const functionBlocks: FunctionBlock[] = [];
-    const lines = text.split('\n');
+    // Per IEC 61131-3, comments should be ignored.
+    const textWithoutBlockComments = text.replace(/\(\*[^]*?\*\)/g, '');
+    const lines = textWithoutBlockComments.split('\n');
 
     for (const line of lines) {
-        const trimmedLine = line.trim();
-        const match = trimmedLine.match(/^FUNCTION_BLOCK\s+(\w+)/);
+        const cleanLine = line.replace(/\/\/.*$/, '').trim();
+        const match = cleanLine.match(/^FUNCTION_BLOCK\s+(\w+)/i);
         if (match) {
             functionBlocks.push({
                 name: match[1]
@@ -110,9 +120,13 @@ export function getCompletionKeywords() {
             { keyword: 'REPEAT', detail: 'Repeat loop', documentation: 'REPEAT ... UNTIL condition END_REPEAT' },
             { keyword: 'UNTIL', detail: 'Repeat condition', documentation: 'End condition for REPEAT loop' },
             { keyword: 'END_REPEAT', detail: 'End repeat loop', documentation: 'Closes REPEAT loop' },
-            { keyword: 'EXIT', detail: 'Exit loop', documentation: 'Exits current loop' },
-            { keyword: 'RETURN', detail: 'Return from function', documentation: 'Returns from function or function block' },
-            { keyword: 'CONTINUE', detail: 'Continue loop', documentation: 'Continue to next loop iteration' }
+            { keyword: 'EXIT', detail: 'Exit loop/function', documentation: 'Exit current loop or function' },
+            { keyword: 'RETURN', detail: 'Return from function', documentation: 'Return from function block or function' },
+            {
+                keyword: 'CONTINUE',
+                detail: 'Continue loop (Edition 3)',
+                documentation: 'Continue to next loop iteration\n\n⚠️ **Cross-Platform Note**: Not supported on all platforms (Siemens TIA Portal, Rockwell Studio 5000). Use conditional IF logic for maximum compatibility.'
+            }
         ],
         declarationKeywords: [
             { keyword: 'VAR', detail: 'Variable declaration', documentation: 'Declares local variables' },

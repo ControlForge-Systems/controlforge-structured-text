@@ -10,7 +10,7 @@ vsc-extension-quickstart.md
 **/*.ts
 node_modules/**
 *.vsix
-examples/**
+manual-tests/**
 # Exclude test files from packaged extension
 **/test/**
 **/*.test.*
