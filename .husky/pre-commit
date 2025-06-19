@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🔍 Running pre-commit tests..."
 
 # Colors for output
@@ -33,7 +30,8 @@ if npm run test:e2e; then
     print_status "🎉 All tests passed! Proceeding with commit..." "$GREEN"
 else
     print_status "❌ E2E tests failed! Commit aborted." "$RED"
-    print_status "💡 Fix E2E test failures before committing." "$YELLOW"
+    print_status "💡 E2E tests may fail in headless environments (no display)." "$YELLOW"
+    print_status "💡 Try running tests in an environment with a display server." "$YELLOW"
     exit 1
 fi
 
