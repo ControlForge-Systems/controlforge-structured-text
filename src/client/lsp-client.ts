@@ -17,12 +17,12 @@ let client: LanguageClient;
 
 export function activateLanguageServer(context: ExtensionContext): void {
     console.log('Activating Structured Text Language Server...');
-    
+
     // The server is implemented in node
     const serverModule = context.asAbsolutePath(
         path.join('out', 'server', 'server.js')
     );
-    
+
     console.log(`Server module path: ${serverModule}`);
 
     // The debug options for the server
