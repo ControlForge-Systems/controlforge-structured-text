@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
 import { validateStructuredText, formatValidationMessage } from './validator';
 import { extractVariables, extractFunctionBlocks, extractFunctionBlockInstances, getFunctionBlockMembers, getCompletionKeywords, getCodeSnippets } from './parser';
+import { activateLanguageServer, deactivateLanguageServer } from './client/lsp-client';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('ControlForge Structured Text extension is now active!');
+
+    // Start the Language Server for Go to Definition and Find References
+    activateLanguageServer(context);
 
     // Register the validate syntax command
     const validateSyntaxCommand = vscode.commands.registerCommand('controlforge-structured-text.validateSyntax', () => {
@@ -267,4 +271,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log('ControlForge Structured Text extension is now deactivated!');
+    return deactivateLanguageServer();
 }

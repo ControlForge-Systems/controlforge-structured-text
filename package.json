@@ -64,6 +64,10 @@
             {
                 "command": "controlforge-structured-text.validateSyntax",
                 "title": "ControlForge Structured Text: Validate Syntax"
+            },
+            {
+                "command": "controlforge-structured-text.showIndexStats",
+                "title": "ControlForge Structured Text: Show Index Statistics"
             }
         ]
     },
@@ -79,6 +83,11 @@
         "watch": "tsc -watch -p ./",
         "package": "vsce package",
         "publish": "vsce publish"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1",
+        "vscode-languageserver": "^9.0.1",
+        "vscode-languageserver-textdocument": "^1.0.11"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.10",
