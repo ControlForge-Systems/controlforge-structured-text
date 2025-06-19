@@ -8,8 +8,10 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 ## ✨ Key Features
 
 - 🎯 **Function Block IntelliSense**: Auto-complete for FB outputs (`myTimer.Q`, `upCounter.CV`)
+- 🔍 **Go to Definition & Find References**: Navigate through code with member access support
 - 🌈 **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
 - 💡 **Smart Code Completion**: Context-aware suggestions for keywords, types, and variables
+- ℹ️ **Hover Information**: Detailed tooltips for variables and function block members
 - 🔧 **Code Validation**: Built-in syntax validation and error detection
 - 📝 **Code Snippets**: Pre-built templates for common PLC patterns
 
@@ -86,10 +88,38 @@ END_PROGRAM
 
 ## 🛠️ Commands
 Access these commands via the Command Palette (`Ctrl+Shift+P`):
-- **"Structured Text: Validate Syntax"** - Check code for syntax errors
+- **"ControlForge Structured Text: Validate Syntax"** - Check code for syntax errors
+- **"ControlForge Structured Text: Show Index Statistics"** - Display workspace indexing information
 
-## 📊 What's New in v1.1.0
-- ✨ **Function Block Member Completion** - The headline feature!
+## 🧩 Advanced Language Server Features (v1.2.0+)
+
+### 🔍 Code Navigation
+- **Go to Definition** (`F12` or `Ctrl+Click`): Navigate to variable, function block, and member declarations
+- **Member Access Navigation**: Jump from `instance.member` to their definitions in function blocks
+- **Cross-file Navigation**: Navigate between files using Go to Definition
+- **Hover Information**: Detailed tooltips with type and scope information for variables and members
+
+### 🧠 Intelligent Analysis
+- **Workspace Symbol Indexing**: Analyzes all `.st` and `.iecst` files in your workspace
+- **Cross-Reference Support**: Find all references to variables and function blocks
+- **Standard Library Integration**: Navigate to standard IEC 61131-3 function block definitions
+- **Context-Aware Completions**: Smarter suggestions based on scope and context
+
+### ⚡ Performance Features
+- **Background Processing**: Non-blocking language server for responsive editing
+- **Incremental Updates**: Only reanalyzes changed files for better performance
+- **On-Demand Navigation**: Efficient symbol resolution without workspace-wide scans
+- **Smart Caching**: Remembers type information for quick lookups
+
+## 📊 What's New in v1.2.0
+- 🔍 **Go to Definition & Find References** - Navigate through your Structured Text code
+- 🌐 **Language Server Protocol Integration** - Advanced IDE features with LSP
+- 🏭 **IEC 61131-3 Definition Files** - Standard function block support
+- 🧩 **Cross-File Navigation** - Jump between files and references
+- 📝 **Enhanced Documentation** - Comprehensive test guides and examples
+
+## 📊 Previous Updates
+- ✨ **v1.1.0: Function Block Member Completion** - Dot notation support
 - 🔍 **Enhanced Parser** - Better variable and FB instance detection
 - 🧪 **Comprehensive Testing** - Automated tests ensure reliability
 - 📚 **Improved Documentation** - Better examples and guides
