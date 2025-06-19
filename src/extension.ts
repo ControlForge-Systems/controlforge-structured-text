@@ -3,11 +3,20 @@ import { validateStructuredText, formatValidationMessage } from './validator';
 import { extractVariables, extractFunctionBlocks, extractFunctionBlockInstances, getFunctionBlockMembers, getCompletionKeywords, getCodeSnippets } from './parser';
 import { activateLanguageServer, deactivateLanguageServer } from './client/lsp-client';
 
+let lspActivated = false;
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('ControlForge Structured Text extension is now active!');
 
-    // Start the Language Server for Go to Definition and Find References
-    activateLanguageServer(context);
+    try {
+        // Start the Language Server for Go to Definition and Find References
+        activateLanguageServer(context);
+        lspActivated = true;
+        console.log('Language server activated successfully.');
+    } catch (error: any) {
+        console.error('Failed to activate language server:', error);
+        vscode.window.showErrorMessage(`Failed to activate LSP: ${error.message || 'Unknown error'}`);
+    }
 
     // Register the validate syntax command
     const validateSyntaxCommand = vscode.commands.registerCommand('controlforge-structured-text.validateSyntax', () => {
@@ -267,6 +276,16 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(validateSyntaxCommand);
     context.subscriptions.push(onDidOpenTextDocument);
     context.subscriptions.push(completionProvider);
+
+    // Add command to check LSP status
+    const checkLspStatusCommand = vscode.commands.registerCommand('controlforge-structured-text.checkLspStatus', () => {
+        if (lspActivated) {
+            vscode.window.showInformationMessage('LSP Status: ACTIVE - Language Server Protocol is running');
+        } else {
+            vscode.window.showWarningMessage('LSP Status: INACTIVE - Language Server Protocol failed to start');
+        }
+    });
+    context.subscriptions.push(checkLspStatusCommand);
 }
 
 export function deactivate() {

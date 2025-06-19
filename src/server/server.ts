@@ -33,6 +33,9 @@ import { MemberCompletionProvider } from './providers/completion-provider';
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
 
+// Log server startup
+connection.console.log('Structured Text Language Server starting...');
+
 // Create a simple text document manager
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 

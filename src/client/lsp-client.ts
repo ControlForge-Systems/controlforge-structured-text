@@ -16,10 +16,14 @@ import {
 let client: LanguageClient;
 
 export function activateLanguageServer(context: ExtensionContext): void {
+    console.log('Activating Structured Text Language Server...');
+    
     // The server is implemented in node
     const serverModule = context.asAbsolutePath(
         path.join('out', 'server', 'server.js')
     );
+    
+    console.log(`Server module path: ${serverModule}`);
 
     // The debug options for the server
     // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
@@ -55,7 +59,9 @@ export function activateLanguageServer(context: ExtensionContext): void {
     );
 
     // Start the client. This will also launch the server
+    console.log('Starting Structured Text Language Server client...');
     client.start();
+    console.log('Structured Text Language Server client started.');
 }
 
 export function deactivateLanguageServer(): Thenable<void> | undefined {
