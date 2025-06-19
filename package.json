@@ -8,7 +8,7 @@
     "license": "BUSL-1.1",
     "repository": {
         "type": "git",
-        "url": "https://github.com/ControlForge-Systems/controlforge-structured-text"
+        "url": "git@github.com:ControlForge-Systems/controlforge-structured-text.git"
     },
     "bugs": {
         "url": "https://github.com/ControlForge-Systems/controlforge-structured-text/issues"
@@ -87,7 +87,9 @@
         "watch": "tsc -watch -p ./",
         "package": "vsce package",
         "publish": "vsce publish",
-        "set-pat": "vsce login ControlForgeSystems"
+        "set-pat": "vsce login ControlForgeSystems",
+        "publish:secure": "./publish-extension.sh",
+        "publish:pat": "vsce publish -p $VSCE_PAT"
     },
     "dependencies": {
         "vscode-languageclient": "^9.0.1",
