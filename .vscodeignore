@@ -1,3 +1,4 @@
+# Exclude source and development files
 .vscode/**
 .vscode-test/**
 src/**
@@ -8,18 +9,32 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
-!out/**/*.js
 node_modules/**
 *.vsix
 manual-tests/**
+samples/**
+
 # Exclude test files from packaged extension
 **/test/**
 **/*.test.*
 **/runTest.*
+
 # Exclude development files
 .husky/**
+# Exclude webpack configuration
+webpack.config.js
+
+# Exclude compile-time output (since we use webpack bundle in dist/)
+out/**
+
+# Exclude documentation folder (except IEC61131_SPECIFICATION.md which we should include)
 docs/**
+!docs/IEC61131_SPECIFICATION.md
 images/README.md
+publish-extension.sh
+
+# iec61131-definitions/ is needed at runtime for member access - DO NOT EXCLUDE
+
 # Keep these in the package
 # CHANGELOG.md
 # README.md
