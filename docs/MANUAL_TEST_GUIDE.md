@@ -1,19 +1,19 @@
-# Manual Testing Guide for Stage 2C Features
+# Manual Testing Guide for ControlForge Structured Text
 
-## 🧪 **Manual Testing Checklist**
+## Manual Testing Checklist
 
-### **Setup**
-1. ✅ Extension installed and active in development workspace
-2. 📁 Open workspace: `/home/michael/projects/controlforge-structured-text`
-3. 📄 Test files available in `manual-tests/` folder
+### Setup
+1. Extension installed: `controlforge-structured-text-1.2.2.vsix`
+2. Open workspace: `/home/michael/projects/controlforge-structured-text`
+3. Test files available in `manual-tests/` folder
 
 ---
 
-## **Test 1: Member Access Navigation** 🎯
+## Test 1: Member Access Navigation
 
-### **File**: `manual-tests/navigation/test-member-access.st`
+### File: `manual-tests/navigation/test-member-access.st`
 
-#### **Test Cases**:
+#### Test Cases:
 
 1. **Standard Timer FB (TON)**
    - Navigate to line 65: `timerDone := myTimer.Q;`
@@ -41,11 +41,11 @@
 
 ---
 
-## **Test 2: Intelligent Completion** 🧠
+## Test 2: Intelligent Completion
 
-### **File**: `manual-tests/navigation/test-member-access.st`
+### File: `manual-tests/navigation/test-member-access.st`
 
-#### **Test Cases**:
+#### Test Cases:
 
 1. **Standard FB Completion**
    - Go to end of file, add new line
@@ -65,15 +65,15 @@
 
 ---
 
-## **Test 3: Hover Information** 💬
+## Test 3: Hover Information
 
-### **File**: `manual-tests/navigation/test-member-access.st`
+### File: `manual-tests/navigation/test-member-access.st`
 
-#### **Test Cases**:
+#### Test Cases:
 
 1. **Standard FB Member Hover**
    - **Action**: Hover over `myTimer.Q` (line 65)
-   - **Expected**: "**Q** (OUTPUT)\n\nType: \`BOOL\`\n\nFunction Block: \`TON\`\n\nTimer output"
+   - **Expected**: "**Q** (OUTPUT)\n\nType: `BOOL`\n\nFunction Block: `TON`\n\nTimer output"
    - **Success Criteria**: Rich tooltip with type and description
 
 2. **Custom FB Member Hover**
@@ -84,15 +84,15 @@
 3. **Instance Hover**
    - **Action**: Hover over `myTimer` (not the member)
    - **Expected**: Shows instance information and type
-   - **Success Criteria**: "**myTimer** (FunctionBlockInstance)\n\nType: \`TON\`"
+   - **Success Criteria**: "**myTimer** (FunctionBlockInstance)\n\nType: `TON`"
 
 ---
 
-## **Test 4: Cross-File Navigation** 🔗
+## Test 4: Cross-File Navigation
 
-### **Files**: `samples/advanced/main-app.st` and `samples/advanced/library.st`
+### Files: `samples/advanced/main-app.st` and `samples/advanced/library.st`
 
-#### **Test Cases**:
+#### Test Cases:
 
 1. **Global Constant Navigation**
    - Open `samples/advanced/main-app.st`
@@ -112,11 +112,11 @@
 
 ---
 
-## **Test 5: Complex Expressions** 🔍
+## Test 5: Complex Expressions
 
-### **File**: `manual-tests/navigation/test-member-access.st`
+### File: `manual-tests/navigation/test-member-access.st`
 
-#### **Test Cases**:
+#### Test Cases:
 
 1. **Multiple Member Access in Expression**
    - Navigate to line 97: `IF (myTimer.Q AND motorCtrl.running) OR counter.Q THEN`
@@ -126,40 +126,54 @@
 
 ---
 
-## **Debugging Tips** 🐛
+## Test 6: LSP Status Check
 
-### **Check LSP Server Status**:
+### Test Cases:
+
+1. **LSP Status Command**
+   - **Action**: Open Command Palette (Ctrl+Shift+P)
+   - Type "ControlForge Structured Text: Check LSP Status"
+   - **Expected**: Should show notification that LSP is running
+   - **Success Criteria**: Notification shows "ControlForge Structured Text LSP is running"
+
+---
+
+## Debugging Tips
+
+### Check LSP Server Status:
 1. Open VS Code Developer Tools: `Help > Toggle Developer Tools`
 2. Check Console for any LSP errors
 3. Look for "Language Client" messages
 
-### **Extension Logs**:
+### Extension Logs:
 1. View > Output
 2. Select "ControlForge Structured Text" from dropdown
 3. Check for server startup and indexing messages
 
-### **Manual LSP Test**:
+### Manual LSP Test:
 1. Open Command Palette (Ctrl+Shift+P)
 2. Type "ControlForge" to see available commands
-3. Try "Show Workspace Index Stats" if available
+3. Try "Check LSP Status" and "Show Workspace Index Stats"
 
 ---
 
-## **Success Indicators** ✅
+## Success Indicators
 
 - **Navigation**: Ctrl+Click takes you to definitions
 - **Completion**: Typing `instance.` shows relevant members
 - **Hover**: Rich tooltips with type information
 - **Cross-file**: Navigation works between different `.st` files
 - **Performance**: Features work without significant delay
+- **LSP**: Status check confirms server is running
 
 ---
 
-## **Common Issues** ⚠️
+## Common Issues
 
 - **No completion**: Check if file is recognized as Structured Text
 - **No navigation**: Verify LSP server is running (check Output panel)
 - **Cross-file issues**: Ensure workspace is opened (not just individual files)
 - **Member access not working**: Check if instance type is properly recognized
+- **LSP not running**: Try reloading window or reinstalling extension
 
-Let me know what you find during testing! 🚀
+Let me know what you find during testing!
