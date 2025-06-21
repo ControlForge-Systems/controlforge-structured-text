@@ -33,6 +33,13 @@ import { MemberCompletionProvider } from './providers/completion-provider';
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
 
+// Add a custom error handler for uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+    connection.console.error(`Uncaught Exception: ${error.message}`);
+    connection.console.error(error.stack || 'No stacktrace available');
+    // Don't terminate, let the LSP client handle it
+});
+
 // Create a simple text document manager
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
@@ -55,43 +62,56 @@ let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
 
 connection.onInitialize((params: InitializeParams) => {
-    const capabilities = params.capabilities;
+    connection.console.log('Structured Text Language Server is initializing...');
 
-    // Does the client support the `workspace/configuration` request?
-    hasConfigurationCapability = !!(
-        capabilities.workspace && !!capabilities.workspace.configuration
-    );
-    hasWorkspaceFolderCapability = !!(
-        capabilities.workspace && !!capabilities.workspace.workspaceFolders
-    );
-    hasDiagnosticRelatedInformationCapability = !!(
-        capabilities.textDocument &&
-        capabilities.textDocument.publishDiagnostics &&
-        capabilities.textDocument.publishDiagnostics.relatedInformation
-    );
+    try {
+        const capabilities = params.capabilities;
 
-    const result: InitializeResult = {
-        capabilities: {
-            textDocumentSync: TextDocumentSyncKind.Incremental,
-            // Tell the client that this server supports go to definition
-            definitionProvider: true,
-            // Tell the client that this server supports find references
-            referencesProvider: true,
-            // Tell the client that this server supports hover
-            hoverProvider: true,
-            completionProvider: {
-                resolveProvider: true
-            }
-        }
-    };
-    if (hasWorkspaceFolderCapability) {
-        result.capabilities.workspace = {
-            workspaceFolders: {
-                supported: true
+        // Does the client support the `workspace/configuration` request?
+        hasConfigurationCapability = !!(
+            capabilities.workspace && !!capabilities.workspace.configuration
+        );
+        hasWorkspaceFolderCapability = !!(
+            capabilities.workspace && !!capabilities.workspace.workspaceFolders
+        );
+        hasDiagnosticRelatedInformationCapability = !!(
+            capabilities.textDocument &&
+            capabilities.textDocument.publishDiagnostics &&
+            capabilities.textDocument.publishDiagnostics.relatedInformation
+        );
+
+        connection.console.log('Client capabilities processed successfully.');
+
+        const result: InitializeResult = {
+            capabilities: {
+                textDocumentSync: TextDocumentSyncKind.Incremental,
+                // Tell the client that this server supports go to definition
+                definitionProvider: true,
+                // Tell the client that this server supports find references
+                referencesProvider: true,
+                // Tell the client that this server supports hover
+                hoverProvider: true,
+                completionProvider: {
+                    resolveProvider: true
+                }
             }
         };
+
+        if (hasWorkspaceFolderCapability) {
+            result.capabilities.workspace = {
+                workspaceFolders: {
+                    supported: true
+                }
+            };
+        }
+
+        connection.console.log('Server initialization completed successfully.');
+        return result;
+    } catch (error: any) {
+        connection.console.error(`Error during server initialization: ${error.message}`);
+        connection.console.error(error.stack || 'No stacktrace available');
+        throw error; // Re-throw to let the client know about the error
     }
-    return result;
 });
 
 // Add a custom command to show workspace indexer stats
@@ -102,10 +122,13 @@ connection.onRequest('custom/showIndexStats', () => {
 });
 
 connection.onInitialized(() => {
+    connection.console.log('Structured Text Language Server initialized and ready.');
+
     if (hasConfigurationCapability) {
         // Register for all configuration changes.
         connection.client.register(DidChangeConfigurationNotification.type, undefined);
     }
+
     if (hasWorkspaceFolderCapability) {
         connection.workspace.onDidChangeWorkspaceFolders(_event => {
             connection.console.log('Workspace folder change event received.');
@@ -125,6 +148,17 @@ connection.onInitialized(() => {
     }).catch(error => {
         connection.console.log(`Error initializing workspace: ${error}`);
     });
+});
+
+// Add handlers for graceful shutdown
+connection.onShutdown(() => {
+    connection.console.log('Structured Text Language Server is shutting down...');
+    // Clean up any resources here if needed
+});
+
+connection.onExit(() => {
+    connection.console.log('Structured Text Language Server is exiting.');
+    // Final cleanup before exit
 });
 
 /**

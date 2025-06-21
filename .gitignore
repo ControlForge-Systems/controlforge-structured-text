@@ -16,6 +16,7 @@ yarn-error.log*
 
 # Build output
 out/
+dist/
 *.vsix
 
 # TypeScript

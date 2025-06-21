@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "npm: compile",
+            "label": "npm: webpack",
             "type": "npm",
-            "script": "compile",
+            "script": "webpack",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -24,6 +24,16 @@
             },
             "isBackground": true,
             "problemMatcher": "$tsc-watch"
+        },
+        {
+            "label": "npm: compile",
+            "type": "npm",
+            "script": "compile",
+            "group": "build",
+            "presentation": {
+                "panel": "shared"
+            },
+            "problemMatcher": "$tsc"
         }
     ]
 }
