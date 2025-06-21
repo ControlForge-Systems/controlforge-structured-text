@@ -18,6 +18,10 @@ samples/**
 **/runTest.*
 # Exclude development files
 .husky/**
+# Exclude webpack configuration
+webpack.config.js
+# Keep only dist folder
+out/**
 docs/**
 images/README.md
 publish-extension.sh
