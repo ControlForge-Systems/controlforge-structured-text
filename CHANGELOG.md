@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.2.4] - Unreleased
+## [1.2.4] - 2025-06-21
 
 ### Fixed
 - Improved error handling for LSP client connection
@@ -10,6 +10,7 @@
 ### Changed
 - Enhanced language server connection stability
 - Improved error reporting for better diagnostics
+- Completed migration to webpack bundling for better reliability
 
 ## [1.2.3] - 2025-06-21
 
