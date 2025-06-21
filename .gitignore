@@ -16,6 +16,7 @@ yarn-error.log*
 
 # Build output
 out/
+dist/
 *.vsix
 
 # TypeScript
@@ -42,9 +43,6 @@ yarn-error.log*
 # Test Results & Coverage
 coverage/
 .vscode-test/
-TEST_RESULTS.md
-PROJECT_SUMMARY.md
-MIGRATION_SUMMARY.md
 
 # VS Code Extension Development
 *.vsix

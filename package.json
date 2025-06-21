@@ -2,7 +2,7 @@
     "name": "controlforge-structured-text",
     "displayName": "ControlForge Structured Text",
     "description": "Professional Structured Text (IEC 61131-3) IDE with function block IntelliSense, syntax highlighting, and smart code completion for PLC programming",
-    "version": "1.1.0",
+    "version": "1.2.4",
     "author": "Michael Distel",
     "publisher": "ControlForgeSystems",
     "license": "BUSL-1.1",
@@ -35,7 +35,8 @@
         "schneider",
         "control systems"
     ],
-    "main": "./out/extension.js",
+    "main": "./dist/extension.js",
+    "//": "Note: iec61131-definitions folder is required at runtime for hover, navigation and completion features",
     "activationEvents": [],
     "contributes": {
         "languages": [
@@ -78,9 +79,12 @@
         "test:watch": "npm run watch",
         "test:pre-commit": "npm run test:unit && npm run test:e2e",
         "prepare": "husky",
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "npm run webpack-prod",
         "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
+        "compile-test": "tsc -p ./",
+        "webpack": "webpack --config webpack.config.js --mode development",
+        "webpack-prod": "webpack --config webpack.config.js --mode production",
+        "watch": "webpack --config webpack.config.js --mode development --watch",
         "package": "vsce package",
         "publish": "vsce publish"
     },
@@ -98,6 +102,9 @@
         "glob": "^11.0.2",
         "husky": "^9.1.7",
         "mocha": "^11.6.0",
-        "typescript": "^4.9.4"
+        "ts-loader": "^9.5.2",
+        "typescript": "^4.9.4",
+        "webpack": "^5.99.9",
+        "webpack-cli": "^6.0.1"
     }
 }
