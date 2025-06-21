@@ -103,7 +103,7 @@ Access these commands via the Command Palette (`Ctrl+Shift+P`):
 - **Member Access Navigation**: Navigate from instance members to their definitions
 - **Language Server Protocol (LSP)**: Full integration for advanced IDE features
 - **Cross-file Navigation**: Navigate between files with symbol references
-- **IEC 61131-3 Definition Files**: Standard function block definitions included
+- **IEC 61131-3 Definition Files**: Standard function block definitions included for hover, navigation and completion
 
 ## What's New in v1.1.0
 - **Function Block Member Completion**: Auto-complete for function block outputs

@@ -21,6 +21,14 @@ Development-related documentation is organized as follows:
 - Language specification: [IEC61131_SPECIFICATION.md](./IEC61131_SPECIFICATION.md) 
 - Feature documentation: [FEATURES.md](./FEATURES.md)
 
+## Runtime Dependencies
+
+- **iec61131-definitions/**: This folder contains standard function block definitions required at runtime for:
+  - Function block member completion
+  - Hover information for standard FB members
+  - Navigation to standard FB member definitions
+  - **IMPORTANT**: This folder must be included in the packaged extension (.vsix)
+
 ## Release Notes
 
 Release notes for each version are available in the [releases](./releases/) folder:

@@ -11,6 +11,7 @@ vsc-extension-quickstart.md
 node_modules/**
 *.vsix
 manual-tests/**
+samples/**
 # Exclude test files from packaged extension
 **/test/**
 **/*.test.*
@@ -19,6 +20,8 @@ manual-tests/**
 .husky/**
 docs/**
 images/README.md
+publish-extension.sh
+# iec61131-definitions/ is needed at runtime for member access - DO NOT EXCLUDE
 # Keep these in the package
 # CHANGELOG.md
 # README.md

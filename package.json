@@ -36,6 +36,7 @@
         "control systems"
     ],
     "main": "./out/extension.js",
+    "//": "Note: iec61131-definitions folder is required at runtime for hover, navigation and completion features",
     "activationEvents": [],
     "contributes": {
         "languages": [

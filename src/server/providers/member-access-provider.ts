@@ -286,7 +286,8 @@ export class MemberAccessProvider {
     }
 
     /**
-     * Create a virtual location for standard FB members
+     * Create a virtual location for a FB member that points to the definition file
+     * Note: This requires the iec61131-definitions folder to be included in the packaged extension
      */
     private createVirtualMemberLocation(fbType: string, memberName: string, instanceLocation: Location): Location {
         // Use real definition files for standard function blocks
