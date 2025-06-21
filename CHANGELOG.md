@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.2.4] - Unreleased
+
+### Fixed
+- Improved error handling for LSP client connection
+- Fixed "Pending response rejected since connection got disposed" error
+- Added proper shutdown sequence for LSP server process
+
+### Changed
+- Enhanced language server connection stability
+- Improved error reporting for better diagnostics
+
 ## [1.2.3] - 2025-06-21
 
 ### Fixed

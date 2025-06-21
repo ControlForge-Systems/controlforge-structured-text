@@ -2,7 +2,7 @@
     "name": "controlforge-structured-text",
     "displayName": "ControlForge Structured Text",
     "description": "Professional Structured Text (IEC 61131-3) IDE with function block IntelliSense, syntax highlighting, and smart code completion for PLC programming",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "author": "Michael Distel",
     "publisher": "ControlForgeSystems",
     "license": "BUSL-1.1",
