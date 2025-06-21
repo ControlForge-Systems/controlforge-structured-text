@@ -1,5 +1,43 @@
 # Change Log
 
+## [1.2.2] - 2025-06-21
+
+### Fixed
+- Critical bug fix: resolved LSP initialization error with vscode-languageclient module
+- Added robust error handling for language server activation
+- Added LSP status check command to verify Language Server Protocol is running
+
+## [1.2.1] - 2025-06-19
+
+### Fixed
+- Language Server Protocol (LSP) activation issues
+- Enhanced error handling for LSP initialization
+- Added diagnostic tools for LSP status verification
+- Improved server-client communication with detailed logging
+
+## [1.2.0] - 2025-06-19
+
+### Added
+- **Go to Definition & Find References**: Navigate through Structured Text code
+- **Member access navigation** for function blocks (instance.member → definition)
+- **Cross-file navigation** between instances and library definitions
+- Smart **hover information** for variables and function block members
+- Comprehensive **symbol indexing** across workspace
+- **Language Server Protocol (LSP) Integration**:
+  - Client-server architecture for advanced IDE features
+  - Workspace indexing for cross-file references
+  - Enhanced symbol provider with member access support
+- **IEC 61131-3 Definition Files**:
+  - Standard function block definition files (TON, TOF, TP, CTU, etc.)
+  - Enhanced documentation and specification compliance
+  - Sample files and test cases for manual validation
+
+### Improved
+- Reorganized project structure with better separation of concerns
+- Enhanced documentation with comprehensive test guides
+- Better performance with smarter caching and incremental updates
+- More robust parser with better error handling
+
 ## [1.1.0] - 2025-06-16
 
 ### Added
