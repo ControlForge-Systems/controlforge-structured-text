@@ -21,6 +21,7 @@
     "categories": [
         "Programming Languages"
     ],
+    "pricing": "Free",
     "keywords": [
         "PLC",
         "Structured Text",
@@ -69,15 +70,28 @@
             {
                 "command": "controlforge-structured-text.showIndexStats",
                 "title": "ControlForge Structured Text: Show Index Statistics"
+            },
+            {
+                "command": "controlforge-structured-text.showFBDocumentation",
+                "title": "ControlForge Structured Text: Show Function Block Documentation"
+            },
+            {
+                "command": "controlforge-structured-text.showFBMemberDocumentation",
+                "title": "ControlForge Structured Text: Show Function Block Member Documentation"
+            },
+            {
+                "command": "controlforge-structured-text.checkLspStatus",
+                "title": "ControlForge Structured Text: Check Language Server Status"
             }
         ]
     },
     "scripts": {
-        "test": "npm run test:unit && npm run test:e2e",
+        "test": "npm run test:unit",
         "test:unit": "npm run compile && node ./out/runUnitTests.js",
         "test:e2e": "npm run compile && node ./out/runTest.js",
+        "test:all": "npm run test:unit && npm run test:e2e",
         "test:watch": "npm run watch",
-        "test:pre-commit": "npm run test:unit && npm run test:e2e",
+        "test:pre-commit": "npm run test:unit",
         "prepare": "husky",
         "vscode:prepublish": "npm run webpack-prod",
         "compile": "tsc -p ./",
@@ -86,7 +100,9 @@
         "webpack-prod": "webpack --config webpack.config.js --mode production",
         "watch": "webpack --config webpack.config.js --mode development --watch",
         "package": "vsce package",
-        "publish": "vsce publish"
+        "package:pre-release": "vsce package --pre-release",
+        "publish": "vsce publish",
+        "publish:pre-release": "vsce publish --pre-release"
     },
     "dependencies": {
         "vscode-languageclient": "^9.0.1",

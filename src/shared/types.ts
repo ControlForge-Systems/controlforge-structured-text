@@ -2,6 +2,7 @@
  * Shared types and interfaces between LSP client and server
  */
 
+import { toNamespacedPath } from 'path';
 import { Location, Position, Range } from 'vscode-languageserver';
 
 /**

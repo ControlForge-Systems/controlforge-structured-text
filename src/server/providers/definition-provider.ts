@@ -15,6 +15,21 @@ import {
 } from '../../shared/types';
 import { WorkspaceIndexer } from '../workspace-indexer';
 import { MemberAccessProvider } from './member-access-provider';
+import { getFunctionBlockDescription, getMemberDescription, getShortFBDescription } from './enhanced-descriptions';
+
+// Concise descriptions for standard function blocks
+const STANDARD_FB_DESCRIPTIONS: Record<string, string> = {
+    'TON': 'On-Delay Timer',
+    'TOF': 'Off-Delay Timer',
+    'TP': 'Pulse Timer',
+    'CTU': 'Up Counter',
+    'CTD': 'Down Counter',
+    'CTUD': 'Up-Down Counter',
+    'R_TRIG': 'Rising Edge Detector',
+    'F_TRIG': 'Falling Edge Detector',
+    'RS': 'Reset-Dominant Bistable',
+    'SR': 'Set-Dominant Bistable'
+};
 
 export class EnhancedDefinitionProvider {
     private memberAccessProvider: MemberAccessProvider;
@@ -360,7 +375,20 @@ export class EnhancedDefinitionProvider {
 
         const member = availableMembers.find(m => m.name === memberAccess.member);
         if (member) {
-            return `**${member.name}** (${member.direction})\n\nType: \`${member.dataType}\`\n\nFunction Block: \`${member.fbType}\`${member.description ? `\n\n${member.description}` : ''}`;
+            // Create tooltip with Markdown formatting for syntax highlighting
+            let hoverText = `(${member.direction.replace('VAR_', '')}) **${member.name}**: \`${member.dataType}\``;
+
+            // Add description if available
+            if (member.description) {
+                // Add first sentence of description for brief context
+                const firstSentence = member.description.split('.')[0];
+                hoverText += `\n\n${firstSentence}.`;
+            }
+
+            // Add parent function block type info
+            hoverText += `\n\nMember of \`${instanceSymbol.dataType}\` function block`;
+
+            return hoverText;
         }
 
         return null;
@@ -393,19 +421,23 @@ export class EnhancedDefinitionProvider {
                 }
                 return false;
             });
-        }
-
-        if (instanceSymbol) {
-            const kindDisplay = (instanceSymbol.kind === STSymbolKind.Variable ? 'Function Block Instance' : instanceSymbol.kind).replace(/_/g, ' ');
+        } if (instanceSymbol) {
+            // Check if this is a standard function block
             const displayType = instanceSymbol.literalType || instanceSymbol.dataType;
-            let hoverText = `**${instanceSymbol.name}** (*${kindDisplay}*)\n\nType: \`${displayType}\``;
 
-            if (instanceSymbol.literalType && instanceSymbol.literalType !== instanceSymbol.dataType) {
-                hoverText += ` (Declared as \`${instanceSymbol.dataType}\`)`;
-            }
+            // Create tooltip with Markdown formatting for syntax highlighting
+            let hoverText = `**${instanceSymbol.name}**: \`${displayType}\``;
 
-            if (instanceSymbol.description) {
-                hoverText += `\n\n${instanceSymbol.description}`;
+            // For standard FBs, always add the type description directly instead of in parentheses
+            // This ensures descriptions are always visible
+            if (instanceSymbol.dataType && this.memberAccessProvider.isStandardFBType(instanceSymbol.dataType)) {
+                const fbType = instanceSymbol.dataType.toUpperCase();
+                const description = STANDARD_FB_DESCRIPTIONS[fbType];
+                if (description) {
+                    // Include full description with FB type and description on the next line
+                    hoverText = `**${instanceSymbol.name}**: \`${displayType}\` *(${description})*\n\n`;
+                    hoverText += `Standard function block for ${description}.`;
+                }
             }
 
             return hoverText;
@@ -424,21 +456,53 @@ export class EnhancedDefinitionProvider {
         const symbols = workspaceIndexer.findSymbolsByName(symbolName);
         if (symbols.length > 0) {
             const symbol = symbols[0]; // Use the first definition found
-            const kindDisplay = symbol.kind.replace(/_/g, ' ');
-            const displayType = symbol.literalType || symbol.dataType;
-            let hoverText = `**${symbol.name}** (*${kindDisplay}*)\n\nType: \`${displayType}\``;
+            const displayType = symbol.literalType || symbol.dataType || '';
 
-            if (symbol.literalType && symbol.literalType !== symbol.dataType) {
-                hoverText += ` (Declared as \`${symbol.dataType}\`)`;
+            // Create tooltips with Markdown formatting for syntax highlighting
+            if (symbol.kind === STSymbolKind.FunctionBlock) {
+                return this.formatStandardFBHover(symbol.name);
+            } else if (symbol.kind === STSymbolKind.Program) {
+                return `## Program: \`${symbol.name}\`\n\nIEC 61131-3 program organization unit (POU)`;
+            } else if (displayType) {
+                let result = `**${symbol.name}**: \`${displayType}\``;
+
+                // Add kind info
+                const kindDisplay = symbol.kind.toLowerCase().replace(/_/g, ' ');
+                result += `\n\n*${kindDisplay}*`;
+
+                // Add description if available
+                if (symbol.description) {
+                    result += `\n\n${symbol.description.split('\n')[0]}`;
+                }
+
+                return result;
+            } else {
+                return `**${symbol.name}**`;
             }
-
-            if (symbol.description) {
-                hoverText += `\n\n${symbol.description}`;
-            }
-
-            return hoverText;
         }
 
         return null;
+    }
+
+    /**
+     * Format hover text for standard function blocks in a consistent way
+     * @param fbType The function block type name
+     */
+    private formatStandardFBHover(fbType: string): string {
+        // For standard function blocks, we want to show their core purpose without extra text
+        // Example: "function block TON (On-Delay Timer)"
+        if (this.memberAccessProvider.isStandardFBType(fbType)) {
+            const fbTypeUpper = fbType.toUpperCase();
+            const description = STANDARD_FB_DESCRIPTIONS[fbTypeUpper] || '';
+            if (description) {
+                // Format with heading style and detailed description
+                let result = `## Function Block: \`${fbType}\`\n\n`;
+                result += `**Type**: ${description}\n\n`;
+                result += `Standard IEC 61131-3 function block used for ${description.toLowerCase()} operations.`;
+                return result;
+            }
+        }
+
+        return `## Function Block: \`${fbType}\``;
     }
 }

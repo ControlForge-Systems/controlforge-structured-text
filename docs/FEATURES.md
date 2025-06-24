@@ -7,6 +7,15 @@
 - Variable and function block instance completion from current document
 - Code snippets for common control logic patterns
 
+## Enhanced Hover Documentation
+- Concise, VS Code-style hover tooltips for consistent developer experience
+- Type information for variables: `variableName: TYPE`
+- Function block type tooltips: `function block TYPE (Description)` 
+- Function block instance tooltips: `instanceName: TYPE (Description)`
+- Member tooltips with direction and type: `(DIRECTION) memberName: TYPE`
+- Minimalist design matching VS Code's built-in TypeScript/JavaScript tooltips
+- IEC 61131-3 compliant documentation for standard function blocks
+
 ## Code Navigation
 - Go to Definition (F12) for variables, function blocks, and members
 - Find All References across entire project

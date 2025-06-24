@@ -21,6 +21,16 @@ Development-related documentation is organized as follows:
 - Language specification: [IEC61131_SPECIFICATION.md](./IEC61131_SPECIFICATION.md) 
 - Feature documentation: [FEATURES.md](./FEATURES.md)
 
+## Enhanced Hover Tooltips
+
+The extension provides rich, detailed hover tooltips for standard IEC 61131-3 function blocks and their members. These tooltips include:
+- Comprehensive function block descriptions with timing diagrams
+- Detailed member-level documentation with data types and directions
+- Behavior explanations and usage examples
+- Common applications and vendor compatibility notes
+
+To test hover tooltips, see the test files in [manual-tests/hover/](../manual-tests/hover/).
+
 ## Runtime Dependencies
 
 - **iec61131-definitions/**: This folder contains standard function block definitions required at runtime for:

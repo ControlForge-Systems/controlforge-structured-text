@@ -3,6 +3,13 @@
 ## Project Overview
 This is a VS Code extension providing comprehensive support for Structured Text (ST) programming language used in industrial automation and PLC programming according to IEC 61131-3 standard.
 
+## Development Environment
+- GitHub CLI (`gh`) is installed and configured for issue management
+- Branch naming convention: `feature/issue-XX-brief-description`
+- Pre-commit hooks are set up for testing with Husky
+- For issue creation, use: `gh issue create --title "Title" --label "enhancement,documentation" --assignee "@me"`
+- For branch creation, use: `git checkout -b feature/issue-XX-brief-description`
+
 ## CRITICAL: IEC 61131-3 Specification Compliance
 **ALWAYS consult `docs/IEC61131_SPECIFICATION.md` before making any language-related changes.** This document is the authoritative source for:
 - Correct Structured Text syntax, keywords, and operators

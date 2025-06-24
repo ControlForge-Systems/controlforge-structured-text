@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { validateStructuredText, formatValidationMessage } from './validator';
 import { extractVariables, extractFunctionBlocks, extractFunctionBlockInstances, getFunctionBlockMembers, getCompletionKeywords, getCodeSnippets } from './parser';
 import { activateLanguageServer, deactivateLanguageServer } from './client/lsp-client';
+import { registerFBDocumentationCommands } from './fb-documentation-handler';
 
 // Track LSP activation status
 let lspActivated = false;
@@ -17,6 +18,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Try to activate the language server with retry mechanism
     await tryActivateLanguageServer(context);
+
+    // Register function block documentation commands
+    registerFBDocumentationCommands(context);
 
     // Register command to check LSP status
     const checkLspStatusCommand = vscode.commands.registerCommand('controlforge-structured-text.checkLspStatus', () => {

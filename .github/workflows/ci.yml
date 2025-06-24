@@ -1,0 +1,73 @@
+name: CI
+
+# Workflow temporarily disabled
+# To re-enable, remove the following line and uncomment the rest of the file
+on: 
+  workflow_dispatch: # Only run manually for now
+
+# on:
+#   push:
+#     branches: [ main ]
+#     tags:
+#       - 'v*'
+#   pull_request:
+#     branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run unit tests only (E2E disabled)
+      run: npm run test:unit
+      
+    - name: Package Extension
+      run: npm run package
+      
+    - name: Upload VSIX as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: controlforge-structured-text
+        path: '*.vsix'
+
+  # Publishing step disabled
+  # publish:
+  #   needs: build
+  #   if: startsWith(github.ref, 'refs/tags/v')
+  #   runs-on: ubuntu-latest
+  #   
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   
+  #   - name: Use Node.js
+  #     uses: actions/setup-node@v4
+  #     with:
+  #       node-version: '18.x'
+  #       
+  #   - name: Install dependencies
+  #     run: npm ci
+  #     
+  #   - name: Download VSIX
+  #     uses: actions/download-artifact@v4
+  #     with:
+  #       name: controlforge-structured-text
+  #       
+  #   - name: Publish to VS Code Marketplace
+  #     run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
+  #     
+  #   - name: Create Release
+  #     uses: softprops/action-gh-release@v1
+  #     with:
+  #       files: '*.vsix'
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

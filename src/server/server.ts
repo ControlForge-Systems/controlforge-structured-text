@@ -19,7 +19,9 @@ import {
     DefinitionParams,
     Location,
     Position,
-    Range
+    Range,
+    MarkupKind,
+    Hover
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -29,6 +31,7 @@ import { WorkspaceIndexer } from './workspace-indexer';
 import { MemberAccessProvider } from './providers/member-access-provider';
 import { EnhancedDefinitionProvider } from './providers/definition-provider';
 import { MemberCompletionProvider } from './providers/completion-provider';
+import { HoverProvider } from './providers/hover-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -56,6 +59,7 @@ const workspaceIndexer = new WorkspaceIndexer();
 const memberAccessProvider = new MemberAccessProvider();
 const enhancedDefinitionProvider = new EnhancedDefinitionProvider(memberAccessProvider);
 const memberCompletionProvider = new MemberCompletionProvider(memberAccessProvider);
+const hoverProvider = new HoverProvider(memberAccessProvider);
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -367,21 +371,15 @@ connection.onDefinition((params: DefinitionParams): Location[] => {
     return symbols.map(symbol => symbol.location);
 });
 
-// Hover handler - provides information about symbols and members
-connection.onHover((params): { contents: string } | null => {
+// Hover handler - provides information about symbols and members with markdown support
+connection.onHover((params): Hover | null => {
     const document = documents.get(params.textDocument.uri);
     if (!document) {
         return null;
     }
 
-    // Use enhanced definition provider for hover information
-    const hoverInfo = enhancedDefinitionProvider.provideHover(document, params.position, workspaceIndexer, symbolIndex);
-
-    if (hoverInfo) {
-        return { contents: hoverInfo };
-    }
-
-    return null;
+    // Use dedicated hover provider for hover information
+    return hoverProvider.provideHover(document, params.position, workspaceIndexer, symbolIndex);
 });
 
 // Completion handler - provides intelligent completion for members and symbols

@@ -52,6 +52,7 @@ VAR
     timerDone : BOOL;
     motorStatus : BOOL;
     motorFault : BOOL;
+    myText : STRING := 'hello';
 END_VAR
 
 // Test 1: Standard FB member access - Timer

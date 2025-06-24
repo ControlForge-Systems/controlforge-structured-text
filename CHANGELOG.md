@@ -1,5 +1,22 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+- Added function block documentation with improved hover tooltips
+- Implemented VS Code style tooltips for better integration with the IDE
+- Created test files for verifying hover tooltip functionality
+
+### Changed
+- Updated hover tooltips to match VS Code's TypeScript/JavaScript style
+- Simplified tooltip formatting to show only essential type information
+- Made tooltips concise with minimal descriptions:
+  - Variables: `variableName: TYPE`
+  - Function blocks: `function block TYPE (Description)` 
+  - FB instances: `instanceName: TYPE (Description)`
+  - FB members: `(DIRECTION) memberName: TYPE`
+- Improved overall tooltip formatting for better readability and consistency
+
 ## [1.2.4] - 2025-06-21
 
 ### Fixed
