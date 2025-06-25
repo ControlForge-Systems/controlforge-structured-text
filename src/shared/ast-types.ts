@@ -23,7 +23,10 @@ export enum STSymbolKind {
     Constant = 7,
     Type = 8,
     Namespace = 9,
-    Method = 10
+    Method = 10,
+    Class = 11,
+    Interface = 12,
+    Property = 13
 }
 
 /**
@@ -128,7 +131,12 @@ export enum ASTNodeType {
     ExitStatement = 22,
     ContinueStatement = 23,
     Comment = 24,
-    Root = 25
+    Root = 25,
+    Class = 26,
+    Interface = 27,
+    Method = 28,
+    MethodPrototype = 29,
+    Property = 30
 }
 
 /**
@@ -220,9 +228,9 @@ export interface IfStatementNode extends ASTNode {
  * Base Expression AST node
  */
 export interface ExpressionNode extends ASTNode {
-    type: ASTNodeType.Expression | ASTNodeType.BinaryExpression | ASTNodeType.UnaryExpression | 
-          ASTNodeType.Literal | ASTNodeType.Identifier | ASTNodeType.ArrayAccess | 
-          ASTNodeType.StructAccess | ASTNodeType.FunctionCall;
+    type: ASTNodeType.Expression | ASTNodeType.BinaryExpression | ASTNodeType.UnaryExpression |
+    ASTNodeType.Literal | ASTNodeType.Identifier | ASTNodeType.ArrayAccess |
+    ASTNodeType.StructAccess | ASTNodeType.FunctionCall;
 }
 
 /**
@@ -283,6 +291,65 @@ export interface FunctionBlockCallNode extends ASTNode {
 }
 
 /**
+ * Class AST node
+ */
+export interface ClassNode extends ASTNode {
+    type: ASTNodeType.Class;
+    name: string;
+    parentClass?: string;
+    implementedInterfaces?: string[];
+    variables: VariableDeclarationSectionNode[];
+    methods: MethodNode[];
+    properties?: PropertyNode[];
+}
+
+/**
+ * Interface AST node
+ */
+export interface InterfaceNode extends ASTNode {
+    type: ASTNodeType.Interface;
+    name: string;
+    extendedInterfaces?: string[];
+    methodPrototypes: MethodPrototypeNode[];
+}
+
+/**
+ * Method AST node
+ */
+export interface MethodNode extends ASTNode {
+    type: ASTNodeType.Method;
+    name: string;
+    returnType: string;
+    accessModifier: 'PUBLIC' | 'PROTECTED' | 'PRIVATE';
+    isAbstract: boolean;
+    isFinal: boolean;
+    variables: VariableDeclarationSectionNode[];
+    body: ASTNode[];
+}
+
+/**
+ * Method Prototype AST node (for interfaces)
+ */
+export interface MethodPrototypeNode extends ASTNode {
+    type: ASTNodeType.MethodPrototype;
+    name: string;
+    returnType: string;
+    parameters: VariableDeclarationSectionNode[];
+}
+
+/**
+ * Property AST node (getter/setter)
+ */
+export interface PropertyNode extends ASTNode {
+    type: ASTNodeType.Property;
+    name: string;
+    dataType: string;
+    accessModifier: 'PUBLIC' | 'PROTECTED' | 'PRIVATE';
+    getter?: ASTNode[];
+    setter?: ASTNode[];
+}
+
+/**
  * Standard Function Blocks as defined in IEC 61131-3
  */
 export enum StandardFunctionBlocks {
@@ -304,13 +371,13 @@ export enum StandardFunctionBlocks {
 export enum StandardDataTypes {
     // Boolean type
     BOOL = 'BOOL',
-    
+
     // Bit string types
     BYTE = 'BYTE',
     WORD = 'WORD',
     DWORD = 'DWORD',
     LWORD = 'LWORD',
-    
+
     // Integer types
     SINT = 'SINT',   // Short integer (8 bits)
     USINT = 'USINT', // Unsigned short integer
@@ -320,15 +387,15 @@ export enum StandardDataTypes {
     UDINT = 'UDINT', // Unsigned double integer
     LINT = 'LINT',   // Long integer (64 bits)
     ULINT = 'ULINT', // Unsigned long integer
-    
+
     // Real types
     REAL = 'REAL',   // 32-bit floating point
     LREAL = 'LREAL', // 64-bit floating point
-    
+
     // Time types
     TIME = 'TIME',
     LTIME = 'LTIME',
-    
+
     // Date types
     DATE = 'DATE',
     LDATE = 'LDATE',
@@ -336,7 +403,7 @@ export enum StandardDataTypes {
     TOD = 'TOD',     // Shorthand for TIME_OF_DAY
     DATE_AND_TIME = 'DATE_AND_TIME',
     DT = 'DT',       // Shorthand for DATE_AND_TIME
-    
+
     // String types
     STRING = 'STRING',
     WSTRING = 'WSTRING',
@@ -371,15 +438,15 @@ export const KEYWORDS = [
     'PROGRAM', 'END_PROGRAM',
     'FUNCTION', 'END_FUNCTION',
     'FUNCTION_BLOCK', 'END_FUNCTION_BLOCK',
-    
+
     // Variable declaration sections
     'VAR', 'END_VAR',
     'VAR_INPUT', 'VAR_OUTPUT', 'VAR_IN_OUT',
     'VAR_GLOBAL', 'VAR_TEMP', 'VAR_EXTERNAL',
-    
+
     // Variable qualifiers
     'CONSTANT', 'RETAIN', 'PERSISTENT', 'AT',
-    
+
     // Control structures
     'IF', 'THEN', 'ELSIF', 'ELSE', 'END_IF',
     'CASE', 'OF', 'END_CASE',
@@ -387,14 +454,22 @@ export const KEYWORDS = [
     'WHILE', 'END_WHILE',
     'REPEAT', 'UNTIL', 'END_REPEAT',
     'RETURN', 'EXIT', 'CONTINUE',
-    
+
     // Operators
     'AND', 'OR', 'XOR', 'NOT',
     'MOD',
-    
+
     // Array and type keywords
     'ARRAY', 'OF', 'STRUCT', 'END_STRUCT',
-    'TYPE', 'END_TYPE'
+    'TYPE', 'END_TYPE',
+
+    // Object-oriented programming
+    'CLASS', 'END_CLASS', 'EXTENDS', 'IMPLEMENTS',
+    'INTERFACE', 'END_INTERFACE',
+    'METHOD', 'END_METHOD',
+    'PROPERTY', 'END_PROPERTY', 'GET', 'SET',
+    'PUBLIC', 'PROTECTED', 'PRIVATE', 'FINAL', 'ABSTRACT',
+    'SUPER'
 ];
 
 /**
@@ -403,7 +478,7 @@ export const KEYWORDS = [
 export const OPERATORS = {
     // Assignment
     ASSIGNMENT: ':=',
-    
+
     // Arithmetic
     ADDITION: '+',
     SUBTRACTION: '-',
@@ -411,7 +486,7 @@ export const OPERATORS = {
     DIVISION: '/',
     EXPONENTIATION: '**',
     MODULO: 'MOD',
-    
+
     // Comparison
     EQUALITY: '=',
     INEQUALITY: '<>',
@@ -419,13 +494,13 @@ export const OPERATORS = {
     LESS_THAN_OR_EQUAL: '<=',
     GREATER_THAN: '>',
     GREATER_THAN_OR_EQUAL: '>=',
-    
+
     // Logical
     AND: 'AND',
     OR: 'OR',
     XOR: 'XOR',
     NOT: 'NOT',
-    
+
     // Bitwise
     BITWISE_AND: '&',
     BITWISE_OR: '|',

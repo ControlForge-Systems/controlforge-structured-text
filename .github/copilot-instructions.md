@@ -11,19 +11,27 @@ This is a VS Code extension providing comprehensive support for Structured Text 
 - For branch creation, use: `git checkout -b feature/issue-XX-brief-description`
 
 ## CRITICAL: IEC 61131-3 Specification Compliance
-**ALWAYS consult `docs/IEC61131_SPECIFICATION.md` before making any language-related changes.** This document is the authoritative source for:
-- Correct Structured Text syntax, keywords, and operators
-- Standard function blocks (TON, TOF, CTU, R_TRIG, etc.) and their members
-- Data types (BOOL, INT, REAL, STRING, etc.) and type conversion rules
-- Vendor compatibility notes and cross-platform considerations
-- Standard functions and their proper usage
+**Two authoritative documents define the ST language in this project:**
 
-**Before suggesting any code changes:**
-1. Reference the specification for correct IEC 61131-3 syntax
-2. Ensure all language features conform to the specification
+1. **`docs/IEC61131_SPECIFICATION.md`** - High-level specification geared toward general users and automation engineers with:
+   - User-friendly explanations of the language features
+   - Platform compatibility notes
+   - Real-world usage examples
+   - General best practices
+
+2. **`docs/ST_LANGUAGE_REFERENCE.md`** - Detailed technical reference for developers implementing language features with:
+   - Formal syntax definitions
+   - AST (Abstract Syntax Tree) node types
+   - Symbol kinds and declaration types
+   - Implementation considerations for parsers and validators
+
+**When making code changes:**
+1. Reference both documents for correct IEC 61131-3 syntax and implementation details
+2. Ensure all language features conform to these specifications
 3. Consider vendor compatibility notes for cross-platform support
-4. Never introduce syntax or elements that conflict with the specification
+4. Never introduce syntax or elements that conflict with these specifications
 5. For function block member completion, use the standard FB definitions in the spec
+6. **IMPORTANT**: If you detect any conflicts between the two specification documents, immediately stop and inform the developer about the inconsistency rather than making assumptions
 
 ## Code Style Guidelines
 - Use TypeScript for all new code
@@ -60,7 +68,8 @@ This is a VS Code extension providing comprehensive support for Structured Text 
 /src/test/unit/            - Fast unit tests
 /src/test/e2e/             - End-to-end integration tests
 /docs/                     - Project documentation
-/docs/IEC61131_SPECIFICATION.md - **AUTHORITATIVE IEC 61131-3 language specification**
+/docs/IEC61131_SPECIFICATION.md - High-level language spec for general users
+/docs/ST_LANGUAGE_REFERENCE.md  - Detailed technical reference for developers
 ```
 
 ## Naming Conventions
