@@ -434,15 +434,57 @@ connection.onReferences((params): Location[] => {
     return symbols.map(symbol => symbol.location);
 });
 
-// Document change handlers - now with workspace indexer integration
+// Document change handlers - now with workspace indexer integration and debouncing
+let changeDebounceTimer: NodeJS.Timeout | undefined;
+
 documents.onDidChangeContent(change => {
-    updateSymbolIndex(change.document);
-    workspaceIndexer.updateFileIndex(change.document);
+    // Debounce to avoid re-parsing on every keystroke
+    if (changeDebounceTimer) {
+        clearTimeout(changeDebounceTimer);
+    }
+    
+    changeDebounceTimer = setTimeout(() => {
+        updateSymbolIndex(change.document);
+        workspaceIndexer.updateFileIndex(change.document);
+    }, 300); // Wait 300ms after last change
 });
 
 documents.onDidOpen(change => {
     updateSymbolIndex(change.document);
     workspaceIndexer.updateFileIndex(change.document);
+});
+
+// File deletion handler - cleanup index when files are deleted
+documents.onDidClose(event => {
+    const uri = event.document.uri;
+    
+    // Check if file was actually deleted (not just closed)
+    // For now, we'll remove from index on close to avoid memory leaks
+    // The file will be re-indexed if opened again
+    connection.console.log(`File closed: ${uri}, removing from index`);
+    
+    // Remove from local symbol index
+    const fileSymbols = symbolIndex.files.get(uri);
+    if (fileSymbols) {
+        // Remove all symbols from symbolsByName map
+        fileSymbols.symbols.forEach(symbol => {
+            const symbols = symbolIndex.symbolsByName.get(symbol.name);
+            if (symbols) {
+                const filtered = symbols.filter(s => s.location.uri !== uri);
+                if (filtered.length === 0) {
+                    symbolIndex.symbolsByName.delete(symbol.name);
+                } else {
+                    symbolIndex.symbolsByName.set(symbol.name, filtered);
+                }
+            }
+        });
+        
+        // Remove file entry
+        symbolIndex.files.delete(uri);
+    }
+    
+    // Remove from workspace indexer
+    workspaceIndexer.removeFileFromIndex(uri);
 });
 
 // Make the text document manager listen on the connection
