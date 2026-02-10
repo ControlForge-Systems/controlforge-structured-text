@@ -4,17 +4,39 @@
 
 ### Fixed
 - **CRITICAL**: Removed duplicate completion provider causing conflicts (#37)
+  - Eliminated 219 lines of redundant code from extension.ts
+  - Now uses LSP server completion exclusively
+  - Member completions work correctly without duplicates
 - **CRITICAL**: Fixed npm test failing with "tsc: command not found" error (#38)
+  - Added pretest script to auto-install dependencies
+  - Tests now work in clean environments
 - **CRITICAL**: Fixed iec61131-definitions/ access in packaged extension (#39)
+  - Extension path properly passed via LSP initialization
+  - Standard function blocks accessible in all environments
 - **CRITICAL**: Fixed hardcoded workspace root breaking in renamed folders (#40)
-- Added case-insensitive symbol lookup for member completions
-- Extension now uses proper LSP initializationOptions for extension path
-- Member access provider now correctly locates standard FB definitions
+  - Removed hardcoded 'controlforge-structured-text' directory search
+  - Uses extensionPath from VS Code context
+  - Works regardless of folder name or installation method
+- **HIGH**: Inconsistent case-insensitive symbol lookup (#42)
+  - Added normalizedName to all symbol types (Program, Function, FunctionBlock, Parameter)
+  - Ensures IEC 61131-3 case-insensitive compliance
+  - myTimer, MyTimer, MYTIMER now resolve to same symbol
+- **HIGH**: Memory leak - no index cleanup on file delete (#43)
+  - Added 300ms debouncing on document changes
+  - Added onDidClose handler to remove files from symbol index
+  - Prevents memory growth in long-running sessions
+  - Improves typing performance on large files
 
 ### Changed
-- Reduced extension.ts from 357 to 140 lines (-61%) by removing duplicate provider
-- Added pretest script to auto-install dependencies before running tests
-- Improved LSP server initialization with extension path configuration
+- Reduced extension.ts from 357 to 140 lines (-61%)
+- All symbol types now consistently store normalized names for case-insensitive lookups
+- Document changes debounced to prevent re-parsing on every keystroke
+- File cleanup automatically removes closed files from index
+
+### Performance
+- Typing no longer triggers full file parse on every keystroke (300ms debounce)
+- Memory usage remains stable over time with proper cleanup
+- Large workspace performance significantly improved
 
 ## [1.2.4] - 2025-06-21
 
