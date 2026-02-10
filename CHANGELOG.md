@@ -1,5 +1,21 @@
 # Change Log
 
+## [1.2.5] - 2026-02-10
+
+### Fixed
+- **CRITICAL**: Removed duplicate completion provider causing conflicts (#37)
+- **CRITICAL**: Fixed npm test failing with "tsc: command not found" error (#38)
+- **CRITICAL**: Fixed iec61131-definitions/ access in packaged extension (#39)
+- **CRITICAL**: Fixed hardcoded workspace root breaking in renamed folders (#40)
+- Added case-insensitive symbol lookup for member completions
+- Extension now uses proper LSP initializationOptions for extension path
+- Member access provider now correctly locates standard FB definitions
+
+### Changed
+- Reduced extension.ts from 357 to 140 lines (-61%) by removing duplicate provider
+- Added pretest script to auto-install dependencies before running tests
+- Improved LSP server initialization with extension path configuration
+
 ## [1.2.4] - 2025-06-21
 
 ### Fixed

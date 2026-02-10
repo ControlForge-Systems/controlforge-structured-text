@@ -1,111 +1,111 @@
 {
-    "name": "controlforge-structured-text",
-    "displayName": "ControlForge Structured Text",
-    "description": "Professional Structured Text (IEC 61131-3) IDE with function block IntelliSense, syntax highlighting, and smart code completion for PLC programming",
-    "version": "1.2.4",
-    "author": "Michael Distel",
-    "publisher": "ControlForgeSystems",
-    "license": "BUSL-1.1",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ControlForge-Systems/controlforge-structured-text"
-    },
-    "bugs": {
-        "url": "https://github.com/ControlForge-Systems/controlforge-structured-text/issues"
-    },
-    "homepage": "https://controlforge.dev/",
-    "icon": "icon.png",
-    "engines": {
-        "vscode": "^1.100.0"
-    },
-    "categories": [
-        "Programming Languages"
-    ],
-    "keywords": [
-        "PLC",
-        "Structured Text",
-        "IEC 61131-3",
-        "automation",
-        "industrial",
-        "function blocks",
-        "intellisense",
-        "autocomplete",
-        "siemens",
-        "beckhoff",
-        "schneider",
-        "control systems"
-    ],
-    "main": "./dist/extension.js",
-    "//": "Note: iec61131-definitions folder is required at runtime for hover, navigation and completion features",
-    "activationEvents": [],
-    "contributes": {
-        "languages": [
-            {
-                "id": "structured-text",
-                "aliases": [
-                    "Structured Text",
-                    "ST",
-                    "IEC 61131-3"
-                ],
-                "extensions": [
-                    ".st",
-                    ".iecst"
-                ],
-                "configuration": "./language-configuration.json"
-            }
+  "name": "controlforge-structured-text",
+  "displayName": "ControlForge Structured Text",
+  "description": "Professional Structured Text (IEC 61131-3) IDE with function block IntelliSense, syntax highlighting, and smart code completion for PLC programming",
+  "version": "1.2.5",
+  "author": "Michael Distel",
+  "publisher": "ControlForgeSystems",
+  "license": "BUSL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ControlForge-Systems/controlforge-structured-text"
+  },
+  "bugs": {
+    "url": "https://github.com/ControlForge-Systems/controlforge-structured-text/issues"
+  },
+  "homepage": "https://controlforge.dev/",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "PLC",
+    "Structured Text",
+    "IEC 61131-3",
+    "automation",
+    "industrial",
+    "function blocks",
+    "intellisense",
+    "autocomplete",
+    "siemens",
+    "beckhoff",
+    "schneider",
+    "control systems"
+  ],
+  "main": "./dist/extension.js",
+  "//": "Note: iec61131-definitions folder is required at runtime for hover, navigation and completion features",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "structured-text",
+        "aliases": [
+          "Structured Text",
+          "ST",
+          "IEC 61131-3"
         ],
-        "grammars": [
-            {
-                "language": "structured-text",
-                "scopeName": "source.structured-text",
-                "path": "./syntaxes/structured-text.tmLanguage.json"
-            }
+        "extensions": [
+          ".st",
+          ".iecst"
         ],
-        "commands": [
-            {
-                "command": "controlforge-structured-text.validateSyntax",
-                "title": "ControlForge Structured Text: Validate Syntax"
-            },
-            {
-                "command": "controlforge-structured-text.showIndexStats",
-                "title": "ControlForge Structured Text: Show Index Statistics"
-            }
-        ]
-    },
-    "scripts": {
-        "pretest": "npm install",
-        "test": "npm run test:unit && npm run test:e2e",
-        "test:unit": "npm run compile && node ./out/runUnitTests.js",
-        "test:e2e": "npm run compile && node ./out/runTest.js",
-        "test:watch": "npm run watch",
-        "test:pre-commit": "npm run test:unit && npm run test:e2e",
-        "prepare": "husky",
-        "vscode:prepublish": "npm run webpack-prod",
-        "compile": "tsc -p ./",
-        "compile-test": "tsc -p ./",
-        "webpack": "webpack --config webpack.config.js --mode development",
-        "webpack-prod": "webpack --config webpack.config.js --mode production",
-        "watch": "webpack --config webpack.config.js --mode development --watch",
-        "package": "vsce package",
-        "publish": "vsce publish"
-    },
-    "dependencies": {
-        "vscode-languageclient": "^9.0.1",
-        "vscode-languageserver": "^9.0.1",
-        "vscode-languageserver-textdocument": "^1.0.11"
-    },
-    "devDependencies": {
-        "@types/mocha": "^10.0.10",
-        "@types/node": "16.x",
-        "@types/vscode": "^1.100.0",
-        "@vscode/test-electron": "^2.5.2",
-        "@vscode/vsce": "^3.5.0",
-        "glob": "^11.0.2",
-        "husky": "^9.1.7",
-        "mocha": "^11.6.0",
-        "ts-loader": "^9.5.2",
-        "typescript": "^4.9.4",
-        "webpack": "^5.99.9",
-        "webpack-cli": "^6.0.1"
-    }
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "structured-text",
+        "scopeName": "source.structured-text",
+        "path": "./syntaxes/structured-text.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "controlforge-structured-text.validateSyntax",
+        "title": "ControlForge Structured Text: Validate Syntax"
+      },
+      {
+        "command": "controlforge-structured-text.showIndexStats",
+        "title": "ControlForge Structured Text: Show Index Statistics"
+      }
+    ]
+  },
+  "scripts": {
+    "pretest": "npm install",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "npm run compile && node ./out/runUnitTests.js",
+    "test:e2e": "npm run compile && node ./out/runTest.js",
+    "test:watch": "npm run watch",
+    "test:pre-commit": "npm run test:unit && npm run test:e2e",
+    "prepare": "husky",
+    "vscode:prepublish": "npm run webpack-prod",
+    "compile": "tsc -p ./",
+    "compile-test": "tsc -p ./",
+    "webpack": "webpack --config webpack.config.js --mode development",
+    "webpack-prod": "webpack --config webpack.config.js --mode production",
+    "watch": "webpack --config webpack.config.js --mode development --watch",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.100.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.5.0",
+    "glob": "^11.0.2",
+    "husky": "^9.1.7",
+    "mocha": "^11.6.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^4.9.4",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  }
 }
