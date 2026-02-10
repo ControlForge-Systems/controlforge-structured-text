@@ -135,6 +135,7 @@ export class STASTParser {
 
                 const program: STSymbolExtended = {
                     name: programName,
+                    normalizedName: programName.toLowerCase(),
                     kind: STSymbolKind.Program,
                     location,
                     scope: STScope.Program,
@@ -174,6 +175,7 @@ export class STASTParser {
 
                 const func: STSymbolExtended = {
                     name: functionName,
+                    normalizedName: functionName.toLowerCase(),
                     kind: STSymbolKind.Function,
                     location,
                     scope: STScope.Function,
@@ -214,6 +216,7 @@ export class STASTParser {
 
                 const fb: STSymbolExtended = {
                     name: fbName,
+                    normalizedName: fbName.toLowerCase(),
                     kind: STSymbolKind.FunctionBlock,
                     location,
                     scope: STScope.FunctionBlock,
@@ -409,6 +412,7 @@ export class STASTParser {
 
                         parameters.push({
                             name: paramName,
+                            normalizedName: paramName.toLowerCase(),
                             dataType,
                             direction,
                             defaultValue: defaultValue?.trim(),

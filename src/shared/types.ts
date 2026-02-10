@@ -80,6 +80,7 @@ export interface STSymbolExtended extends STSymbol {
  */
 export interface STParameter {
     name: string;
+    normalizedName?: string; // For case-insensitive lookups
     dataType: string;
     direction: 'INPUT' | 'OUTPUT' | 'IN_OUT';
     defaultValue?: string;
