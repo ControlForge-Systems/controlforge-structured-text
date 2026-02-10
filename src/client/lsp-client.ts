@@ -75,6 +75,10 @@ export async function activateLanguageServer(context: ExtensionContext): Promise
         revealOutputChannelOn: 4, // Show output when error occurs
         middleware: {
             // Add custom error handling if needed
+        },
+        initializationOptions: {
+            // Pass extension installation path to server for accessing iec61131-definitions/
+            extensionPath: context.extensionPath
         }
     };
 

@@ -61,10 +61,21 @@ let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
 
+// Store extension path for accessing iec61131-definitions/
+let extensionPath: string | undefined;
+
 connection.onInitialize((params: InitializeParams) => {
     connection.console.log('Structured Text Language Server is initializing...');
 
     try {
+        // Get extension path from initialization options
+        extensionPath = (params.initializationOptions as any)?.extensionPath;
+        if (extensionPath) {
+            connection.console.log(`Extension path: ${extensionPath}`);
+        } else {
+            connection.console.warn('Extension path not provided in initialization options');
+        }
+
         const capabilities = params.capabilities;
 
         // Does the client support the `workspace/configuration` request?
@@ -113,6 +124,11 @@ connection.onInitialize((params: InitializeParams) => {
         throw error; // Re-throw to let the client know about the error
     }
 });
+
+// Export getter for extension path (used by providers)
+export function getExtensionPath(): string | undefined {
+    return extensionPath;
+}
 
 // Add a custom command to show workspace indexer stats
 connection.onRequest('custom/showIndexStats', () => {

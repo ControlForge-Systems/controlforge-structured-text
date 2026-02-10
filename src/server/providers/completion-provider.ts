@@ -43,7 +43,7 @@ export class MemberCompletionProvider {
                 });
             }
         } else {
-            // Provide general completion items (variables, function blocks, etc.)
+            // Provide general completion items (not member access)
             const generalCompletions = this.getGeneralCompletions(workspaceIndexer);
             completionItems.push(...generalCompletions);
         }
@@ -77,17 +77,18 @@ export class MemberCompletionProvider {
      */
     private getInstanceType(instanceName: string, workspaceIndexer: WorkspaceIndexer): string | null {
         const allSymbols = workspaceIndexer.getAllSymbols();
+        const normalizedInstanceName = instanceName.toLowerCase();
 
         // Try function block instance first, then fall back to variable with FB type
         let instanceSymbol = allSymbols.find(symbol =>
-            symbol.name === instanceName &&
+            symbol.normalizedName === normalizedInstanceName &&
             symbol.kind === STSymbolKind.FunctionBlockInstance
         );
 
         // If not found as FunctionBlockInstance, try as Variable with FB dataType
         if (!instanceSymbol) {
             instanceSymbol = allSymbols.find(symbol =>
-                symbol.name === instanceName &&
+                symbol.normalizedName === normalizedInstanceName &&
                 symbol.kind === STSymbolKind.Variable &&
                 symbol.dataType &&
                 this.memberAccessProvider.isStandardFBType(symbol.dataType)

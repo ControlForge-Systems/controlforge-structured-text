@@ -73,6 +73,7 @@
         ]
     },
     "scripts": {
+        "pretest": "npm install",
         "test": "npm run test:unit && npm run test:e2e",
         "test:unit": "npm run compile && node ./out/runUnitTests.js",
         "test:e2e": "npm run compile && node ./out/runTest.js",

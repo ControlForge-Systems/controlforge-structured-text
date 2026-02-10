@@ -5,6 +5,7 @@
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position, Location, Range } from 'vscode-languageserver';
+import * as path from 'path';
 import {
     MemberAccessExpression,
     FBMemberDefinition,
@@ -15,6 +16,7 @@ import {
     STParameter,
     STSymbol
 } from '../../shared/types';
+import { getExtensionPath } from '../server';
 
 export class MemberAccessProvider {
     private standardFBMembers: Map<string, FBMemberDefinition[]> = new Map();
@@ -290,9 +292,14 @@ export class MemberAccessProvider {
      * Note: This requires the iec61131-definitions folder to be included in the packaged extension
      */
     private createVirtualMemberLocation(fbType: string, memberName: string, instanceLocation: Location): Location {
-        // Use real definition files for standard function blocks
-        const workspaceRoot = this.getWorkspaceRoot(instanceLocation.uri);
-        const definitionPath = `${workspaceRoot}/iec61131-definitions/${fbType}.st`;
+        // Use extension path to locate standard function block definitions
+        const extensionPath = getExtensionPath();
+        if (!extensionPath) {
+            // Fallback: return instance location if extension path not available
+            return instanceLocation;
+        }
+
+        const definitionPath = path.join(extensionPath, 'iec61131-definitions', `${fbType}.st`);
         const definitionUri = `file://${definitionPath}`;
 
         // Calculate the approximate line number for the member
@@ -305,24 +312,6 @@ export class MemberAccessProvider {
                 end: { line: lineNumber, character: 4 + memberName.length }
             }
         };
-    }
-
-    /**
-     * Get the workspace root from a file URI
-     */
-    private getWorkspaceRoot(fileUri: string): string {
-        // Extract workspace root from file URI
-        const path = fileUri.replace('file://', '');
-        const parts = path.split('/');
-
-        // Find the controlforge-structured-text directory
-        const projectIndex = parts.findIndex(part => part === 'controlforge-structured-text');
-        if (projectIndex !== -1) {
-            return parts.slice(0, projectIndex + 1).join('/');
-        }
-
-        // Fallback: assume current directory structure
-        return parts.slice(0, -2).join('/'); // Remove filename and parent directory
     }
 
     /**
