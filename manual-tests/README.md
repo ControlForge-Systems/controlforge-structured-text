@@ -16,6 +16,7 @@ Files for testing go-to-definition and find-references:
 - `test-member-access.st` - Member access navigation testing
 - `test-navigation-targets.st` - Cross-file navigation targets
 - `test-local-vars.st` - Local variable navigation and indexing
+- `test-find-references.st` - Find All References (Shift+F12) testing
 
 ### `/syntax/` - Syntax Highlighting Tests
 Files for testing syntax highlighting and language features:
@@ -23,11 +24,26 @@ Files for testing syntax highlighting and language features:
 - `test_literals.st` - Literal value highlighting (numbers, strings, etc.)
 - `test_function_blocks.st` - Function block syntax highlighting
 - `test.st` - General syntax and language feature testing
+- `test.iecst` - Verify `.iecst` extension activates correctly
+
+### `/rename/` - Rename Symbol Tests
+Files for testing F2 rename functionality:
+- `rename-symbols.st` - Rename variables, FB instances, functions; rejection of reserved names (keywords, data types, standard functions/FBs)
+
+### `/commands/` - Extension Command Tests
+Files for testing Command Palette commands:
+- `test-commands.st` - Validate Syntax, Show Index Statistics, Check LSP Status
 
 ### `/diagnostics/` - Diagnostic & Linting Tests
 Files for testing real-time diagnostics and semantic analysis:
 - `semantic-checks.st` - Phase 2 semantic checks (missing semicolons, duplicates, undefined/unused vars, type mismatches)
 - `code-action-fixes.st` - Quick fixes for semantic diagnostics (insert semicolon, remove duplicate, remove unused)
+
+### `/formatting/` - Code Formatting Tests
+Files for testing document and range formatting:
+- `unformatted-input.st` - Unformatted input for Format Document testing
+- `expected-output.st` - Expected result after formatting (idempotency check)
+- `settings-variations.st` - Test formatting with different VS Code settings (keywordCase, operator spacing, alignment, etc.)
 
 ### `/hover/` - Hover Tooltip Tests
 Files for testing hover information and tooltips:
