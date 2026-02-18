@@ -1,7 +1,8 @@
 import * as assert from 'assert';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { DiagnosticSeverity } from 'vscode-languageserver';
-import { computeDiagnostics } from '../../server/providers/diagnostics-provider';
+import { computeDiagnostics, levenshteinDistance, findClosestMatch } from '../../server/providers/diagnostics-provider';
+import { STASTParser } from '../../server/ast-parser';
 
 /**
  * Helper: create TextDocument from ST source code
@@ -566,6 +567,573 @@ VAR
             for (const d of diags) {
                 assert.strictEqual(d.source, 'ControlForge ST');
             }
+        });
+    });
+});
+
+// ─── Phase 2: Semantic Diagnostics ──────────────────────────────────────────
+
+/**
+ * Helper: parse symbols + compute diagnostics (semantic checks enabled)
+ */
+function diagnoseWithSymbols(content: string) {
+    const document = TextDocument.create('file:///test.st', 'structured-text', 1, content);
+    const symbols = new STASTParser(document).parseSymbols();
+    return computeDiagnostics(document, symbols);
+}
+
+/**
+ * Helper: assert no diagnostics with semantic checks
+ */
+function assertNoDiagnosticsWithSymbols(content: string, label?: string): void {
+    const diags = diagnoseWithSymbols(content);
+    assert.strictEqual(diags.length, 0, `Expected no diagnostics${label ? ` for ${label}` : ''}, got: ${diags.map(d => d.message).join('; ')}`);
+}
+
+suite('Diagnostics Provider — Phase 2 Semantic Checks', () => {
+
+    suite('Missing Semicolons', () => {
+        test('should detect missing semicolon on assignment', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 1
+END_PROGRAM`);
+            const semi = diags.find(d => d.message.includes('Missing semicolon'));
+            assert.ok(semi, 'Should detect missing semicolon');
+            assert.strictEqual(semi!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('should not flag lines with semicolons', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const semi = diags.filter(d => d.message.includes('Missing semicolon'));
+            assert.strictEqual(semi.length, 0);
+        });
+
+        test('should not flag control flow keywords', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x > 0 THEN
+        x := 1;
+    ELSE
+        x := 2;
+    END_IF;
+END_PROGRAM`);
+            const semi = diags.filter(d => d.message.includes('Missing semicolon'));
+            assert.strictEqual(semi.length, 0);
+        });
+
+        test('should not flag CASE branch labels', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    state : INT;
+    x : INT;
+END_VAR
+    CASE state OF
+        0:
+            x := 1;
+        1:
+            x := 2;
+    END_CASE;
+END_PROGRAM`);
+            const semi = diags.filter(d => d.message.includes('Missing semicolon'));
+            assert.strictEqual(semi.length, 0);
+        });
+
+        test('should not flag lines ending with THEN/DO/OF', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+    x : INT;
+END_VAR
+    FOR i := 0 TO 10 DO
+        x := i;
+    END_FOR;
+END_PROGRAM`);
+            const semi = diags.filter(d => d.message.includes('Missing semicolon'));
+            assert.strictEqual(semi.length, 0);
+        });
+
+        test('should not flag VAR section lines', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    y : REAL;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const semi = diags.filter(d => d.message.includes('Missing semicolon'));
+            assert.strictEqual(semi.length, 0);
+        });
+    });
+
+    suite('Duplicate Declarations', () => {
+        test('should detect duplicate variable (same case)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    x : REAL;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const dups = diags.filter(d => d.message.includes('Duplicate declaration'));
+            assert.strictEqual(dups.length, 1);
+            assert.ok(dups[0].message.includes("'x'"));
+        });
+
+        test('should detect duplicate variable (case-insensitive)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    MyVar : INT;
+    myvar : REAL;
+END_VAR
+    MyVar := 1;
+END_PROGRAM`);
+            const dups = diags.filter(d => d.message.includes('Duplicate declaration'));
+            assert.strictEqual(dups.length, 1);
+        });
+
+        test('should not flag variables in different POUs', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main1
+VAR
+    x : INT;
+END_VAR
+    x := 1;
+END_PROGRAM
+
+PROGRAM Main2
+VAR
+    x : INT;
+END_VAR
+    x := 2;
+END_PROGRAM`);
+            const dups = diags.filter(d => d.message.includes('Duplicate declaration'));
+            assert.strictEqual(dups.length, 0);
+        });
+    });
+
+    suite('Undefined Variables', () => {
+        test('should detect undefined identifier', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := undeclaredVar;
+END_PROGRAM`);
+            const undef = diags.filter(d => d.message.includes('Undefined identifier'));
+            assert.ok(undef.length > 0, 'Should detect undefined identifier');
+            assert.ok(undef.some(d => d.message.includes('undeclaredVar')));
+        });
+
+        test('should not flag declared variables', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    y : INT;
+END_VAR
+    x := y;
+END_PROGRAM`);
+            const undef = diags.filter(d => d.message.includes('Undefined identifier'));
+            assert.strictEqual(undef.length, 0);
+        });
+
+        test('should not flag IEC keywords', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : BOOL;
+END_VAR
+    x := TRUE;
+END_PROGRAM`);
+            const undef = diags.filter(d => d.message.includes('Undefined identifier'));
+            assert.strictEqual(undef.length, 0);
+        });
+
+        test('should not flag standard functions', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    y : INT;
+END_VAR
+    y := ABS(x);
+END_PROGRAM`);
+            const undef = diags.filter(d => d.message.includes("Undefined identifier 'ABS'"));
+            assert.strictEqual(undef.length, 0);
+        });
+
+        test('should not flag cross-POU references in same file', () => {
+            const diags = diagnoseWithSymbols(`
+FUNCTION Add : INT
+VAR_INPUT
+    a : INT;
+    b : INT;
+END_VAR
+    Add := a + b;
+END_FUNCTION
+
+PROGRAM Main
+VAR
+    result : INT;
+END_VAR
+    result := Add(a := 1, b := 2);
+END_PROGRAM`);
+            const undef = diags.filter(d => d.message.includes("Undefined identifier 'Add'"));
+            assert.strictEqual(undef.length, 0);
+        });
+
+        test('should not flag member access after dot', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    timer : TON;
+END_VAR
+    timer.IN := TRUE;
+END_PROGRAM`);
+            // "IN" after dot should not be flagged; "timer" is declared
+            const undef = diags.filter(d => d.message.includes("Undefined identifier 'IN'"));
+            assert.strictEqual(undef.length, 0);
+        });
+
+        test('should not flag identifiers inside CASE branches', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    state : INT;
+    x : INT;
+END_VAR
+    CASE state OF
+        0:
+            x := 1;
+        1:
+            x := 2;
+    END_CASE;
+END_PROGRAM`);
+            const undef = diags.filter(d => d.message.includes('Undefined identifier'));
+            assert.strictEqual(undef.length, 0);
+        });
+    });
+
+    suite('Unused Variables', () => {
+        test('should detect unused local variable', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    unused : INT;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const unused = diags.filter(d => d.message.includes('never used'));
+            assert.ok(unused.length > 0);
+            assert.ok(unused.some(d => d.message.includes("'unused'")));
+        });
+
+        test('should not flag used variables', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const unused = diags.filter(d => d.message.includes('never used'));
+            assert.strictEqual(unused.length, 0);
+        });
+
+        test('should not flag VAR_INPUT/OUTPUT/IN_OUT parameters', () => {
+            const diags = diagnoseWithSymbols(`
+FUNCTION_BLOCK FB_Test
+VAR_INPUT
+    inputVar : INT;
+END_VAR
+VAR_OUTPUT
+    outputVar : INT;
+END_VAR
+    outputVar := 0;
+END_FUNCTION_BLOCK`);
+            // inputVar is a parameter — should not be flagged as unused
+            const unused = diags.filter(d => d.message.includes("'inputVar'") && d.message.includes('never used'));
+            assert.strictEqual(unused.length, 0);
+        });
+    });
+
+    suite('Type Mismatches', () => {
+        test('should detect assigning string to integer', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 'hello';
+END_PROGRAM`);
+            const typeMismatch = diags.filter(d => d.message.includes('Type mismatch'));
+            assert.ok(typeMismatch.length > 0, 'Should detect type mismatch');
+        });
+
+        test('should not flag compatible numeric assignment', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 42;
+END_PROGRAM`);
+            const typeMismatch = diags.filter(d => d.message.includes('Type mismatch'));
+            assert.strictEqual(typeMismatch.length, 0);
+        });
+
+        test('should allow REAL from INT (widening)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    x := 42;
+END_PROGRAM`);
+            const typeMismatch = diags.filter(d => d.message.includes('Type mismatch'));
+            assert.strictEqual(typeMismatch.length, 0);
+        });
+
+        test('should detect boolean to integer mismatch', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := TRUE;
+END_PROGRAM`);
+            const typeMismatch = diags.filter(d => d.message.includes('Type mismatch'));
+            assert.ok(typeMismatch.length > 0, 'Should detect BOOL to INT mismatch');
+        });
+
+        test('should allow same-type assignment', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : BOOL;
+END_VAR
+    x := FALSE;
+END_PROGRAM`);
+            const typeMismatch = diags.filter(d => d.message.includes('Type mismatch'));
+            assert.strictEqual(typeMismatch.length, 0);
+        });
+    });
+
+    suite('Levenshtein Distance', () => {
+        test('should return 0 for identical strings', () => {
+            assert.strictEqual(levenshteinDistance('abc', 'abc'), 0);
+        });
+
+        test('should return length for empty vs non-empty', () => {
+            assert.strictEqual(levenshteinDistance('', 'abc'), 3);
+            assert.strictEqual(levenshteinDistance('abc', ''), 3);
+        });
+
+        test('should compute single edit distance', () => {
+            assert.strictEqual(levenshteinDistance('cat', 'bat'), 1);
+        });
+
+        test('should compute multiple edits', () => {
+            assert.strictEqual(levenshteinDistance('kitten', 'sitting'), 3);
+        });
+    });
+
+    suite('Find Closest Match', () => {
+        test('should find close match', () => {
+            const result = findClosestMatch('cout', ['counter', 'count', 'timer']);
+            assert.strictEqual(result, 'count');
+        });
+
+        test('should return null if no match within distance', () => {
+            const result = findClosestMatch('xyz', ['counter', 'timer'], 2);
+            assert.strictEqual(result, null);
+        });
+
+        test('should find exact match (distance 0)', () => {
+            const result = findClosestMatch('timer', ['timer', 'counter']);
+            assert.strictEqual(result, 'timer');
+        });
+
+        test('should respect maxDistance parameter', () => {
+            const result = findClosestMatch('ab', ['abcdef'], 1);
+            assert.strictEqual(result, null);
+        });
+    });
+
+    suite('Valid Code — No Phase 2 Diagnostics', () => {
+        test('complete valid program should have no semantic diagnostics', () => {
+            assertNoDiagnosticsWithSymbols(`
+PROGRAM Main
+VAR
+    counter : INT := 0;
+    running : BOOL := FALSE;
+END_VAR
+    IF NOT running THEN
+        counter := counter + 1;
+        running := TRUE;
+    ELSE
+        counter := 0;
+        running := FALSE;
+    END_IF;
+END_PROGRAM`);
+        });
+
+        test('function with return value should have no diagnostics', () => {
+            assertNoDiagnosticsWithSymbols(`
+FUNCTION Add : INT
+VAR_INPUT
+    a : INT;
+    b : INT;
+END_VAR
+    Add := a + b;
+END_FUNCTION`);
+        });
+
+        test('FOR loop should have no false positives', () => {
+            assertNoDiagnosticsWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+    sum : INT := 0;
+END_VAR
+    FOR i := 1 TO 10 DO
+        sum := sum + i;
+    END_FOR;
+END_PROGRAM`);
+        });
+
+        test('WHILE loop should have no false positives', () => {
+            assertNoDiagnosticsWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT := 10;
+END_VAR
+    WHILE x > 0 DO
+        x := x - 1;
+    END_WHILE;
+END_PROGRAM`);
+        });
+
+        test('CASE statement should have no false positives', () => {
+            assertNoDiagnosticsWithSymbols(`
+PROGRAM Main
+VAR
+    state : INT := 0;
+    result : INT;
+END_VAR
+    CASE state OF
+        0:
+            result := 1;
+        1:
+            result := 2;
+        2:
+            result := 3;
+    END_CASE;
+END_PROGRAM`);
+        });
+    });
+
+    suite('Phase 2 Source and Severity', () => {
+        test('all Phase 2 diagnostics should have source set to ControlForge ST', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    unused : REAL;
+END_VAR
+    x := 'hello'
+END_PROGRAM`);
+            assert.ok(diags.length > 0, 'Should produce diagnostics');
+            for (const d of diags) {
+                assert.strictEqual(d.source, 'ControlForge ST');
+            }
+        });
+
+        test('missing semicolons should be Error severity', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 1
+END_PROGRAM`);
+            const semi = diags.find(d => d.message.includes('Missing semicolon'));
+            assert.ok(semi);
+            assert.strictEqual(semi!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('duplicate declarations should be Error severity', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    x : REAL;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const dup = diags.find(d => d.message.includes('Duplicate declaration'));
+            assert.ok(dup);
+            assert.strictEqual(dup!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('undefined identifiers should be Warning severity', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := notDeclared;
+END_PROGRAM`);
+            const undef = diags.find(d => d.message.includes('Undefined identifier'));
+            assert.ok(undef);
+            assert.strictEqual(undef!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('unused variables should be Warning severity', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    unused : INT;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const unused = diags.find(d => d.message.includes('never used'));
+            assert.ok(unused);
+            assert.strictEqual(unused!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('type mismatches should be Error severity', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 'hello';
+END_PROGRAM`);
+            const tm = diags.find(d => d.message.includes('Type mismatch'));
+            assert.ok(tm);
+            assert.strictEqual(tm!.severity, DiagnosticSeverity.Error);
         });
     });
 });

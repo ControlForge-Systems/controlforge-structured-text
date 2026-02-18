@@ -24,6 +24,11 @@ Files for testing syntax highlighting and language features:
 - `test_function_blocks.st` - Function block syntax highlighting
 - `test.st` - General syntax and language feature testing
 
+### `/diagnostics/` - Diagnostic & Linting Tests
+Files for testing real-time diagnostics and semantic analysis:
+- `semantic-checks.st` - Phase 2 semantic checks (missing semicolons, duplicates, undefined/unused vars, type mismatches)
+- `code-action-fixes.st` - Quick fixes for semantic diagnostics (insert semicolon, remove duplicate, remove unused)
+
 ## Purpose
 
 These files are used by:
