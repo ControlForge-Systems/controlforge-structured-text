@@ -4,13 +4,16 @@
 
 ### Fixed
 - Parser regex fails on multi-line variable declarations (#41)
+- Verbose console.log in definition provider polluting test and server output
 
 ### Added
 - AST parser rewrite with multi-line statement accumulator architecture (#41)
-- 29 unit tests for AST parser (44 total)
+- 62 unit tests for workspace-indexer, member-access-provider, definition-provider, completion-provider (44 → 106 total) (#44)
 - Clean build steps for compile and webpack scripts
 
 ### Changed
+- Extracted `getExtensionPath` from server.ts into extension-path.ts for testability (#44)
+- Updated all npm dependencies (TypeScript 4.9→5.9, webpack 5.99→5.105, node types 16→20) (#50)
 - Removed legacy parser (`parser.ts`) and its tests
 
 ### Removed
