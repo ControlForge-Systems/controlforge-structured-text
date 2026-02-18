@@ -1,0 +1,57 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What's broken? Be concise.
+      placeholder: Go to definition fails when symbol casing differs from declaration.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: What breaks for users? Include specific symptoms.
+      placeholder: |
+        - Member access navigation silently fails
+        - No error shown to user
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps or code to reproduce.
+      placeholder: |
+        1. Declare `myTimer : TON;`
+        2. Use `MyTimer.Q` (different case)
+        3. F12 on MyTimer.Q -> no result
+
+  - type: textarea
+    id: code-locations
+    attributes:
+      label: Code Locations
+      description: Files and lines involved.
+      placeholder: |
+        - src/server/providers/definition-provider.ts lines 50-65
+        - src/server/ast-parser.ts line 217
+
+  - type: textarea
+    id: fix
+    attributes:
+      label: Fix
+      description: Proposed fix if known.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: How do we know this is done?
+      placeholder: |
+        - Mixed-case symbols resolve correctly
+        - Tests cover case-insensitive lookup
+    validations:
+      required: true

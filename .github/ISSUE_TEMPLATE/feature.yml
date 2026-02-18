@@ -1,0 +1,46 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What and why, in 1-3 sentences.
+      placeholder: Add signature help for function calls. Popup shows parameter names, types, and current position when typing function arguments.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What's included? Bullet list of capabilities.
+      placeholder: |
+        - Parameter hints for standard FBs (TON, CTU, etc.)
+        - Custom function/FB signature help
+        - Trigger on '(' and ','
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Notes
+      description: Key technical decisions, files affected, LSP capabilities needed.
+      placeholder: |
+        - Add signatureHelpProvider to LSP capabilities
+        - New SignatureHelpProvider class in src/server/providers/
+        - Integrate with iec61131-definitions/ for standard FB signatures
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: How do we know this is done?
+      placeholder: |
+        - Signature help appears on '(' for standard FBs
+        - Custom functions show parameter hints
+        - Tests cover all trigger conditions
+    validations:
+      required: true
