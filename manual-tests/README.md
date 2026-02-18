@@ -29,6 +29,10 @@ Files for testing real-time diagnostics and semantic analysis:
 - `semantic-checks.st` - Phase 2 semantic checks (missing semicolons, duplicates, undefined/unused vars, type mismatches)
 - `code-action-fixes.st` - Quick fixes for semantic diagnostics (insert semicolon, remove duplicate, remove unused)
 
+### `/hover/` - Hover Tooltip Tests
+Files for testing hover information and tooltips:
+- `fb-hover-tooltips.st` - Standard function block hover tooltips with parameter tables, behavior, examples
+
 ## Purpose
 
 These files are used by:

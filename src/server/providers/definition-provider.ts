@@ -11,7 +11,8 @@ import {
     STScope,
     MemberAccessExpression,
     SemanticContext,
-    SymbolIndex
+    SymbolIndex,
+    StandardFBDescription
 } from '../../shared/types';
 import { WorkspaceIndexer } from '../workspace-indexer';
 import { MemberAccessProvider } from './member-access-provider';
@@ -339,8 +340,14 @@ export class EnhancedDefinitionProvider {
         }
 
         if (instanceSymbol) {
-            const kindDisplay = (instanceSymbol.kind === STSymbolKind.Variable ? 'Function Block Instance' : instanceSymbol.kind).replace(/_/g, ' ');
             const displayType = instanceSymbol.literalType || instanceSymbol.dataType;
+
+            // Check if instance is a standard FB — render rich tooltip
+            if (displayType && this.memberAccessProvider.isStandardFBType(displayType)) {
+                return this.buildStandardFBHover(instanceSymbol.name, displayType, 'instance');
+            }
+
+            const kindDisplay = (instanceSymbol.kind === STSymbolKind.Variable ? 'Function Block Instance' : instanceSymbol.kind).replace(/_/g, ' ');
             let hoverText = `**${instanceSymbol.name}** (*${kindDisplay}*)\n\nType: \`${displayType}\``;
 
             if (instanceSymbol.literalType && instanceSymbol.literalType !== instanceSymbol.dataType) {
@@ -364,9 +371,30 @@ export class EnhancedDefinitionProvider {
         symbolName: string,
         workspaceIndexer: WorkspaceIndexer
     ): string | null {
+        // Check if hovering on a standard FB type name (e.g., TON in a declaration)
+        const fbDesc = this.memberAccessProvider.getStandardFBDescription(symbolName.toUpperCase());
+        if (fbDesc) {
+            return this.buildStandardFBHover(undefined, fbDesc.name, 'type');
+        }
+
         const symbols = workspaceIndexer.findSymbolsByName(symbolName);
         if (symbols.length > 0) {
             const symbol = symbols[0]; // Use the first definition found
+
+            // If it's a function block definition, check for standard FB
+            if (symbol.kind === STSymbolKind.FunctionBlock) {
+                const stdDesc = this.memberAccessProvider.getStandardFBDescription(symbol.name.toUpperCase());
+                if (stdDesc) {
+                    return this.buildStandardFBHover(undefined, stdDesc.name, 'type');
+                }
+            }
+
+            // If it's an FB instance, show rich tooltip
+            if ((symbol.kind === STSymbolKind.FunctionBlockInstance || symbol.kind === STSymbolKind.Variable) &&
+                symbol.dataType && this.memberAccessProvider.isStandardFBType(symbol.dataType)) {
+                return this.buildStandardFBHover(symbol.name, symbol.dataType, 'instance');
+            }
+
             const kindDisplay = symbol.kind.replace(/_/g, ' ');
             const displayType = symbol.literalType || symbol.dataType;
             let hoverText = `**${symbol.name}** (*${kindDisplay}*)\n\nType: \`${displayType}\``;
@@ -383,5 +411,76 @@ export class EnhancedDefinitionProvider {
         }
 
         return null;
+    }
+
+    /**
+     * Build a rich markdown hover tooltip for a standard function block
+     */
+    private buildStandardFBHover(
+        instanceName: string | undefined,
+        fbType: string,
+        context: 'type' | 'instance'
+    ): string {
+        const fbDesc = this.memberAccessProvider.getStandardFBDescription(fbType);
+        const members = this.memberAccessProvider.getAvailableMembers(fbType, new Map());
+
+        const parts: string[] = [];
+
+        // Header
+        if (context === 'instance' && instanceName) {
+            parts.push(`**${instanceName}** : \`${fbType}\` (*Function Block Instance*)`);
+        } else {
+            parts.push(`**${fbType}** (*Standard Function Block — ${fbDesc?.category || 'IEC 61131-3'}*)`);
+        }
+
+        // Summary
+        if (fbDesc) {
+            parts.push('');
+            parts.push(fbDesc.summary);
+        }
+
+        // Parameter table
+        if (members.length > 0) {
+            const inputs = members.filter(m => m.direction === 'VAR_INPUT');
+            const outputs = members.filter(m => m.direction === 'VAR_OUTPUT');
+
+            parts.push('');
+            parts.push('**Parameters:**');
+
+            if (inputs.length > 0) {
+                parts.push('');
+                parts.push('| Input | Type | Description |');
+                parts.push('|-------|------|-------------|');
+                for (const m of inputs) {
+                    parts.push(`| \`${m.name}\` | \`${m.dataType}\` | ${m.description || ''} |`);
+                }
+            }
+
+            if (outputs.length > 0) {
+                parts.push('');
+                parts.push('| Output | Type | Description |');
+                parts.push('|--------|------|-------------|');
+                for (const m of outputs) {
+                    parts.push(`| \`${m.name}\` | \`${m.dataType}\` | ${m.description || ''} |`);
+                }
+            }
+        }
+
+        // Behavior
+        if (fbDesc) {
+            parts.push('');
+            parts.push(`**Behavior:** ${fbDesc.behavior}`);
+        }
+
+        // Usage example
+        if (fbDesc?.example) {
+            parts.push('');
+            parts.push('**Example:**');
+            parts.push('```iecst');
+            parts.push(fbDesc.example);
+            parts.push('```');
+        }
+
+        return parts.join('\n');
     }
 }

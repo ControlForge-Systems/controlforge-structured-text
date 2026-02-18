@@ -206,6 +206,130 @@ END_PROGRAM`));
         });
     });
 
+    suite('provideHover — standard FB tooltips', () => {
+        test('should return rich tooltip for standard FB type name (TON)', () => {
+            const document = doc('file:///test.st', `PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+END_PROGRAM`);
+
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(document);
+            const localIdx = emptyLocalIndex();
+
+            // Hover on "TON" type name at line 2
+            const hover = defProvider.provideHover(document, { line: 2, character: 15 }, indexer, localIdx);
+            assert.ok(hover, 'should return hover for TON type');
+            assert.ok(hover!.includes('TON'), 'should mention TON');
+            assert.ok(hover!.includes('Standard Function Block'), 'should identify as standard FB');
+            assert.ok(hover!.includes('Timer'), 'should show Timer category');
+            assert.ok(hover!.includes('Parameters'), 'should include parameters section');
+            assert.ok(hover!.includes('IN'), 'should list IN parameter');
+            assert.ok(hover!.includes('PT'), 'should list PT parameter');
+            assert.ok(hover!.includes('Q'), 'should list Q output');
+            assert.ok(hover!.includes('ET'), 'should list ET output');
+            assert.ok(hover!.includes('Behavior'), 'should include behavior section');
+            assert.ok(hover!.includes('Example'), 'should include example section');
+            assert.ok(hover!.includes('```iecst'), 'should have code fence');
+        });
+
+        test('should return rich tooltip for FB instance hovering on instance name', () => {
+            const document = doc('file:///test.st', `PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+    myTimer.Q;
+END_PROGRAM`);
+
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(document);
+            const localIdx = emptyLocalIndex();
+
+            // Hover on "myTimer" in member access at line 4
+            const hover = defProvider.provideHover(document, { line: 4, character: 4 }, indexer, localIdx);
+            assert.ok(hover, 'should return hover for instance');
+            assert.ok(hover!.includes('myTimer'), 'should mention instance name');
+            assert.ok(hover!.includes('TON'), 'should mention FB type');
+            assert.ok(hover!.includes('Function Block Instance'), 'should identify as instance');
+        });
+
+        test('should return rich tooltip for all standard FB types', () => {
+            const fbTypes = ['TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'RS', 'SR'];
+            const indexer = new WorkspaceIndexer();
+            const localIdx = emptyLocalIndex();
+
+            for (const fbType of fbTypes) {
+                const document = doc('file:///test.st', `PROGRAM Main\nVAR\n    inst : ${fbType};\nEND_VAR\nEND_PROGRAM`);
+                indexer.updateFileIndex(document);
+
+                // Hover on type name
+                const hover = defProvider.provideHover(document, { line: 2, character: 14 }, indexer, localIdx);
+                assert.ok(hover, `should return hover for ${fbType}`);
+                assert.ok(hover!.includes(fbType), `hover should mention ${fbType}`);
+                assert.ok(hover!.includes('Parameters'), `${fbType} hover should have parameters`);
+            }
+        });
+
+        test('should return parameter table with input and output sections', () => {
+            const document = doc('file:///test.st', `PROGRAM Main
+VAR
+    c : CTU;
+END_VAR
+END_PROGRAM`);
+
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(document);
+            const localIdx = emptyLocalIndex();
+
+            const hover = defProvider.provideHover(document, { line: 2, character: 10 }, indexer, localIdx);
+            assert.ok(hover, 'should return hover for CTU');
+            assert.ok(hover!.includes('| Input |'), 'should have input table header');
+            assert.ok(hover!.includes('| Output |'), 'should have output table header');
+            assert.ok(hover!.includes('CU'), 'should list CU input');
+            assert.ok(hover!.includes('CV'), 'should list CV output');
+        });
+
+        test('should return standard hover for non-FB symbols', () => {
+            const document = doc('file:///test.st', `PROGRAM Main
+VAR
+    counter : INT;
+END_VAR
+    counter := 42;
+END_PROGRAM`);
+
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(document);
+            const localIdx = emptyLocalIndex();
+
+            const hover = defProvider.provideHover(document, { line: 4, character: 4 }, indexer, localIdx);
+            assert.ok(hover, 'should return hover');
+            assert.ok(hover!.includes('counter'), 'should mention symbol name');
+            // Should NOT include standard FB tooltip features
+            assert.ok(!hover!.includes('Standard Function Block'), 'should not be treated as FB');
+            assert.ok(!hover!.includes('Parameters'), 'should not have parameter table');
+        });
+
+        test('should show member hover with description for member access', () => {
+            const document = doc('file:///test.st', 'myTimer.Q');
+
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(doc('file:///defs.st', `PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+END_PROGRAM`));
+            const localIdx = emptyLocalIndex();
+
+            // Cursor on Q member
+            const hover = defProvider.provideHover(document, { line: 0, character: 8 }, indexer, localIdx);
+            assert.ok(hover, 'should return member hover');
+            assert.ok(hover!.includes('Q'), 'should mention member name');
+            assert.ok(hover!.includes('BOOL'), 'should show member type');
+            assert.ok(hover!.includes('TON'), 'should reference FB type');
+        });
+    });
+
     suite('findSymbolAtPosition edge cases', () => {
         test('should find symbol with underscores', () => {
             const document = doc('file:///test.st', '    my_var_name := 10;');

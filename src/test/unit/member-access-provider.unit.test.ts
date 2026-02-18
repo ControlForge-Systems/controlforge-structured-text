@@ -252,6 +252,55 @@ END_IF;`);
         });
     });
 
+    suite('getStandardFBDescription', () => {
+        test('should return description for all standard FB types', () => {
+            const fbTypes = ['TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'RS', 'SR'];
+            for (const fbType of fbTypes) {
+                const desc = provider.getStandardFBDescription(fbType);
+                assert.ok(desc, `should have description for ${fbType}`);
+                assert.strictEqual(desc!.name, fbType);
+                assert.ok(desc!.category, `${fbType} should have category`);
+                assert.ok(desc!.summary, `${fbType} should have summary`);
+                assert.ok(desc!.behavior, `${fbType} should have behavior`);
+                assert.ok(desc!.example, `${fbType} should have example`);
+            }
+        });
+
+        test('should return undefined for non-standard types', () => {
+            assert.strictEqual(provider.getStandardFBDescription('INT'), undefined);
+            assert.strictEqual(provider.getStandardFBDescription('MyCustomFB'), undefined);
+            assert.strictEqual(provider.getStandardFBDescription(''), undefined);
+        });
+
+        test('should categorize timer FBs correctly', () => {
+            assert.strictEqual(provider.getStandardFBDescription('TON')!.category, 'Timer');
+            assert.strictEqual(provider.getStandardFBDescription('TOF')!.category, 'Timer');
+            assert.strictEqual(provider.getStandardFBDescription('TP')!.category, 'Timer');
+        });
+
+        test('should categorize counter FBs correctly', () => {
+            assert.strictEqual(provider.getStandardFBDescription('CTU')!.category, 'Counter');
+            assert.strictEqual(provider.getStandardFBDescription('CTD')!.category, 'Counter');
+            assert.strictEqual(provider.getStandardFBDescription('CTUD')!.category, 'Counter');
+        });
+
+        test('should categorize edge detection FBs correctly', () => {
+            assert.strictEqual(provider.getStandardFBDescription('R_TRIG')!.category, 'Edge Detection');
+            assert.strictEqual(provider.getStandardFBDescription('F_TRIG')!.category, 'Edge Detection');
+        });
+
+        test('should categorize bistable FBs correctly', () => {
+            assert.strictEqual(provider.getStandardFBDescription('RS')!.category, 'Bistable');
+            assert.strictEqual(provider.getStandardFBDescription('SR')!.category, 'Bistable');
+        });
+
+        test('should include usage examples with ST code', () => {
+            const tonDesc = provider.getStandardFBDescription('TON');
+            assert.ok(tonDesc!.example.includes('MyTimer'), 'TON example should have instance');
+            assert.ok(tonDesc!.example.includes('T#'), 'TON example should have TIME literal');
+        });
+    });
+
     suite('findMemberDefinition', () => {
         test('should find standard FB member definition', () => {
             const symbols: STSymbolExtended[] = [

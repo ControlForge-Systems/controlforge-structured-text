@@ -7,6 +7,7 @@
 - Verbose console.log in definition provider polluting test and server output
 
 ### Added
+- Rich hover tooltips for standard function blocks: parameter tables, behavior descriptions, usage examples (#22)
 - Advanced diagnostics and linting: missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches (#6)
 - Semantic analysis powered by AST parser symbols for deeper code inspection (#6)
 - Quick fixes for semantic diagnostics: insert semicolon, remove duplicate declaration, remove unused variable (#6)

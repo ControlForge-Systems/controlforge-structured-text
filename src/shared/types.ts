@@ -177,6 +177,17 @@ export interface STSymbolWithMembers extends STSymbolExtended {
 }
 
 /**
+ * Standard function block description for hover tooltips
+ */
+export interface StandardFBDescription {
+    name: string;               // FB name (TON, CTU, etc.)
+    category: string;           // Timer, Counter, Edge Detection, Bistable
+    summary: string;            // One-line description
+    behavior: string;           // Detailed behavior explanation
+    example: string;            // Usage example in ST code
+}
+
+/**
  * Context information for semantic analysis
  */
 export interface SemanticContext {
