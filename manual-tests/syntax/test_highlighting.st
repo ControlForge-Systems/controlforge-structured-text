@@ -42,6 +42,9 @@ VAR
     myCounter : CTU;
     myEdgeDetector : R_TRIG;
     myFlipFlop : RS;
+    
+    // Loop variable
+    i : INT;
 END_VAR
 
 // Test control structures with highlighting
