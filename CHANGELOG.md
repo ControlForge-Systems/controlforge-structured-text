@@ -7,6 +7,10 @@
 - Verbose console.log in definition provider polluting test and server output
 
 ### Added
+- Advanced diagnostics and linting: missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches (#6)
+- Semantic analysis powered by AST parser symbols for deeper code inspection (#6)
+- Quick fixes for semantic diagnostics: insert semicolon, remove duplicate declaration, remove unused variable (#6)
+- Levenshtein-based fuzzy matching for "did you mean?" suggestions on undefined identifiers (#6)
 - Code formatting (Shift+Alt+F): keyword casing, indentation, operator spacing, VAR block alignment, trailing whitespace removal (#29)
 - Format Selection support for partial document formatting (#29)
 - Configurable formatting settings: keywordCase, insertSpacesAroundOperators, alignVarDeclarations, trimTrailingWhitespace, insertFinalNewline (#29)
@@ -19,6 +23,7 @@
 - 31 unit tests for code action provider (151 → 182 total) (#26)
 - 58 unit tests for rename provider (182 → 240 total) (#28)
 - 67 unit tests for formatting provider (240 → 307 total) (#29)
+- 46 unit tests for Phase 2 semantic diagnostics, levenshtein/fuzzy matching, and code actions (307 → 353 total) (#6)
 - Clean build steps for compile and webpack scripts
 
 ### Changed

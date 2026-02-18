@@ -155,7 +155,7 @@ function parseSTSymbols(document: TextDocument): STSymbolExtended[] {
 /**
  * Update symbol index for a document
  */
-function updateSymbolIndex(document: TextDocument): void {
+function updateSymbolIndex(document: TextDocument): STSymbolExtended[] {
     const symbols = parseSTSymbols(document);
     const fileSymbols: FileSymbols = {
         uri: document.uri,
@@ -219,6 +219,8 @@ function updateSymbolIndex(document: TextDocument): void {
             });
         }
     });
+
+    return symbols;
 }
 
 /**
@@ -428,21 +430,21 @@ documents.onDidChangeContent(change => {
     }
     
     changeDebounceTimer = setTimeout(() => {
-        updateSymbolIndex(change.document);
+        const symbols = updateSymbolIndex(change.document);
         workspaceIndexer.updateFileIndex(change.document);
 
-        // Publish diagnostics
-        const diagnostics = computeDiagnostics(change.document);
+        // Publish diagnostics (pass symbols for semantic checks)
+        const diagnostics = computeDiagnostics(change.document, symbols);
         connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
     }, 300); // Wait 300ms after last change
 });
 
 documents.onDidOpen(change => {
-    updateSymbolIndex(change.document);
+    const symbols = updateSymbolIndex(change.document);
     workspaceIndexer.updateFileIndex(change.document);
 
-    // Publish diagnostics on open
-    const diagnostics = computeDiagnostics(change.document);
+    // Publish diagnostics on open (pass symbols for semantic checks)
+    const diagnostics = computeDiagnostics(change.document, symbols);
     connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
 });
 

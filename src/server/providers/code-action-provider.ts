@@ -2,10 +2,17 @@
  * Code Action Provider for Structured Text
  *
  * Provides quick fixes for diagnostics produced by the diagnostics provider:
+ *
+ * Phase 1 — syntax fixes:
  *  - Insert missing END_* keywords for unmatched blocks
  *  - Remove orphaned END_* keywords without matching openers
  *  - Close unclosed string literals
  *  - Fix unmatched parentheses
+ *
+ * Phase 2 — semantic fixes:
+ *  - Insert missing semicolons
+ *  - Remove duplicate variable declarations
+ *  - Remove unused variable declarations
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -94,6 +101,27 @@ export function provideCodeActions(
             }
         } else if (message.includes('Unmatched closing parenthesis')) {
             const action = createRemoveClosingParenthesisAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Phase 2: Missing semicolons
+        else if (message === 'Missing semicolon at end of statement') {
+            const action = createInsertSemicolonAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Phase 2: Duplicate declarations
+        else if (message.startsWith('Duplicate declaration')) {
+            const action = createRemoveDuplicateDeclarationAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Phase 2: Unused variables
+        else if (message.includes('is declared but never used')) {
+            const action = createRemoveUnusedVariableAction(document, diagnostic);
             if (action) {
                 actions.push(action);
             }
@@ -332,6 +360,111 @@ function createRemoveClosingParenthesisAction(
 
     return {
         title: 'Remove extra closing parenthesis',
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true
+    };
+}
+
+// ─── Phase 2 action creators ────────────────────────────────────────────────
+
+/**
+ * Create action to insert a missing semicolon at end of statement.
+ *
+ * Message format: "Missing semicolon at end of statement"
+ */
+function createInsertSemicolonAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const line = diagnostic.range.start.line;
+    const text = document.getText();
+    const lines = text.split('\n');
+    const lineText = lines[line];
+
+    // Insert semicolon at end of non-whitespace content
+    const trimEnd = lineText.trimEnd();
+    const insertPosition = Position.create(line, trimEnd.length);
+
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [
+                TextEdit.insert(insertPosition, ';')
+            ]
+        }
+    };
+
+    return {
+        title: 'Insert semicolon',
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true
+    };
+}
+
+/**
+ * Create action to remove a duplicate variable declaration.
+ *
+ * Message format: "Duplicate declaration 'X' (already declared as 'Y')"
+ */
+function createRemoveDuplicateDeclarationAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const line = diagnostic.range.start.line;
+
+    // Remove the entire line
+    const range: Range = {
+        start: Position.create(line, 0),
+        end: Position.create(line + 1, 0)
+    };
+
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [
+                TextEdit.del(range)
+            ]
+        }
+    };
+
+    return {
+        title: 'Remove duplicate declaration',
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true
+    };
+}
+
+/**
+ * Create action to remove an unused variable declaration.
+ *
+ * Message format: "Variable 'X' is declared but never used"
+ */
+function createRemoveUnusedVariableAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const line = diagnostic.range.start.line;
+
+    // Remove the entire line
+    const range: Range = {
+        start: Position.create(line, 0),
+        end: Position.create(line + 1, 0)
+    };
+
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [
+                TextEdit.del(range)
+            ]
+        }
+    };
+
+    return {
+        title: 'Remove unused variable',
         kind: CodeActionKind.QuickFix,
         diagnostics: [diagnostic],
         edit,

@@ -8,8 +8,8 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 ## Key Features
 
 - **Code Formatting**: Format Document (Shift+Alt+F), Format Selection, configurable keyword casing, operator spacing, VAR alignment
-- **Real-time Diagnostics**: Errors and warnings as you type — Problems panel, red squiggly underlines, hover tooltips
-- **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, unclosed strings, unmatched parentheses
+- **Real-time Diagnostics**: Errors and warnings as you type — missing semicolons, type mismatches, undefined/unused variables, unmatched blocks
+- **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, semicolons, duplicate/unused declarations, unclosed strings
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
 - **Go to Definition & Find References**: Cross-file symbol navigation
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
@@ -87,6 +87,11 @@ END_PROGRAM
 - **Unmatched blocks**: Missing `END_PROGRAM`, `END_IF`, `END_VAR`, etc.
 - **Unclosed strings**: Single-quoted (`STRING`) and double-quoted (`WSTRING`)
 - **Unmatched parentheses**: Per-line detection with string/comment awareness
+- **Missing semicolons**: Detects missing `;` on statement lines in POU bodies
+- **Duplicate declarations**: Same-name variables in the same scope (case-insensitive)
+- **Undefined variables**: Identifiers used but not declared, with fuzzy "did you mean?" matching
+- **Unused variables**: Local variables declared but never referenced in body
+- **Type mismatches**: Incompatible assignments (e.g., STRING to INT, BOOL to INT)
 - **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
 - **Case-insensitive**: Keyword matching per IEC 61131-3
 
@@ -94,6 +99,9 @@ END_PROGRAM
 - **Missing END blocks**: Auto-insert `END_IF`, `END_FOR`, `END_WHILE`, `END_CASE`, `END_PROGRAM`, `END_FUNCTION`, `END_FUNCTION_BLOCK`, `END_VAR`, etc.
 - **Unclosed strings**: Append closing quote (single or double) at end of line
 - **Unmatched parentheses**: Insert missing closing `)` at end of expression
+- **Missing semicolons**: Insert `;` at end of statement
+- **Duplicate declarations**: Remove duplicate variable declaration line
+- **Unused variables**: Remove unused variable declaration line
 - **Light bulb menu**: Fixes appear via `Ctrl+.` or clicking the light bulb icon
 
 ### Code Formatting
@@ -129,12 +137,13 @@ END_PROGRAM
 - **Operating System**: Windows, macOS, or Linux
 
 ## What's New (Unreleased)
+- **Advanced Diagnostics**: Missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches — all with quick fixes
 - **Code Formatting**: Format Document (Shift+Alt+F) and Format Selection with keyword casing, operator spacing, indentation, VAR alignment
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with identifier validation and comment-awareness
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **307 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
+- **353 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly

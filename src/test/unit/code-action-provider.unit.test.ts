@@ -616,4 +616,69 @@ VAR
             }
         });
     });
+
+    suite('Missing Semicolons', () => {
+        test('should provide fix for missing semicolon', () => {
+            const content = `PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 1
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(4, 9, 1, 'Missing semicolon at end of statement');
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Insert semicolon');
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+
+            const edit = actions[0].edit!.changes![document.uri][0];
+            assert.strictEqual(edit.newText, ';');
+        });
+    });
+
+    suite('Duplicate Declarations', () => {
+        test('should provide fix to remove duplicate declaration', () => {
+            const content = `PROGRAM Main
+VAR
+    x : INT;
+    x : REAL;
+END_VAR
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(3, 4, 1, "Duplicate declaration 'x' (already declared as 'x')");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Remove duplicate declaration');
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+        });
+    });
+
+    suite('Unused Variables', () => {
+        test('should provide fix to remove unused variable', () => {
+            const content = `PROGRAM Main
+VAR
+    x : INT;
+    unused : INT;
+END_VAR
+    x := 1;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(3, 4, 6, "Variable 'unused' is declared but never used");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Remove unused variable');
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+            assert.strictEqual(actions[0].isPreferred, true);
+        });
+    });
 });
