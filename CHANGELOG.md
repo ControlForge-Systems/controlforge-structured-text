@@ -7,8 +7,10 @@
 - Verbose console.log in definition provider polluting test and server output
 
 ### Added
+- Real-time diagnostics with Problems panel integration: unmatched blocks, unclosed strings, unmatched parentheses (#27)
 - AST parser rewrite with multi-line statement accumulator architecture (#41)
 - 62 unit tests for workspace-indexer, member-access-provider, definition-provider, completion-provider (44 → 106 total) (#44)
+- 45 unit tests for diagnostics provider (106 → 151 total) (#27)
 - Clean build steps for compile and webpack scripts
 
 ### Changed
@@ -59,13 +61,8 @@
 
 ### Changed
 - Migrated to webpack-based bundling for improved performance and reliability
-- Significantly reduced extension size by optimizing included dependencies
+- Reduced extension size by optimizing included dependencies
 - Improved extension startup time by bundling code into fewer files
-
-### Developer Notes
-- After trying several approaches to resolve the "Cannot find module 'vscode-languageclient/node'" error, we're hopeful that webpack bundling might be the solution
-- This has been a challenging journey through VS Code's Language Server Protocol architecture and extension packaging
-- While we can't be certain, we believe this approach may provide a more reliable experience across environments
 
 ## [1.2.2] - 2025-06-21
 

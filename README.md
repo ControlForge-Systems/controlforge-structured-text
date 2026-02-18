@@ -7,12 +7,12 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 
 ## Key Features
 
+- **Real-time Diagnostics**: Errors and warnings as you type — Problems panel, red squiggly underlines, hover tooltips
 - **Go to Definition & Find References**: Cross-file symbol navigation
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
 - **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
 - **Smart Code Completion**: Context-aware suggestions for keywords, types, and variables
 - **Workspace Indexing**: Automatic cross-file symbol discovery and resolution
-- **Code Validation**: Built-in syntax validation and error detection
 - **Code Snippets**: Pre-built templates for common PLC patterns
 
 ## Screenshots
@@ -78,6 +78,14 @@ END_PROGRAM
 - **Member Access Navigation**: Navigate from `instance.member` to FB definitions
 - **Hover Information**: Type and documentation on hover
 
+### Diagnostics
+- **Real-time error detection**: Errors appear as you type with 300ms debounce
+- **Unmatched blocks**: Missing `END_PROGRAM`, `END_IF`, `END_VAR`, etc.
+- **Unclosed strings**: Single-quoted (`STRING`) and double-quoted (`WSTRING`)
+- **Unmatched parentheses**: Per-line detection with string/comment awareness
+- **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
+- **Case-insensitive**: Keyword matching per IEC 61131-3
+
 ### Syntax Highlighting
 - **Keywords**: `IF`, `THEN`, `ELSE`, `FOR`, `WHILE`, `CASE`, `VAR`, `END_VAR`
 - **Data Types**: `BOOL`, `INT`, `REAL`, `TIME`, `STRING`, `ARRAY`, `STRUCT`
@@ -99,6 +107,11 @@ END_PROGRAM
 ## Requirements
 - **Visual Studio Code** 1.100.0 or higher
 - **Operating System**: Windows, macOS, or Linux
+
+## What's New (Unreleased)
+- **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
+- **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
+- **151 unit tests**: Comprehensive coverage for all LSP providers and diagnostics
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
