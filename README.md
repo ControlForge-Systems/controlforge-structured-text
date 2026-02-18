@@ -9,6 +9,7 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 
 - **Real-time Diagnostics**: Errors and warnings as you type — Problems panel, red squiggly underlines, hover tooltips
 - **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, unclosed strings, unmatched parentheses
+- **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
 - **Go to Definition & Find References**: Cross-file symbol navigation
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
 - **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
@@ -76,6 +77,7 @@ END_PROGRAM
 ### Navigation
 - **Go to Definition**: Jump to symbol declarations across files
 - **Find References**: Locate all usages of a symbol
+- **Rename Symbol (F2)**: Rename with IEC 61131-3 validation — rejects keywords, data types, standard functions
 - **Member Access Navigation**: Navigate from `instance.member` to FB definitions
 - **Hover Information**: Type and documentation on hover
 
@@ -116,11 +118,11 @@ END_PROGRAM
 - **Operating System**: Windows, macOS, or Linux
 
 ## What's New (Unreleased)
-<<<<<<< HEAD
+- **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with identifier validation and comment-awareness
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **182 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, and code actions
+- **240 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, and rename
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
