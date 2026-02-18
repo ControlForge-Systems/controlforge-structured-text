@@ -1,33 +1,39 @@
 # Change Log
 
-## [1.2.5] - 2026-02-18
+## [Unreleased]
 
 ### Fixed
 - Parser regex fails on multi-line variable declarations (#41)
-- Duplicate completion provider conflicts (#37)
-- iec61131-definitions/ inaccessible in packaged extension (#39)
-- Hardcoded workspace root breaking in renamed folders (#40)
-- Inconsistent case-insensitive symbol lookup (#42)
-- Memory leak from missing index cleanup on file close (#43)
-- npm test failing in clean environments (#38)
 
 ### Added
 - AST parser rewrite with multi-line statement accumulator architecture (#41)
 - 29 unit tests for AST parser (44 total)
 - Clean build steps for compile and webpack scripts
-- Debounced document change handling for typing performance
 
 ### Changed
 - Removed legacy parser (`parser.ts`) and its tests
-- Removed duplicate completion provider from extension client
-- Extension path passed via LSP initialization instead of hardcoded lookup
-- Normalized symbol names for IEC 61131-3 case-insensitive compliance
 
 ### Removed
 - Stale documentation (FEATURES.md, MANUAL_TEST_GUIDE.md, RELEASE_PLAN.md, TESTING.md)
 - Dead scripts (pretest, compile-test, test:watch, test:pre-commit)
 - Stale files (test-local.sh, HOW_TO_TEST_LOCALLY.md)
 - Stale branches (develop, feature/issue-5-rename-symbol-support)
+
+## [1.2.5] - 2026-02-10
+
+### Fixed
+- Duplicate completion provider conflicts (#37)
+- npm test failing in clean environments (#38)
+- iec61131-definitions/ inaccessible in packaged extension (#39)
+- Hardcoded workspace root breaking in renamed folders (#40)
+- Inconsistent case-insensitive symbol lookup (#42)
+- Memory leak from missing index cleanup on file close (#43)
+
+### Changed
+- Removed duplicate completion provider from extension client
+- Extension path passed via LSP initialization instead of hardcoded lookup
+- Normalized symbol names for IEC 61131-3 case-insensitive compliance
+- Debounced document change handling for typing performance
 
 ## [1.2.4] - 2025-06-21
 
