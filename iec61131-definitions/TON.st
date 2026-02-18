@@ -1,20 +1,28 @@
-// IEC 61131-3 Standard Timer Function Block: TON (Timer On Delay)
-// This is a virtual definition file for language server navigation
+(*
+    TON - On-Delay Timer (IEC 61131-3)
+
+    Starts timing when IN transitions FALSE -> TRUE.
+    Q becomes TRUE after elapsed time ET reaches preset PT.
+    Q stays TRUE while IN remains TRUE.
+    When IN goes FALSE, Q resets immediately and ET resets to T#0s.
+
+    Typical uses: motor start delays, alarm confirmation, process step durations.
+
+    Example:
+        MyTimer(IN := StartCondition, PT := T#5s);
+        IF MyTimer.Q THEN
+            // 5 seconds elapsed since StartCondition went TRUE
+        END_IF;
+*)
 
 FUNCTION_BLOCK TON
 VAR_INPUT
-    IN : BOOL;      // Timer input signal - starts timer when TRUE
-    PT : TIME;      // Preset time - duration of the timer
+    IN : BOOL;      // Start signal - rising edge starts timer
+    PT : TIME;      // Preset time - delay duration before Q goes TRUE
 END_VAR
 VAR_OUTPUT
-    Q : BOOL;       // Timer output - TRUE when timer elapsed
-    ET : TIME;      // Elapsed time - current timer value
+    Q : BOOL;       // Output - TRUE when ET >= PT and IN is TRUE
+    ET : TIME;      // Elapsed time - counts from T#0s to PT while IN is TRUE
 END_VAR
-
-// Standard behavior:
-// When IN transitions from FALSE to TRUE, timer starts counting
-// Q becomes TRUE when ET reaches PT
-// Q remains TRUE as long as IN is TRUE and ET >= PT
-// When IN becomes FALSE, Q immediately becomes FALSE and ET resets to T#0s
 
 END_FUNCTION_BLOCK

@@ -80,7 +80,7 @@ END_PROGRAM
 - **Find References**: Locate all usages of a symbol
 - **Rename Symbol (F2)**: Rename with IEC 61131-3 validation — rejects keywords, data types, standard functions
 - **Member Access Navigation**: Navigate from `instance.member` to FB definitions
-- **Hover Information**: Type and documentation on hover
+- **Hover Information**: Rich tooltips for standard FBs with parameter tables, behavior, and usage examples
 
 ### Diagnostics
 - **Real-time error detection**: Errors appear as you type with 300ms debounce
@@ -137,6 +137,7 @@ END_PROGRAM
 - **Operating System**: Windows, macOS, or Linux
 
 ## What's New (Unreleased)
+- **Rich FB Hover Tooltips**: Standard function blocks show parameter tables, behavior descriptions, and usage examples on hover
 - **Advanced Diagnostics**: Missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches — all with quick fixes
 - **Code Formatting**: Format Document (Shift+Alt+F) and Format Selection with keyword casing, operator spacing, indentation, VAR alignment
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with identifier validation and comment-awareness

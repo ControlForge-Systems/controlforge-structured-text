@@ -1,20 +1,28 @@
-// IEC 61131-3 Standard Counter Function Block: CTD (Count Down)
-// This is a virtual definition file for language server navigation
+(*
+    CTD - Count Down Counter (IEC 61131-3)
+
+    CV decrements by 1 on each rising edge of CD.
+    Q becomes TRUE when CV <= 0.
+    LD loads PV into CV when TRUE.
+
+    Typical uses: remaining inventory, countdown sequences, quota tracking.
+
+    Example:
+        Countdown(CD := ItemDispensed, LD := Reload, PV := 50);
+        IF Countdown.Q THEN
+            // All items dispensed
+        END_IF;
+*)
 
 FUNCTION_BLOCK CTD
 VAR_INPUT
-    CD : BOOL;      // Count down input - count on rising edge
-    LD : BOOL;      // Load input - loads PV into CV
-    PV : INT;       // Preset value - initial count value
+    CD : BOOL;      // Count down - CV decrements on rising edge
+    LD : BOOL;      // Load - sets CV to PV when TRUE
+    PV : INT;       // Preset value - initial count loaded by LD
 END_VAR
 VAR_OUTPUT
-    Q : BOOL;       // Counter output - TRUE when CV <= 0
-    CV : INT;       // Current value - current count
+    Q : BOOL;       // Output - TRUE when CV <= 0
+    CV : INT;       // Current value - running count
 END_VAR
-
-// Standard behavior:
-// CV decrements on each rising edge of CD
-// Q becomes TRUE when CV <= 0
-// LD loads PV into CV when TRUE
 
 END_FUNCTION_BLOCK

@@ -1,19 +1,28 @@
-// IEC 61131-3 Standard Edge Detector: R_TRIG (Rising Trigger)
-// This is a virtual definition file for language server navigation
+(*
+    R_TRIG - Rising Edge Detector (IEC 61131-3)
+
+    Q is TRUE for exactly one scan cycle when CLK transitions FALSE -> TRUE.
+    Q is FALSE at all other times.
+    Uses internal memory M to track previous CLK state.
+
+    Typical uses: button press detection, start triggers, rising alarm conditions.
+
+    Example:
+        StartEdge(CLK := StartButton);
+        IF StartEdge.Q THEN
+            // Start button just pressed (one-shot)
+        END_IF;
+*)
 
 FUNCTION_BLOCK R_TRIG
 VAR_INPUT
-    CLK : BOOL;     // Clock input - signal to detect rising edge
+    CLK : BOOL;     // Clock input - signal to monitor for rising edge
 END_VAR
 VAR_OUTPUT
-    Q : BOOL;       // Output - TRUE for one scan on rising edge
+    Q : BOOL;       // Output - TRUE for one scan on FALSE->TRUE transition
 END_VAR
 VAR
-    M : BOOL;       // Internal memory of previous CLK state
+    M : BOOL;       // Internal memory - previous CLK state
 END_VAR
-
-// Standard behavior:
-// Q is TRUE for exactly one scan cycle when CLK transitions from FALSE to TRUE
-// Q is FALSE at all other times
 
 END_FUNCTION_BLOCK
