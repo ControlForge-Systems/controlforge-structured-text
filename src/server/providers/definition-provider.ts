@@ -32,21 +32,13 @@ export class EnhancedDefinitionProvider {
         workspaceIndexer: WorkspaceIndexer,
         localSymbolIndex: SymbolIndex
     ): Location[] {
-        console.log(`EnhancedDefinitionProvider: Looking for definition at ${position.line}:${position.character} in ${document.uri}`);
         const locations: Location[] = [];
 
         // Parse member access expressions in the document
         const memberExpressions = this.memberAccessProvider.parseMemberAccess(document);
-        console.log(`Found ${memberExpressions.length} member access expressions in document`);
 
         // Check if position is within a member access expression
         const memberAccess = this.memberAccessProvider.getMemberAccessAtPosition(memberExpressions, position);
-
-        // Debug info for local symbols index
-        console.log(`Local symbol index has ${localSymbolIndex.symbolsByName.size} unique symbols`);
-        for (const [name, symbols] of localSymbolIndex.symbolsByName.entries()) {
-            console.log(`  Symbol name: "${name}" has ${symbols.length} entries`);
-        }
 
         if (memberAccess) {
             // Handle member access navigation
@@ -72,23 +64,20 @@ export class EnhancedDefinitionProvider {
                     locations.push(memberLocation);
                 }
             }
-        } else {                // Standard symbol navigation
+        } else {
+            // Standard symbol navigation
             const symbolName = this.findSymbolAtPosition(document, position);
             if (symbolName) {
-                console.log(`Looking for definition of symbol: ${symbolName}`);
-
                 // Try exact match first
                 let localSymbols = localSymbolIndex.symbolsByName.get(symbolName);
 
                 // Try case-insensitive lookup if exact match failed
                 if (!localSymbols || localSymbols.length === 0) {
                     const normalizedName = symbolName.toLowerCase();
-                    console.log(`Trying case-insensitive lookup for: ${normalizedName}`);
 
                     // Search all entries with case-insensitive comparison
                     for (const [name, symbols] of localSymbolIndex.symbolsByName.entries()) {
                         if (name.toLowerCase() === normalizedName) {
-                            console.log(`Found case-insensitive match with key: "${name}"`);
                             localSymbols = symbols;
                             break;
                         }
@@ -96,34 +85,15 @@ export class EnhancedDefinitionProvider {
                 }
 
                 // Use local symbols if found
-                // Use local symbols if found
                 if (localSymbols && localSymbols.length > 0) {
-                    console.log(`  Found ${localSymbols.length} local symbols`);
-
-                    // Check if any of these are string variables
-                    const stringVars = localSymbols.filter(s =>
-                        s.dataType &&
-                        (s.dataType.toUpperCase() === 'STRING' ||
-                            s.dataType.toUpperCase() === 'WSTRING' ||
-                            s.dataType.toUpperCase().startsWith('STRING[') ||
-                            s.dataType.toUpperCase().startsWith('WSTRING['))
-                    );
-
-                    if (stringVars.length > 0) {
-                        console.log(`  Found ${stringVars.length} string variables among local symbols`);
-                        stringVars.forEach(s => console.log(`    String var: ${s.name} (${s.dataType})`));
-                    }
-
                     locations.push(...localSymbols.map(s => s.location));
                 } else {
                     // Fallback to workspace index
-                    console.log(`  No local symbols found, checking workspace index`);
                     const symbolLocations = workspaceIndexer.findSymbolDefinition(symbolName);
                     locations.push(...symbolLocations);
 
                     // If still not found, try special string variable lookup
                     if (symbolLocations.length === 0) {
-                        console.log(`  No workspace symbols found, trying special string variable lookup`);
                         const allSymbols = workspaceIndexer.getAllSymbols();
                         const stringVars = allSymbols.filter(s =>
                             s.name.toLowerCase() === symbolName.toLowerCase() &&
@@ -135,8 +105,6 @@ export class EnhancedDefinitionProvider {
                         );
 
                         if (stringVars.length > 0) {
-                            console.log(`  Found ${stringVars.length} matching string variables`);
-                            stringVars.forEach(s => console.log(`    String var: ${s.name} (${s.dataType})`));
                             locations.push(...stringVars.map(s => s.location));
                         }
                     }
@@ -144,7 +112,6 @@ export class EnhancedDefinitionProvider {
             }
         }
 
-        console.log(`Definition locations found: ${locations.length}`);
         return locations;
     }
 
@@ -156,8 +123,6 @@ export class EnhancedDefinitionProvider {
         workspaceIndexer: WorkspaceIndexer,
         localSymbolIndex: SymbolIndex
     ): Location | null {
-        console.log(`Finding member definition for ${memberAccess.instance}.${memberAccess.member}`);
-
         // Get symbols from both workspace and local indexes
         const workspaceSymbols = workspaceIndexer.getAllSymbols();
         const localSymbols: STSymbolExtended[] = [];
@@ -171,23 +136,15 @@ export class EnhancedDefinitionProvider {
 
         // Combine all symbols
         const allSymbols = [...workspaceSymbols, ...localSymbols];
-        console.log(`Total symbols available: ${allSymbols.length}`);
-
-        // Find the instance symbol
-        const instanceSymbol = allSymbols.find(symbol => symbol.name === memberAccess.instance);
-        console.log(`Instance symbol found: ${instanceSymbol ? `${instanceSymbol.name} (${instanceSymbol.dataType})` : 'none'}`);
 
         const customFBTypes = this.getCustomFBTypes(workspaceIndexer);
 
-        const result = this.memberAccessProvider.findMemberDefinition(
+        return this.memberAccessProvider.findMemberDefinition(
             memberAccess.instance,
             memberAccess.member,
             allSymbols,
             customFBTypes
         );
-
-        console.log(`Member definition result: ${result ? 'found' : 'null'}`);
-        return result;
     }
 
     /**
@@ -216,15 +173,13 @@ export class EnhancedDefinitionProvider {
     }
 
     /**
-     * Find symbol at position (existing logic)
+     * Find symbol at position
      */
     private findSymbolAtPosition(document: TextDocument, position: Position): string | null {
         const lineText = document.getText({
             start: { line: position.line, character: 0 },
             end: { line: position.line, character: Number.MAX_VALUE }
         });
-
-        console.log(`Finding symbol in line: "${lineText}" at position ${position.character}`);
 
         // Use a regex that better matches ST identifiers (including those with underscores)
         const wordRegex = /[A-Za-z_][A-Za-z0-9_]*/g;
@@ -242,16 +197,6 @@ export class EnhancedDefinitionProvider {
                 foundWord = word;
                 foundStart = start;
                 foundEnd = end;
-                console.log(`Found symbol at position: "${foundWord}" (${start}-${end})`);
-
-                // Special handling for string variables - check if the word is used with string operations
-                const lineContext = lineText.substring(Math.max(0, start - 20), Math.min(lineText.length, end + 20));
-                if (lineContext.includes("'") || lineContext.includes('"') ||
-                    lineContext.toLowerCase().includes('string') ||
-                    lineContext.toLowerCase().includes('wstring')) {
-                    console.log(`  Symbol appears to be used in string context: "${lineContext}"`);
-                }
-
                 break;
             }
         }
@@ -281,9 +226,7 @@ export class EnhancedDefinitionProvider {
             }
 
             // Only use the closest word if it's reasonably close (within 5 characters)
-            if (closestDistance <= 5 && foundWord) {
-                console.log(`Found nearest symbol: "${foundWord}" (${foundStart}-${foundEnd}), distance: ${closestDistance}`);
-            } else {
+            if (!(closestDistance <= 5 && foundWord)) {
                 foundWord = null;
             }
         }
