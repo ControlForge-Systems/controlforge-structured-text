@@ -465,5 +465,3 @@ CONFIGURATION DefaultConfig
         PROGRAM MainProgram WITH MainTask : ExampleProgram;
     END_RESOURCE
 END_CONFIGURATION
-
-GT()

@@ -8,8 +8,6 @@ VS Code extension for IEC 61131-3 Structured Text. LSP-based architecture with c
 
 Consult `docs/IEC61131_SPECIFICATION.md` before any language-related change. It is the authoritative source for keywords, operators, data types, standard function blocks, and vendor compatibility.
 
-`src/iec61131_specification.ts` is a developer reference file only — not imported or bundled.
-
 ## Architecture
 
 ```

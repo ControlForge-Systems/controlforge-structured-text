@@ -6,13 +6,13 @@ This directory contains practical examples and sample code demonstrating the fea
 
 ### `/basic/` - Basic Examples
 Simple, standalone examples for learning Structured Text fundamentals:
-- `sample.st` - Basic syntax demonstration
-- `pid_controller.iecst` - Simple PID controller implementation
+- `sample.st` - Comprehensive syntax demonstration
 
 ### `/advanced/` - Advanced Examples  
 Complex, multi-file examples showing advanced features:
 - `main-app.st` - Main application using library components
 - `library.st` - Reusable function blocks and utilities
+- `pid_controller.iecst` - PID controller implementation (`.iecst` extension example)
 
 ## Usage
 
