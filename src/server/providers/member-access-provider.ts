@@ -16,7 +16,7 @@ import {
     STParameter,
     STSymbol
 } from '../../shared/types';
-import { getExtensionPath } from '../server';
+import { getExtensionPath } from '../extension-path';
 
 export class MemberAccessProvider {
     private standardFBMembers: Map<string, FBMemberDefinition[]> = new Map();
