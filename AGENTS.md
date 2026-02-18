@@ -86,6 +86,10 @@ Template at `.github/PULL_REQUEST_TEMPLATE.md`. Two sections:
 - **Summary** — 1-3 bullet points: what changed, why, closes which issues
 - **Testing** — what ran and results (e.g. `npm run test:unit: 44 passing`)
 
+## Milestones
+
+Title format: `vX.Y.0 - Short Theme` (e.g. `v1.3.0 - Stability & Core LSP`). Theme should describe the capability area, not "Phase N". Description lists concrete deliverables. Each issue gets a `vX.Y.0` release label matching its milestone. Keep labels and milestones in sync.
+
 ## Changelog
 
 Follow [Keep a Changelog](https://keepachangelog.com/) with Fixed/Added/Changed/Removed sections. No severity labels. Concise, no implementation details. Unreleased work goes under `[Unreleased]`.
