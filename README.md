@@ -116,6 +116,7 @@ END_PROGRAM
 - **Operating System**: Windows, macOS, or Linux
 
 ## What's New (Unreleased)
+<<<<<<< HEAD
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
