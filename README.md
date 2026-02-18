@@ -7,6 +7,7 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 
 ## Key Features
 
+- **Code Formatting**: Format Document (Shift+Alt+F), Format Selection, configurable keyword casing, operator spacing, VAR alignment
 - **Real-time Diagnostics**: Errors and warnings as you type — Problems panel, red squiggly underlines, hover tooltips
 - **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, unclosed strings, unmatched parentheses
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
@@ -95,6 +96,16 @@ END_PROGRAM
 - **Unmatched parentheses**: Insert missing closing `)` at end of expression
 - **Light bulb menu**: Fixes appear via `Ctrl+.` or clicking the light bulb icon
 
+### Code Formatting
+- **Format Document**: `Shift+Alt+F` to format entire file
+- **Format Selection**: Format only selected code
+- **Keyword casing**: Configurable UPPER, lower, or preserve
+- **Operator spacing**: Automatic spaces around `:=`, `+`, `-`, `*`, `/`, `=`, `<>`, `<=`, `>=`
+- **Indentation**: Automatic block-level indent for IF/FOR/WHILE/CASE/REPEAT, VAR sections, POU bodies
+- **VAR alignment**: Align colon positions across declarations in VAR blocks
+- **Trailing whitespace**: Automatic removal
+- **Settings**: All formatting options configurable via `structured-text.format.*`
+
 ### Syntax Highlighting
 - **Keywords**: `IF`, `THEN`, `ELSE`, `FOR`, `WHILE`, `CASE`, `VAR`, `END_VAR`
 - **Data Types**: `BOOL`, `INT`, `REAL`, `TIME`, `STRING`, `ARRAY`, `STRUCT`
@@ -118,11 +129,12 @@ END_PROGRAM
 - **Operating System**: Windows, macOS, or Linux
 
 ## What's New (Unreleased)
+- **Code Formatting**: Format Document (Shift+Alt+F) and Format Selection with keyword casing, operator spacing, indentation, VAR alignment
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with identifier validation and comment-awareness
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **240 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, and rename
+- **307 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
