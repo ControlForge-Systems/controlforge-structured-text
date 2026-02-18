@@ -61,13 +61,8 @@
 
 ### Changed
 - Migrated to webpack-based bundling for improved performance and reliability
-- Significantly reduced extension size by optimizing included dependencies
+- Reduced extension size by optimizing included dependencies
 - Improved extension startup time by bundling code into fewer files
-
-### Developer Notes
-- After trying several approaches to resolve the "Cannot find module 'vscode-languageclient/node'" error, we're hopeful that webpack bundling might be the solution
-- This has been a challenging journey through VS Code's Language Server Protocol architecture and extension packaging
-- While we can't be certain, we believe this approach may provide a more reliable experience across environments
 
 ## [1.2.2] - 2025-06-21
 
