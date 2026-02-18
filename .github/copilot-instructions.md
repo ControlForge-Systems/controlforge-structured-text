@@ -39,7 +39,6 @@ This is a VS Code extension providing comprehensive support for Structured Text 
 ```
 /src/extension.ts           - Main extension activation and commands
 /src/validator.ts           - Syntax validation logic
-/src/parser.ts             - ST language parsing utilities
 /src/client/lsp-client.ts  - Language Server Protocol client
 /src/server/server.ts      - LSP server implementation
 /src/server/ast-parser.ts  - AST parsing for semantic analysis
