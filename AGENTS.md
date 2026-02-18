@@ -66,6 +66,26 @@ npm test              # both
 - Async/await over raw promises
 - Dispose all disposables via `context.subscriptions`
 
+## Issues
+
+Use GitHub issue templates in `.github/ISSUE_TEMPLATE/`. Blank issues disabled.
+
+| Template | Use for | Auto-label |
+|---|---|---|
+| `bug.yml` | Bugs, regressions | `bug` |
+| `feature.yml` | New features, enhancements | `enhancement` |
+| `technical-debt.yml` | Cleanup, refactoring, dep updates | `technical-debt` |
+| `idea.yml` | Far-future concepts not yet ready for planning | `idea` |
+
+Add `Priority:` and `Effort:` labels manually per issue. No emoji/icons in titles. Concise text, no time estimates.
+
+## Pull Requests
+
+Template at `.github/PULL_REQUEST_TEMPLATE.md`. Two sections:
+
+- **Summary** — 1-3 bullet points: what changed, why, closes which issues
+- **Testing** — what ran and results (e.g. `npm run test:unit: 44 passing`)
+
 ## Changelog
 
 Follow [Keep a Changelog](https://keepachangelog.com/) with Fixed/Added/Changed/Removed sections. No severity labels. Concise, no implementation details. Unreleased work goes under `[Unreleased]`.
