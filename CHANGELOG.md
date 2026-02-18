@@ -7,6 +7,9 @@
 - Verbose console.log in definition provider polluting test and server output
 
 ### Added
+- Code formatting (Shift+Alt+F): keyword casing, indentation, operator spacing, VAR block alignment, trailing whitespace removal (#29)
+- Format Selection support for partial document formatting (#29)
+- Configurable formatting settings: keywordCase, insertSpacesAroundOperators, alignVarDeclarations, trimTrailingWhitespace, insertFinalNewline (#29)
 - Rename Symbol (F2): rename variables, functions, FBs, programs with IEC 61131-3 validation, comment awareness (#28)
 - Code actions and quick fixes: auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses (#26)
 - Real-time diagnostics with Problems panel integration: unmatched blocks, unclosed strings, unmatched parentheses (#27)
@@ -15,6 +18,7 @@
 - 45 unit tests for diagnostics provider (106 → 151 total) (#27)
 - 31 unit tests for code action provider (151 → 182 total) (#26)
 - 58 unit tests for rename provider (182 → 240 total) (#28)
+- 67 unit tests for formatting provider (240 → 307 total) (#29)
 - Clean build steps for compile and webpack scripts
 
 ### Changed

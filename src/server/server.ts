@@ -29,6 +29,7 @@ import { MemberCompletionProvider } from './providers/completion-provider';
 import { computeDiagnostics } from './providers/diagnostics-provider';
 import { provideCodeActions } from './providers/code-action-provider';
 import { prepareRename, provideRenameEdits } from './providers/rename-provider';
+import { formatDocument, FormattingOptions, DEFAULT_FORMATTING_OPTIONS } from './providers/formatting-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -89,7 +90,9 @@ connection.onInitialize((params: InitializeParams) => {
                 codeActionProvider: true,
                 renameProvider: {
                     prepareProvider: true
-                }
+                },
+                documentFormattingProvider: true,
+                documentRangeFormattingProvider: true
             }
         };
 
@@ -353,6 +356,66 @@ connection.onRenameRequest((params) => {
         return null;
     }
     return provideRenameEdits(document, params.position, params.newName, workspaceIndexer, symbolIndex);
+});
+
+// Formatting settings cache
+let formattingSettings: FormattingOptions = { ...DEFAULT_FORMATTING_OPTIONS };
+
+// Configuration change handler
+connection.onDidChangeConfiguration((_change) => {
+    if (hasConfigurationCapability) {
+        connection.workspace.getConfiguration('structured-text.format').then((config: Record<string, unknown>) => {
+            if (config) {
+                if (typeof config['keywordCase'] === 'string') {
+                    formattingSettings.keywordCase = config['keywordCase'] as FormattingOptions['keywordCase'];
+                }
+                if (typeof config['insertSpacesAroundOperators'] === 'boolean') {
+                    formattingSettings.insertSpacesAroundOperators = config['insertSpacesAroundOperators'] as boolean;
+                }
+                if (typeof config['alignVarDeclarations'] === 'boolean') {
+                    formattingSettings.alignVarDeclarations = config['alignVarDeclarations'] as boolean;
+                }
+                if (typeof config['trimTrailingWhitespace'] === 'boolean') {
+                    formattingSettings.trimTrailingWhitespace = config['trimTrailingWhitespace'] as boolean;
+                }
+                if (typeof config['insertFinalNewline'] === 'boolean') {
+                    formattingSettings.insertFinalNewline = config['insertFinalNewline'] as boolean;
+                }
+            }
+        }).catch(() => { /* ignore config errors */ });
+    }
+});
+
+// Document formatting handler (Shift+Alt+F)
+connection.onDocumentFormatting((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return [];
+    }
+
+    const options: FormattingOptions = {
+        ...formattingSettings,
+        tabSize: params.options.tabSize,
+        insertSpaces: params.options.insertSpaces,
+    };
+
+    return formatDocument(document, options);
+});
+
+// Range formatting handler (format selection)
+connection.onDocumentRangeFormatting((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return [];
+    }
+
+    const options: FormattingOptions = {
+        ...formattingSettings,
+        tabSize: params.options.tabSize,
+        insertSpaces: params.options.insertSpaces,
+    };
+
+    return formatDocument(document, options, params.range);
 });
 
 // Document change handlers - now with workspace indexer integration and debouncing

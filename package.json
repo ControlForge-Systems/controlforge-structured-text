@@ -70,7 +70,38 @@
         "command": "controlforge-structured-text.showIndexStats",
         "title": "ControlForge Structured Text: Show Index Statistics"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "ControlForge Structured Text",
+      "properties": {
+        "structured-text.format.keywordCase": {
+          "type": "string",
+          "enum": ["upper", "lower", "preserve"],
+          "default": "upper",
+          "description": "Keyword casing preference: UPPER, lower, or preserve existing case"
+        },
+        "structured-text.format.insertSpacesAroundOperators": {
+          "type": "boolean",
+          "default": true,
+          "description": "Insert spaces around operators (:=, +, -, *, /, =, <>, etc.)"
+        },
+        "structured-text.format.alignVarDeclarations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Align colon positions in VAR block declarations"
+        },
+        "structured-text.format.trimTrailingWhitespace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Remove trailing whitespace from lines"
+        },
+        "structured-text.format.insertFinalNewline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ensure file ends with a newline"
+        }
+      }
+    }
   },
   "scripts": {
     "test": "npm run test:unit && npm run test:e2e",

@@ -19,6 +19,7 @@ src/server/ast-parser.ts               - AST parser (multi-line accumulator)
 src/server/workspace-indexer.ts        - Workspace symbol indexing
 src/server/providers/completion-provider.ts
 src/server/providers/definition-provider.ts
+src/server/providers/formatting-provider.ts
 src/server/providers/member-access-provider.ts
 src/server/providers/rename-provider.ts
 src/shared/types.ts                    - Shared type definitions
@@ -47,7 +48,7 @@ npm run clean         # rm -rf out dist
 ## Testing
 
 ```bash
-npm run test:unit     # compile + mocha unit tests (~240 tests, <1s)
+npm run test:unit     # compile + mocha unit tests (~307 tests, <1s)
 npm run test:e2e      # compile + @vscode/test-electron (needs display)
 npm test              # both
 ```
