@@ -148,14 +148,6 @@
                     "match": "\\b((?:SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL)#[0-9]+(?:\\.[0-9]+(?:[eE][+-]?[0-9]+)?)?)\\b"
                 },
                 {
-                    "name": "constant.numeric.integer.st",
-                    "match": "\\b([0-9]+)\\b"
-                },
-                {
-                    "name": "constant.numeric.float.st",
-                    "match": "\\b([0-9]+\\.[0-9]+([eE][+-]?[0-9]+)?)\\b"
-                },
-                {
                     "name": "constant.numeric.hex.st",
                     "match": "\\b(16#[0-9A-Fa-f]+)\\b"
                 },
@@ -166,6 +158,14 @@
                 {
                     "name": "constant.numeric.octal.st",
                     "match": "\\b(8#[0-7]+)\\b"
+                },
+                {
+                    "name": "constant.numeric.float.st",
+                    "match": "\\b([0-9]+\\.[0-9]+([eE][+-]?[0-9]+)?)\\b"
+                },
+                {
+                    "name": "constant.numeric.integer.st",
+                    "match": "\\b([0-9]+)\\b"
                 }
             ]
         },
