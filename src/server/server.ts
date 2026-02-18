@@ -28,6 +28,7 @@ import { EnhancedDefinitionProvider } from './providers/definition-provider';
 import { MemberCompletionProvider } from './providers/completion-provider';
 import { computeDiagnostics } from './providers/diagnostics-provider';
 import { provideCodeActions } from './providers/code-action-provider';
+import { prepareRename, provideRenameEdits } from './providers/rename-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -85,7 +86,10 @@ connection.onInitialize((params: InitializeParams) => {
                 completionProvider: {
                     resolveProvider: true
                 },
-                codeActionProvider: true
+                codeActionProvider: true,
+                renameProvider: {
+                    prepareProvider: true
+                }
             }
         };
 
@@ -332,6 +336,23 @@ connection.onCodeAction((params): CodeAction[] => {
     }
 
     return provideCodeActions(document, params);
+});
+
+// Rename handlers
+connection.onPrepareRename((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return null;
+    }
+    return prepareRename(document, params.position, workspaceIndexer, symbolIndex);
+});
+
+connection.onRenameRequest((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return null;
+    }
+    return provideRenameEdits(document, params.position, params.newName, workspaceIndexer, symbolIndex);
 });
 
 // Document change handlers - now with workspace indexer integration and debouncing

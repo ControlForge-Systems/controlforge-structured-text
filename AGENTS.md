@@ -20,6 +20,7 @@ src/server/workspace-indexer.ts        - Workspace symbol indexing
 src/server/providers/completion-provider.ts
 src/server/providers/definition-provider.ts
 src/server/providers/member-access-provider.ts
+src/server/providers/rename-provider.ts
 src/shared/types.ts                    - Shared type definitions
 syntaxes/structured-text.tmLanguage.json - TextMate grammar
 iec61131-definitions/                  - Standard FB definitions (runtime, must ship in .vsix)
@@ -29,7 +30,7 @@ manual-tests/                          - Internal QA test fixtures by feature
 
 ## Data Flow
 
-`STASTParser.parseSymbols()` -> consumed by `server.ts` (local SymbolIndex) and `workspace-indexer.ts` (WorkspaceSymbolIndex) -> providers consume indexed symbols for completion, definition, member-access.
+`STASTParser.parseSymbols()` -> consumed by `server.ts` (local SymbolIndex) and `workspace-indexer.ts` (WorkspaceSymbolIndex) -> providers consume indexed symbols for completion, definition, member-access, rename.
 
 ## Build
 
@@ -46,7 +47,7 @@ npm run clean         # rm -rf out dist
 ## Testing
 
 ```bash
-npm run test:unit     # compile + mocha unit tests (~182 tests, <1s)
+npm run test:unit     # compile + mocha unit tests (~240 tests, <1s)
 npm run test:e2e      # compile + @vscode/test-electron (needs display)
 npm test              # both
 ```
