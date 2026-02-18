@@ -315,16 +315,20 @@ export class MemberAccessProvider {
     }
 
     /**
-     * Get the approximate line number for a member in the definition file
+     * Get the line number for a member in iec61131-definitions/*.st (0-indexed)
      */
     private getMemberLineNumber(fbType: string, memberName: string): number {
-        // Approximate line numbers based on definition file structure
         const memberLines: Record<string, Record<string, number>> = {
-            'TON': { 'IN': 5, 'PT': 6, 'Q': 9, 'ET': 10 },
-            'TOF': { 'IN': 5, 'PT': 6, 'Q': 9, 'ET': 10 },
-            'TP': { 'IN': 5, 'PT': 6, 'Q': 9, 'ET': 10 },
-            'CTU': { 'CU': 5, 'R': 6, 'PV': 7, 'Q': 10, 'CV': 11 },
-            'R_TRIG': { 'CLK': 5, 'Q': 8 }
+            'TON':    { 'IN': 5, 'PT': 6, 'Q': 9, 'ET': 10 },
+            'TOF':    { 'IN': 5, 'PT': 6, 'Q': 9, 'ET': 10 },
+            'TP':     { 'IN': 5, 'PT': 6, 'Q': 9, 'ET': 10 },
+            'CTU':    { 'CU': 5, 'R': 6, 'PV': 7, 'Q': 10, 'CV': 11 },
+            'CTD':    { 'CD': 5, 'LD': 6, 'PV': 7, 'Q': 10, 'CV': 11 },
+            'CTUD':   { 'CU': 5, 'CD': 6, 'R': 7, 'LD': 8, 'PV': 9, 'QU': 12, 'QD': 13, 'CV': 14 },
+            'R_TRIG': { 'CLK': 5, 'Q': 8 },
+            'F_TRIG': { 'CLK': 5, 'Q': 8 },
+            'RS':     { 'S': 5, 'R1': 6, 'Q1': 9 },
+            'SR':     { 'S1': 5, 'R': 6, 'Q1': 9 }
         };
 
         return memberLines[fbType]?.[memberName] || 0;

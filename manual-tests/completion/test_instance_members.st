@@ -1,6 +1,6 @@
 PROGRAM TestInstanceCompletion
 VAR
-    // Timer instances - should show Q and ET when typing instanceName.
+    // Timer instances - should show IN, PT, Q, ET when typing instanceName.
     pulseTimer : TP;
     onDelayTimer : TON;
     offDelayTimer : TOF;
@@ -10,54 +10,37 @@ VAR
     downCounter : CTD;
     upDownCounter : CTUD;
     
-    // Edge trigger instances - should show Q when typing instanceName.
+    // Edge trigger instances - should show CLK, Q when typing instanceName.
     risingEdge : R_TRIG;
     fallingEdge : F_TRIG;
     
-    // Bistable instances - should show Q1 when typing instanceName.
+    // Bistable instances - should show S/R1/Q1 or S1/R/Q1
     setReset : RS;
     resetSet : SR;
     
     // Test variables
     triggerSignal : BOOL := FALSE;
+    resetSignal : BOOL := FALSE;
     counterValue : INT;
     timerOutput : BOOL;
 END_VAR
 
 // Manual test instructions:
-// 1. Type "pulseTimer." and press Ctrl+Space - should show Q and ET
-// 2. Type "upCounter." and press Ctrl+Space - should show Q and CV  
-// 3. Type "upDownCounter." and press Ctrl+Space - should show QU, QD, CV
-// 4. Type "risingEdge." and press Ctrl+Space - should show Q
-// 5. Type "setReset." and press Ctrl+Space - should show Q1
+// 1. Type "pulseTimer." + Ctrl+Space → should show IN, PT, Q, ET
+// 2. Type "upCounter." + Ctrl+Space → should show CU, R, PV, Q, CV
+// 3. Type "upDownCounter." + Ctrl+Space → should show CU, CD, R, LD, PV, QU, QD, CV
+// 4. Type "risingEdge." + Ctrl+Space → should show CLK, Q
+// 5. Type "setReset." + Ctrl+Space → should show S, R1, Q1
 
 // Example usage:
-// pulseTimer(IN := triggerSignal, PT := T#2s);
-// timerOutput := pulseTimer.Q;
-// upCounter(CU := triggerSignal, R := FALSE, PV := 100);
-// counterValue := upCounter.CV;
+pulseTimer(IN := triggerSignal, PT := T#2s);
+timerOutput := pulseTimer.Q;
 
-END_PROGRAM
-    inputSignal : BOOL;
-    resetSignal : BOOL;
-    result : BOOL;
-END_VAR
+upCounter(CU := triggerSignal, R := resetSignal, PV := 100);
+counterValue := upCounter.CV;
 
-// Test function block instance member completion here:
-// Type: pulseTimer. and press Ctrl+Space - should show Q, ET
-// Type: upCounter. and press Ctrl+Space - should show Q, CV
-// Type: upDownCounter. and press Ctrl+Space - should show QU, QD, CV
-// Type: risingEdge. and press Ctrl+Space - should show Q
-
-// Example usage:
-result := pulseTimer.Q;
 IF upCounter.CV >= 10 THEN
     resetSignal := TRUE;
 END_IF;
-
-VAR
-    myCounter : INT := 0;
-    isActive : BOOL := TRUE;
-END_VAR
 
 END_PROGRAM

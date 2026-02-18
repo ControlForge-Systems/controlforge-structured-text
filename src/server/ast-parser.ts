@@ -7,26 +7,16 @@
  *  - VAR qualifiers (CONSTANT, RETAIN, PERSISTENT) handled properly
  *  - STRING[n], POINTER TO, REFERENCE TO, multi-dim ARRAY types supported
  *  - Multi-variable declarations (a, b, c : INT;) expanded to individual symbols
- *  - Debug logging gated behind DEBUG flag to reduce noise
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position, Range, Location } from 'vscode-languageserver';
 import {
-    STSymbol,
     STSymbolKind,
     STScope,
     STParameter,
-    STDeclaration,
-    ASTNode,
-    ASTNodeType,
     STSymbolExtended
 } from '../shared/types';
-const DEBUG = false;
-
-function debug(...args: unknown[]): void {
-    if (DEBUG) console.log(...args);
-}
 
 /**
  * Parsed declaration result from a single statement (may contain multiple names)
@@ -63,7 +53,6 @@ export class STASTParser {
      * Parse the document and extract all symbols
      */
     public parseSymbols(): STSymbolExtended[] {
-        debug(`Parsing symbols in ${this.document.uri}`);
         const symbols: STSymbolExtended[] = [];
 
         try {
@@ -84,7 +73,6 @@ export class STASTParser {
                 }
             }
 
-            debug(`Total symbols extracted: ${symbols.length}`);
             return symbols;
         } catch (error) {
             console.error(`Error parsing symbols: ${error}`);
@@ -248,7 +236,6 @@ export class STASTParser {
             if (!sectionMatch) continue;
 
             const scope = this.getVarScope(sectionMatch.suffix);
-            debug(`VAR${sectionMatch.suffix} section at line ${i}, scope=${scope}`);
 
             // Scan until END_VAR
             const sectionEnd = this.findEndVar(i + 1, endLine);
@@ -401,9 +388,6 @@ export class STASTParser {
                 const decl = this.parseDeclarationStatement(accumulator);
                 if (decl) {
                     results.push({ decl, lineIndex: statementStartLine });
-                    debug(`  Parsed declaration: ${decl.names.join(', ')} : ${decl.dataType}`);
-                } else {
-                    debug(`  Could not parse statement: "${accumulator}"`);
                 }
                 accumulator = '';
             }
@@ -411,7 +395,6 @@ export class STASTParser {
 
         // Handle unterminated accumulator (missing ';')
         if (accumulator.trim()) {
-            debug(`  Unterminated statement: "${accumulator}"`);
             const decl = this.parseDeclarationStatement(accumulator + ';');
             if (decl) {
                 results.push({ decl, lineIndex: statementStartLine });
@@ -728,10 +711,6 @@ export class STASTParser {
         const line = this.lines[lineIndex] || '';
         const idx = line.indexOf(name);
         return idx >= 0 ? idx : 0;
-    }
-
-    private normalizeIdentifier(name: string): string {
-        return name ? name.toLowerCase() : '';
     }
 
     // ─── safe wrapper ────────────────────────────────────────────

@@ -1,42 +1,39 @@
 # Change Log
 
+## [Unreleased]
+
+### Fixed
+- Parser regex fails on multi-line variable declarations (#41)
+
+### Added
+- AST parser rewrite with multi-line statement accumulator architecture (#41)
+- 29 unit tests for AST parser (44 total)
+- Clean build steps for compile and webpack scripts
+
+### Changed
+- Removed legacy parser (`parser.ts`) and its tests
+
+### Removed
+- Stale documentation (FEATURES.md, MANUAL_TEST_GUIDE.md, RELEASE_PLAN.md, TESTING.md)
+- Dead scripts (pretest, compile-test, test:watch, test:pre-commit)
+- Stale files (test-local.sh, HOW_TO_TEST_LOCALLY.md)
+- Stale branches (develop, feature/issue-5-rename-symbol-support)
+
 ## [1.2.5] - 2026-02-10
 
 ### Fixed
-- **CRITICAL**: Removed duplicate completion provider causing conflicts (#37)
-  - Eliminated 219 lines of redundant code from extension.ts
-  - Now uses LSP server completion exclusively
-  - Member completions work correctly without duplicates
-- **CRITICAL**: Fixed npm test failing with "tsc: command not found" error (#38)
-  - Added pretest script to auto-install dependencies
-  - Tests now work in clean environments
-- **CRITICAL**: Fixed iec61131-definitions/ access in packaged extension (#39)
-  - Extension path properly passed via LSP initialization
-  - Standard function blocks accessible in all environments
-- **CRITICAL**: Fixed hardcoded workspace root breaking in renamed folders (#40)
-  - Removed hardcoded 'controlforge-structured-text' directory search
-  - Uses extensionPath from VS Code context
-  - Works regardless of folder name or installation method
-- **HIGH**: Inconsistent case-insensitive symbol lookup (#42)
-  - Added normalizedName to all symbol types (Program, Function, FunctionBlock, Parameter)
-  - Ensures IEC 61131-3 case-insensitive compliance
-  - myTimer, MyTimer, MYTIMER now resolve to same symbol
-- **HIGH**: Memory leak - no index cleanup on file delete (#43)
-  - Added 300ms debouncing on document changes
-  - Added onDidClose handler to remove files from symbol index
-  - Prevents memory growth in long-running sessions
-  - Improves typing performance on large files
+- Duplicate completion provider conflicts (#37)
+- npm test failing in clean environments (#38)
+- iec61131-definitions/ inaccessible in packaged extension (#39)
+- Hardcoded workspace root breaking in renamed folders (#40)
+- Inconsistent case-insensitive symbol lookup (#42)
+- Memory leak from missing index cleanup on file close (#43)
 
 ### Changed
-- Reduced extension.ts from 357 to 140 lines (-61%)
-- All symbol types now consistently store normalized names for case-insensitive lookups
-- Document changes debounced to prevent re-parsing on every keystroke
-- File cleanup automatically removes closed files from index
-
-### Performance
-- Typing no longer triggers full file parse on every keystroke (300ms debounce)
-- Memory usage remains stable over time with proper cleanup
-- Large workspace performance significantly improved
+- Removed duplicate completion provider from extension client
+- Extension path passed via LSP initialization instead of hardcoded lookup
+- Normalized symbol names for IEC 61131-3 case-insensitive compliance
+- Debounced document change handling for typing performance
 
 ## [1.2.4] - 2025-06-21
 

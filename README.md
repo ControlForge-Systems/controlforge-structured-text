@@ -7,9 +7,11 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 
 ## Key Features
 
-- **Function Block IntelliSense**: Auto-complete for FB outputs (`myTimer.Q`, `upCounter.CV`)
+- **Go to Definition & Find References**: Cross-file symbol navigation
+- **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
 - **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
 - **Smart Code Completion**: Context-aware suggestions for keywords, types, and variables
+- **Workspace Indexing**: Automatic cross-file symbol discovery and resolution
 - **Code Validation**: Built-in syntax validation and error detection
 - **Code Snippets**: Pre-built templates for common PLC patterns
 
@@ -28,9 +30,12 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 4. Click **Install**
 
 ### Commands
-- **ControlForge Structured Text: Validate Syntax** - Checks the current file for syntax errors
-- **ControlForge Structured Text: Check LSP Status** - Verifies if the Language Server Protocol is running correctly
-- **ControlForge Structured Text: Show Index Statistics** - Displays information about indexed workspace symbols
+
+Access via the Command Palette (`Ctrl+Shift+P`):
+
+- **ControlForge Structured Text: Validate Syntax** - Check current file for syntax errors
+- **ControlForge Structured Text: Check LSP Status** - Verify Language Server is running
+- **ControlForge Structured Text: Show Index Statistics** - Display indexed workspace symbols
 
 ### Quick Start
 1. Create a new file with `.st` or `.iecst` extension
@@ -67,6 +72,12 @@ END_PROGRAM
 - **Variable Detection**: Automatically detects declared variables
 - **Code Snippets**: Templates for common patterns (IF-THEN, FOR loops, etc.)
 
+### Navigation
+- **Go to Definition**: Jump to symbol declarations across files
+- **Find References**: Locate all usages of a symbol
+- **Member Access Navigation**: Navigate from `instance.member` to FB definitions
+- **Hover Information**: Type and documentation on hover
+
 ### Syntax Highlighting
 - **Keywords**: `IF`, `THEN`, `ELSE`, `FOR`, `WHILE`, `CASE`, `VAR`, `END_VAR`
 - **Data Types**: `BOOL`, `INT`, `REAL`, `TIME`, `STRING`, `ARRAY`, `STRUCT`
@@ -89,27 +100,20 @@ END_PROGRAM
 - **Visual Studio Code** 1.100.0 or higher
 - **Operating System**: Windows, macOS, or Linux
 
-## Commands
-Access these commands via the Command Palette (`Ctrl+Shift+P`):
-- **"Structured Text: Validate Syntax"** - Check code for syntax errors
-
-## What's New in v1.2.2
-- **Fixed LSP Initialization Issues**: Resolved critical bug with vscode-languageclient module
-- **Enhanced Error Handling**: Added robust error handling for language server activation
-- **LSP Status Command**: Added command to verify Language Server Protocol is running
+## What's New in v1.2.5
+- **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
+- **VAR qualifier support**: `VAR_GLOBAL CONSTANT`, `VAR RETAIN`, etc.
+- **Complex type support**: `STRING[n]`, `POINTER TO`, `REFERENCE TO`, multi-dim `ARRAY`
+- **Case-insensitive symbol lookup**: IEC 61131-3 compliant across all symbol types
+- **Memory leak fix**: Proper index cleanup on file close, debounced re-parsing
+- **Performance**: 300ms debounce on document changes
 
 ## What's New in v1.2.0
-- **Go to Definition & Find References**: Navigate through Structured Text code
-- **Member Access Navigation**: Navigate from instance members to their definitions
-- **Language Server Protocol (LSP)**: Full integration for advanced IDE features
-- **Cross-file Navigation**: Navigate between files with symbol references
-- **IEC 61131-3 Definition Files**: Standard function block definitions included for hover, navigation and completion
-
-## What's New in v1.1.0
-- **Function Block Member Completion**: Auto-complete for function block outputs
-- **Enhanced Parser**: Better variable and FB instance detection
-- **Comprehensive Testing**: Automated tests ensure reliability
-- **Improved Documentation**: Better examples and guides
+- **Go to Definition & Find References**: Cross-file symbol navigation
+- **Language Server Protocol (LSP)**: Full client-server architecture
+- **Member Access Navigation**: Navigate from instance members to definitions
+- **Workspace Indexing**: Automatic cross-file symbol discovery
+- **IEC 61131-3 Definition Files**: Standard FB definitions for hover and completion
 
 ## Support & Feedback
 
@@ -117,12 +121,3 @@ Access these commands via the Command Palette (`Ctrl+Shift+P`):
 - **Issues**: [GitHub Issues](https://github.com/ControlForge-Systems/controlforge-structured-text/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ControlForge-Systems/controlforge-structured-text/discussions)
 - **Rate & Review**: [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ControlForgeSystems.controlforge-structured-text)
-
-## License
-
-Licensed under the **Business Source License 1.1 (BUSL-1.1)**.  
-For details, see [License Terms](https://controlforge.dev/license).
-
----
-
-**Made for the PLC programming community**
