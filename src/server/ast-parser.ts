@@ -1,6 +1,13 @@
 /**
- * Enhanced AST-based parser for Structured Text
- * Provides comprehensive symbol extraction and cross-reference analysis
+ * AST-based parser for Structured Text (IEC 61131-3)
+ *
+ * Key design decisions:
+ *  - Multi-line declaration support via statement accumulator (collects until ';')
+ *  - Unified declaration parsing shared across VAR, VAR_INPUT/OUTPUT, VAR_GLOBAL
+ *  - VAR qualifiers (CONSTANT, RETAIN, PERSISTENT) handled properly
+ *  - STRING[n], POINTER TO, REFERENCE TO, multi-dim ARRAY types supported
+ *  - Multi-variable declarations (a, b, c : INT;) expanded to individual symbols
+ *  - Debug logging gated behind DEBUG flag to reduce noise
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -15,6 +22,26 @@ import {
     ASTNodeType,
     STSymbolExtended
 } from '../shared/types';
+const DEBUG = false;
+
+function debug(...args: unknown[]): void {
+    if (DEBUG) console.log(...args);
+}
+
+/**
+ * Parsed declaration result from a single statement (may contain multiple names)
+ */
+interface ParsedDeclaration {
+    names: string[];
+    dataType: string;           // full type text, e.g. "ARRAY[1..10] OF INT"
+    baseType: string;           // extracted base type, e.g. "INT"
+    initialValue?: string;
+    hasAT: boolean;
+    atAddress?: string;
+    isArray: boolean;
+    isPointer: boolean;
+    isReference: boolean;
+}
 
 /**
  * Enhanced parser that builds an AST and extracts comprehensive symbol information
@@ -30,81 +57,34 @@ export class STASTParser {
         this.lines = this.text.split('\n');
     }
 
-    /**
-     * Create a safe wrapper for parsing operations
-     * This ensures that errors in one part of the parsing don't affect others
-     */
-    private safeParseOperation<T>(operation: () => T[], operationName: string): T[] {
-        try {
-            return operation();
-        } catch (error) {
-            console.error(`Error in ${operationName}: ${error}`);
-            return [];
-        }
-    }
+    // ─── public API ──────────────────────────────────────────────
 
     /**
-     * Parse the document and extract all symbols with improved error handling
+     * Parse the document and extract all symbols
      */
     public parseSymbols(): STSymbolExtended[] {
-        console.log(`Parsing symbols in ${this.document.uri}`);
+        debug(`Parsing symbols in ${this.document.uri}`);
         const symbols: STSymbolExtended[] = [];
 
         try {
-            // Parse top-level constructs with safe wrappers
-            const programs = this.safeParseOperation(() => this.parsePrograms(), 'parsePrograms');
-            console.log(`Found ${programs.length} programs`);
+            const programs = this.safeOp(() => this.parsePrograms(), 'parsePrograms');
+            const functions = this.safeOp(() => this.parseFunctions(), 'parseFunctions');
+            const functionBlocks = this.safeOp(() => this.parseFunctionBlocks(), 'parseFunctionBlocks');
+            const globalVariables = this.safeOp(() => this.parseGlobalVariables(), 'parseGlobalVariables');
 
-            const functions = this.safeParseOperation(() => this.parseFunctions(), 'parseFunctions');
-            console.log(`Found ${functions.length} functions`);
+            symbols.push(...programs, ...functions, ...functionBlocks, ...globalVariables);
 
-            const functionBlocks = this.safeParseOperation(() => this.parseFunctionBlocks(), 'parseFunctionBlocks');
-            console.log(`Found ${functionBlocks.length} function blocks`);
-
-            const globalVariables = this.safeParseOperation(() => this.parseGlobalVariables(), 'parseGlobalVariables');
-            console.log(`Found ${globalVariables.length} global variables`);
-
-            symbols.push(...programs);
-            symbols.push(...functions);
-            symbols.push(...functionBlocks);
-            symbols.push(...globalVariables);
-
-            // Also add local variables from programs, functions, and function blocks as individual symbols
-            let localVariables = 0;
-
-            programs.forEach(program => {
-                if (program.members) {
-                    program.members.forEach(member => {
-                        member.parentSymbol = program.name;
+            // Flatten member symbols into top-level list with parentSymbol set
+            for (const parent of [...programs, ...functions, ...functionBlocks]) {
+                if (parent.members) {
+                    for (const member of parent.members) {
+                        member.parentSymbol = parent.name;
                         symbols.push(member);
-                        localVariables++;
-                    });
+                    }
                 }
-            });
+            }
 
-            functions.forEach(func => {
-                if (func.members) {
-                    func.members.forEach(member => {
-                        member.parentSymbol = func.name;
-                        symbols.push(member);
-                        localVariables++;
-                    });
-                }
-            });
-
-            functionBlocks.forEach(fb => {
-                if (fb.members) {
-                    fb.members.forEach(member => {
-                        member.parentSymbol = fb.name;
-                        symbols.push(member);
-                        localVariables++;
-                    });
-                }
-            });
-
-            console.log(`Found ${localVariables} local variables`);
-            console.log(`Total symbols extracted: ${symbols.length}`);
-
+            debug(`Total symbols extracted: ${symbols.length}`);
             return symbols;
         } catch (error) {
             console.error(`Error parsing symbols: ${error}`);
@@ -112,489 +92,566 @@ export class STASTParser {
         }
     }
 
-    /**
-     * Parse PROGRAM declarations
-     */
+    // ─── top-level construct parsers ─────────────────────────────
+
     private parsePrograms(): STSymbolExtended[] {
-        const programs: STSymbolExtended[] = [];
-        const programRegex = /^\s*PROGRAM\s+(\w+)/i;
+        const results: STSymbolExtended[] = [];
+        const regex = /^\s*PROGRAM\s+(\w+)/i;
 
         for (let i = 0; i < this.lines.length; i++) {
-            const line = this.lines[i];
-            const match = line.match(programRegex);
+            const match = this.lines[i].match(regex);
+            if (!match) continue;
 
-            if (match) {
-                const programName = match[1];
-                const location = this.createLocation(i, line.indexOf(programName), programName.length);
+            const name = match[1];
+            const location = this.createLocation(i, this.lines[i].indexOf(name), name.length);
+            const endLine = this.findEndKeyword(i, 'PROGRAM');
+            const variables = this.parseVarSectionsInRange(i, endLine, false);
 
-                // Find END_PROGRAM
-                const endLine = this.findEndKeyword(i, 'PROGRAM');
-
-                // Parse variables within the program
-                const variables = this.parseVariablesInRange(i, endLine);
-
-                const program: STSymbolExtended = {
-                    name: programName,
-                    normalizedName: programName.toLowerCase(),
-                    kind: STSymbolKind.Program,
-                    location,
-                    scope: STScope.Program,
-                    members: variables,
-                    references: []
-                };
-
-                programs.push(program);
-            }
+            results.push({
+                name,
+                normalizedName: name.toLowerCase(),
+                kind: STSymbolKind.Program,
+                location,
+                scope: STScope.Program,
+                members: variables,
+                references: []
+            });
         }
-
-        return programs;
+        return results;
     }
 
-    /**
-     * Parse FUNCTION declarations
-     */
     private parseFunctions(): STSymbolExtended[] {
-        const functions: STSymbolExtended[] = [];
-        const functionRegex = /^\s*FUNCTION\s+(\w+)\s*:\s*(\w+)/i;
+        const results: STSymbolExtended[] = [];
+        const regex = /^\s*FUNCTION\s+(\w+)\s*:\s*(\w+)/i;
 
         for (let i = 0; i < this.lines.length; i++) {
-            const line = this.lines[i];
-            const match = line.match(functionRegex);
+            const match = this.lines[i].match(regex);
+            if (!match) continue;
 
-            if (match) {
-                const functionName = match[1];
-                const returnType = match[2];
-                const location = this.createLocation(i, line.indexOf(functionName), functionName.length);
+            const name = match[1];
+            const returnType = match[2];
+            const location = this.createLocation(i, this.lines[i].indexOf(name), name.length);
+            const endLine = this.findEndKeyword(i, 'FUNCTION');
+            const parameters = this.parseParameterSectionsInRange(i, endLine);
+            const variables = this.parseVarSectionsInRange(i, endLine, false);
 
-                // Find END_FUNCTION
-                const endLine = this.findEndKeyword(i, 'FUNCTION');
-
-                // Parse parameters and variables
-                const parameters = this.parseParametersInRange(i, endLine);
-                const variables = this.parseVariablesInRange(i, endLine);
-
-                const func: STSymbolExtended = {
-                    name: functionName,
-                    normalizedName: functionName.toLowerCase(),
-                    kind: STSymbolKind.Function,
-                    location,
-                    scope: STScope.Function,
-                    returnType,
-                    parameters,
-                    members: variables,
-                    references: []
-                };
-
-                functions.push(func);
-            }
+            results.push({
+                name,
+                normalizedName: name.toLowerCase(),
+                kind: STSymbolKind.Function,
+                location,
+                scope: STScope.Function,
+                returnType,
+                parameters,
+                members: variables,
+                references: []
+            });
         }
-
-        return functions;
+        return results;
     }
 
-    /**
-     * Parse FUNCTION_BLOCK declarations
-     */
     private parseFunctionBlocks(): STSymbolExtended[] {
-        const functionBlocks: STSymbolExtended[] = [];
-        const fbRegex = /^\s*FUNCTION_BLOCK\s+(\w+)/i;
+        const results: STSymbolExtended[] = [];
+        const regex = /^\s*FUNCTION_BLOCK\s+(\w+)/i;
 
         for (let i = 0; i < this.lines.length; i++) {
-            const line = this.lines[i];
-            const match = line.match(fbRegex);
+            const match = this.lines[i].match(regex);
+            if (!match) continue;
 
-            if (match) {
-                const fbName = match[1];
-                const location = this.createLocation(i, line.indexOf(fbName), fbName.length);
+            const name = match[1];
+            const location = this.createLocation(i, this.lines[i].indexOf(name), name.length);
+            const endLine = this.findEndKeyword(i, 'FUNCTION_BLOCK');
+            const parameters = this.parseParameterSectionsInRange(i, endLine);
+            const variables = this.parseVarSectionsInRange(i, endLine, false);
 
-                // Find END_FUNCTION_BLOCK
-                const endLine = this.findEndKeyword(i, 'FUNCTION_BLOCK');
-
-                // Parse parameters and variables
-                const parameters = this.parseParametersInRange(i, endLine);
-                const variables = this.parseVariablesInRange(i, endLine);
-
-                const fb: STSymbolExtended = {
-                    name: fbName,
-                    normalizedName: fbName.toLowerCase(),
-                    kind: STSymbolKind.FunctionBlock,
-                    location,
-                    scope: STScope.FunctionBlock,
-                    parameters,
-                    members: variables,
-                    references: []
-                };
-
-                functionBlocks.push(fb);
-            }
+            results.push({
+                name,
+                normalizedName: name.toLowerCase(),
+                kind: STSymbolKind.FunctionBlock,
+                location,
+                scope: STScope.FunctionBlock,
+                parameters,
+                members: variables,
+                references: []
+            });
         }
-
-        return functionBlocks;
+        return results;
     }
 
+    private parseGlobalVariables(): STSymbolExtended[] {
+        const globals: STSymbolExtended[] = [];
+        const regex = /^\s*VAR_GLOBAL\b/i;
+
+        for (let i = 0; i < this.lines.length; i++) {
+            if (!regex.test(this.lines[i])) continue;
+
+            // Find END_VAR
+            let endLine = i + 1;
+            while (endLine < this.lines.length) {
+                if (this.stripComments(this.lines[endLine]).trim().toUpperCase().startsWith('END_VAR')) break;
+                endLine++;
+            }
+
+            const declarations = this.collectDeclarationsInRange(i + 1, endLine - 1);
+
+            for (const { decl, lineIndex } of declarations) {
+                for (const varName of decl.names) {
+                    const isKnown = this.isKnownDataType(decl.baseType);
+                    const kind = isKnown ? STSymbolKind.Variable : STSymbolKind.FunctionBlockInstance;
+
+                    let description: string;
+                    if (decl.isArray) {
+                        description = `Array of ${decl.baseType}`;
+                        if (decl.initialValue) description += ` := ${decl.initialValue.trim()}`;
+                    } else if (isKnown) {
+                        description = decl.initialValue
+                            ? `Initial value: ${decl.initialValue.trim()}`
+                            : `Global variable of type ${decl.baseType}`;
+                    } else {
+                        description = `Global instance of ${decl.baseType}`;
+                    }
+
+                    globals.push({
+                        name: varName,
+                        normalizedName: varName.toLowerCase(),
+                        kind,
+                        location: this.createLocation(lineIndex, this.findColumnOf(lineIndex, varName), varName.length),
+                        scope: STScope.Global,
+                        dataType: decl.baseType,
+                        description,
+                        literalType: this.getLiteralType(decl.initialValue, decl.baseType),
+                        references: []
+                    });
+                }
+            }
+
+            i = endLine; // advance past END_VAR
+        }
+        return globals;
+    }
+
+    // ─── VAR section scanning ────────────────────────────────────
+
     /**
-     * Parse variables in a given range (between start and end line)
+     * Scan a range for VAR / VAR_INPUT / VAR_OUTPUT / VAR_IN_OUT / VAR_TEMP sections.
+     * When `parameterMode` is false, VAR_INPUT/OUTPUT/IN_OUT sections produce
+     * STSymbolExtended members (not STParameter). This keeps the existing API.
      */
-    private parseVariablesInRange(startLine: number, endLine: number): STSymbolExtended[] {
-        console.log(`Parsing variables from line ${startLine} to ${endLine}`);
+    private parseVarSectionsInRange(startLine: number, endLine: number, _parameterMode: boolean): STSymbolExtended[] {
         const variables: STSymbolExtended[] = [];
 
         for (let i = startLine; i <= endLine; i++) {
-            const line = this.lines[i]?.trim();
-            if (!line) continue;
+            const trimmed = this.stripComments(this.lines[i] || '').trim();
+            if (!trimmed) continue;
 
-            // Check for VAR section start
-            const varSectionMatch = line.match(/^\s*VAR(_INPUT|_OUTPUT|_IN_OUT|_GLOBAL|_TEMP)?\s*$/i);
-            if (varSectionMatch) {
-                const varType = varSectionMatch[1] || '';
-                const scope = this.getVarScope(varType);
-                console.log(`Found VAR section at line ${i}, scope: ${scope}`);
+            const sectionMatch = this.matchVarSectionStart(trimmed);
+            if (!sectionMatch) continue;
 
-                // Parse variables until END_VAR
-                for (let j = i + 1; j <= endLine; j++) {
-                    const varLine = this.lines[j]?.trim();
-                    if (!varLine) {
-                        console.log(`  Line ${j}: Empty line, skipping`);
-                        continue;
-                    }
+            const scope = this.getVarScope(sectionMatch.suffix);
+            debug(`VAR${sectionMatch.suffix} section at line ${i}, scope=${scope}`);
 
-                    if (varLine.toUpperCase().startsWith('END_VAR')) {
-                        console.log(`  Line ${j}: End of VAR section`);
-                        i = j; // Update outer loop position
-                        break;
-                    }
+            // Scan until END_VAR
+            const sectionEnd = this.findEndVar(i + 1, endLine);
+            const declarations = this.collectDeclarationsInRange(i + 1, sectionEnd - 1);
 
-                    // Strip comments before parsing
-                    const cleanLine = this.stripComments(varLine);
-                    if (!cleanLine) {
-                        console.log(`  Line ${j}: Only comments, skipping`);
-                        continue;
-                    }
+            for (const { decl, lineIndex } of declarations) {
+                for (const varName of decl.names) {
+                    const isKnown = this.isKnownDataType(decl.baseType);
+                    const kind = isKnown ? STSymbolKind.Variable : STSymbolKind.FunctionBlockInstance;
 
-                    console.log(`  Line ${j}: Processing "${cleanLine}"`);
-
-                    // Check for variable declarations with various formats:
-                    // 1. Basic: name : type; 
-                    // 2. With initialization: name : type := value;
-                    // 3. Array types: name : ARRAY[0..10] OF type;
-                    // 4. AT declarations: name AT %IX0.0 : type;
-                    // 5. With attributes: name : type {attribute := 'value'};
-                    // We need a more aggressive rewrite of the regex to reliably catch all variable declarations
-                    // The key issue is not distinguishing between the variable name and its type/initialization
-                    const declarationRegex = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:AT\s+%\w+[\d.]+)?\s*:\s*([A-Za-z_][A-Za-z0-9_\[\]]*(?:\s*OF\s*[A-Za-z_][A-Za-z0-9_]*)?)(?:\s*:=\s*(.*?))?(?:\s*\{.*?\})?\s*;/i;
-
-                    const declarationMatch = cleanLine.match(declarationRegex);
-
-                    if (declarationMatch) {
-                        const [, varName, dataTypeFullText, initialValue] = declarationMatch;
-
-                        console.log(`  MATCH! Found variable declaration: ${varName} : ${dataTypeFullText}${initialValue ? ' := ' + initialValue : ''}`);
+                    let description: string;
+                    if (decl.isArray) {
+                        description = `Array of ${decl.baseType}`;
+                        if (decl.initialValue) description += ` := ${decl.initialValue.trim()}`;
+                    } else if (decl.isPointer) {
+                        description = `Pointer to ${decl.baseType}`;
+                    } else if (decl.isReference) {
+                        description = `Reference to ${decl.baseType}`;
+                    } else if (isKnown) {
+                        description = decl.initialValue
+                            ? `Initial value: ${decl.initialValue.trim()}`
+                            : `Variable of type ${decl.baseType}`;
                     } else {
-                        console.log(`  NO MATCH for declaration regex on line: "${cleanLine}"`);
-                        // Try a simpler regex just to check if basic pattern works
-                        const basicMatch = cleanLine.match(/(\w+)\s*:\s*(\w+)/);
-                        if (basicMatch) {
-                            console.log(`    But basic pattern matched: ${basicMatch[1]} : ${basicMatch[2]}`);
-                        }
+                        description = `Instance of ${decl.baseType}`;
                     }
 
-                    if (declarationMatch) {
-                        const [, varName, dataTypeFullText, initialValue] = declarationMatch;                    // Extract the base type from potentially complex type declarations
-                        const dataType = this.extractBaseType(dataTypeFullText);
-                        console.log(`  Extracted base type: "${dataType}" from type declaration "${dataTypeFullText}"`);
+                    const varLocation = this.createLocation(lineIndex, this.findColumnOf(lineIndex, varName), varName.length);
 
-                        const isKnown = this.isKnownDataType(dataType);
-                        console.log(`  Is known standard type: ${isKnown}`);
-
-                        const isArray = dataTypeFullText.toUpperCase().startsWith('ARRAY');
-                        console.log(`  Is array type: ${isArray}`);
-
-                        // Special handling for STRING types which are often missed
-                        const isString = dataType.toUpperCase() === 'STRING' || dataType.toUpperCase() === 'WSTRING';
-                        if (isString) {
-                            console.log(`  Special handling for STRING type: ${dataType}`);
-                        }
-
-                        // Determine symbol kind based on the type
-                        const kind = isKnown
-                            ? STSymbolKind.Variable
-                            : STSymbolKind.FunctionBlockInstance;
-
-                        // Prepare description
-                        let description: string;
-                        if (isArray) {
-                            description = `Array of ${dataType}`;
-                            if (initialValue) description += ` with initial value: ${initialValue.trim()}`;
-                        } else if (isKnown) {
-                            description = initialValue
-                                ? `Initial value: ${initialValue.trim()}`
-                                : `Variable of type ${dataType}`;
-                        } else {
-                            description = `Instance of ${dataType}`;
-                        }
-
-                        const literalType = this.getLiteralType(initialValue, dataType);
-
-                        // Store both original and normalized name
-                        const normalizedName = this.normalizeIdentifier(varName);
-
-                        const varLocation = this.createLocation(j, this.lines[j].indexOf(varName), varName.length);
-                        console.log(`  Creating symbol: ${varName} (${kind}) at line ${j}, type: ${dataType}, scope: ${scope}`);
-
-                        const newSymbol: STSymbolExtended = {
-                            name: varName,
-                            normalizedName, // Add normalized name for case-insensitive lookups
-                            kind,
-                            location: varLocation,
-                            scope,
-                            dataType,
-                            description,
-                            literalType,
-                            references: []
-                        };
-
-                        // For string variables, add extra logging
-                        if (dataType.toUpperCase() === 'STRING' ||
-                            dataType.toUpperCase() === 'WSTRING' ||
-                            dataType.toUpperCase().startsWith('STRING[') ||
-                            dataType.toUpperCase().startsWith('WSTRING[')) {
-                            console.log(`  Added string variable: ${varName} (normalized: ${normalizedName}), type: ${dataType}`);
-                        }
-
-                        variables.push(newSymbol);
-                    }
+                    variables.push({
+                        name: varName,
+                        normalizedName: varName.toLowerCase(),
+                        kind,
+                        location: varLocation,
+                        scope,
+                        dataType: decl.baseType,
+                        description,
+                        literalType: this.getLiteralType(decl.initialValue, decl.baseType),
+                        references: []
+                    });
                 }
             }
-        }
 
+            i = sectionEnd; // skip past END_VAR
+        }
         return variables;
     }
 
     /**
-     * Parse parameters in VAR_INPUT, VAR_OUTPUT, VAR_IN_OUT sections
+     * Parse VAR_INPUT / VAR_OUTPUT / VAR_IN_OUT sections as STParameter[]
      */
-    private parseParametersInRange(startLine: number, endLine: number): STParameter[] {
+    private parseParameterSectionsInRange(startLine: number, endLine: number): STParameter[] {
         const parameters: STParameter[] = [];
 
         for (let i = startLine; i <= endLine; i++) {
-            const line = this.lines[i]?.trim();
-            if (!line) continue;
+            const trimmed = this.stripComments(this.lines[i] || '').trim();
+            if (!trimmed) continue;
 
-            // Check for parameter VAR sections
-            const paramSectionMatch = line.match(/^\s*VAR_(INPUT|OUTPUT|IN_OUT)\s*$/i);
-            if (paramSectionMatch) {
-                const direction = paramSectionMatch[1].toUpperCase() as 'INPUT' | 'OUTPUT' | 'IN_OUT';
+            const sectionMatch = this.matchVarSectionStart(trimmed);
+            if (!sectionMatch) continue;
 
-                // Parse parameters until END_VAR
-                for (let j = i + 1; j <= endLine; j++) {
-                    const paramLine = this.lines[j]?.trim();
-                    if (!paramLine || paramLine.toUpperCase().startsWith('END_VAR')) {
-                        i = j; // Update outer loop position
-                        break;
-                    }
+            const suffix = sectionMatch.suffix.toUpperCase();
+            if (suffix !== '_INPUT' && suffix !== '_OUTPUT' && suffix !== '_IN_OUT') continue;
 
-                    // Strip comments before parsing
-                    const cleanLine = this.stripComments(paramLine);
-                    if (!cleanLine) continue; // Skip empty lines after comment removal
+            const direction = suffix.substring(1) as 'INPUT' | 'OUTPUT' | 'IN_OUT';
 
-                    // Enhanced parameter regex that handles:
-                    // 1. Basic parameters: name : type;
-                    // 2. Parameters with default values: name : type := default;
-                    // 3. Array parameters: name : ARRAY[0..10] OF type;
-                    // 4. Parameters with attributes: name : type {attribute := 'value'};
-                    const paramRegex = /^\s*(\w+)\s*:\s*((?:ARRAY\s*\[\s*[\d.-]+\s*\.\.\s*[\d.-]+\s*\]\s*OF\s*)?[\w\d_]+)(?:\s*:=\s*([^;{]+))?(?:\s*\{[^}]*\})?\s*;/i;
+            const sectionEnd = this.findEndVar(i + 1, endLine);
+            const declarations = this.collectDeclarationsInRange(i + 1, sectionEnd - 1);
 
-                    const paramMatch = cleanLine.match(paramRegex);
-                    if (paramMatch) {
-                        const [, paramName, dataTypeFullText, defaultValue] = paramMatch;
-                        // Extract the base data type
-                        const dataType = this.extractBaseType(dataTypeFullText);
-
-                        parameters.push({
-                            name: paramName,
-                            normalizedName: paramName.toLowerCase(),
-                            dataType,
-                            direction,
-                            defaultValue: defaultValue?.trim(),
-                            location: this.createLocation(j, this.lines[j].indexOf(paramName), paramName.length)
-                        });
-                    }
+            for (const { decl, lineIndex } of declarations) {
+                for (const paramName of decl.names) {
+                    parameters.push({
+                        name: paramName,
+                        normalizedName: paramName.toLowerCase(),
+                        dataType: decl.baseType,
+                        direction,
+                        defaultValue: decl.initialValue?.trim(),
+                        location: this.createLocation(lineIndex, this.findColumnOf(lineIndex, paramName), paramName.length)
+                    });
                 }
             }
-        }
 
+            i = sectionEnd;
+        }
         return parameters;
     }
 
+    // ─── VAR section start matching ──────────────────────────────
+
     /**
-     * Parse global variables (VAR_GLOBAL sections)
+     * Match a VAR section header, handling qualifiers.
+     * Matches: VAR, VAR_INPUT, VAR_OUTPUT, VAR_IN_OUT, VAR_GLOBAL, VAR_TEMP
+     * Plus optional qualifiers: CONSTANT, RETAIN, PERSISTENT, NON_RETAIN
+     * Returns null if not a VAR section start.
      */
-    private parseGlobalVariables(): STSymbolExtended[] {
-        const globals: STSymbolExtended[] = [];
-        const globalRegex = /^\s*VAR_GLOBAL(?:\s+CONSTANT|\s+RETAIN|\s+PERSISTENT)?\s*$/i;
+    private matchVarSectionStart(trimmedLine: string): { suffix: string; qualifiers: string[] } | null {
+        const match = trimmedLine.match(
+            /^VAR(_INPUT|_OUTPUT|_IN_OUT|_GLOBAL|_TEMP)?\s*((?:CONSTANT|RETAIN|PERSISTENT|NON_RETAIN)\s*)*$/i
+        );
+        if (!match) return null;
 
-        for (let i = 0; i < this.lines.length; i++) {
-            const line = this.lines[i];
-
-            if (globalRegex.test(line)) {
-                // Parse until END_VAR
-                let j = i + 1;
-                while (j < this.lines.length) {
-                    const varLine = this.lines[j]?.trim();
-                    if (!varLine) {
-                        j++;
-                        continue;
-                    }
-
-                    if (varLine.toUpperCase().startsWith('END_VAR')) {
-                        i = j; // Skip to end of VAR_GLOBAL section
-                        break;
-                    }
-
-                    // Strip comments before parsing
-                    const cleanLine = this.stripComments(varLine);
-                    if (!cleanLine) {
-                        j++;
-                        continue; // Skip empty lines after comment removal
-                    }
-
-                    // Enhanced global variable regex that handles:
-                    // 1. Basic globals: name : type;
-                    // 2. Globals with initialization: name : type := value;
-                    // 3. Array globals: name : ARRAY[0..10] OF type;
-                    // 4. AT declarations: name AT %QX0.0 : type;
-                    // 5. Globals with attributes: name : type {attribute := 'value'};
-                    const varRegex = /^\s*(\w+)(?:\s+AT\s+%\w+[\d.]+)?\s*:\s*((?:ARRAY\s*\[\s*[\d.-]+\s*\.\.\s*[\d.-]+\s*\]\s*OF\s*)?[\w\d_]+)(?:\s*:=\s*([^;{]+))?(?:\s*\{[^}]*\})?\s*;/i;
-
-                    const varMatch = cleanLine.match(varRegex);
-                    if (varMatch) {
-                        const [, varName, dataTypeFullText, initialValue] = varMatch;
-
-                        // Extract the base type
-                        const dataType = this.extractBaseType(dataTypeFullText);
-                        const isArray = dataTypeFullText.toUpperCase().startsWith('ARRAY');
-
-                        // Determine if this is a standard type or user-defined (likely FB) type
-                        const isKnown = this.isKnownDataType(dataType);
-                        const kind = isKnown ? STSymbolKind.Variable : STSymbolKind.FunctionBlockInstance;
-
-                        // Create appropriate description
-                        let description: string;
-                        if (isArray) {
-                            description = `Array of ${dataType}`;
-                            if (initialValue) description += ` with initial value: ${initialValue.trim()}`;
-                        } else if (isKnown) {
-                            description = initialValue
-                                ? `Initial value: ${initialValue.trim()}`
-                                : `Global variable of type ${dataType}`;
-                        } else {
-                            description = `Global instance of ${dataType}`;
-                        }
-
-                        const literalType = this.getLiteralType(initialValue, dataType);
-
-                        globals.push({
-                            name: varName,
-                            kind,
-                            location: this.createLocation(j, this.lines[j].indexOf(varName), varName.length),
-                            scope: STScope.Global,
-                            dataType,
-                            description,
-                            literalType,
-                            references: []
-                        });
-                    }
-                    j++;
-                }
-            }
-        }
-
-        return globals;
+        const suffix = match[1] || '';
+        const qualifiersRaw = match[2] || '';
+        const qualifiers = qualifiersRaw.trim().split(/\s+/).filter(Boolean).map(q => q.toUpperCase());
+        return { suffix, qualifiers };
     }
 
     /**
-     * Find the matching END keyword for a given construct
-     * Handles nested blocks of the same type
+     * Find END_VAR line within a bounded range. Returns the line index of END_VAR
+     * or the boundary if not found.
+     */
+    private findEndVar(fromLine: number, maxLine: number): number {
+        for (let j = fromLine; j <= maxLine; j++) {
+            const clean = this.stripComments(this.lines[j] || '').trim();
+            if (clean.toUpperCase().startsWith('END_VAR')) return j;
+        }
+        return maxLine;
+    }
+
+    // ─── multi-line declaration accumulator ──────────────────────
+
+    /**
+     * Collect complete declarations from a line range.
+     * Accumulates text across lines until ';', then parses.
+     * This is the core fix for #41 — multi-line declarations.
+     */
+    private collectDeclarationsInRange(
+        startLine: number,
+        endLine: number
+    ): { decl: ParsedDeclaration; lineIndex: number }[] {
+        const results: { decl: ParsedDeclaration; lineIndex: number }[] = [];
+
+        let accumulator = '';
+        let statementStartLine = startLine;
+
+        for (let i = startLine; i <= endLine; i++) {
+            const raw = this.lines[i] || '';
+            const clean = this.stripComments(raw).trim();
+            if (!clean) continue;
+
+            // Skip END_VAR or nested section starts
+            if (clean.toUpperCase().startsWith('END_VAR')) break;
+
+            if (!accumulator) {
+                statementStartLine = i;
+            }
+            accumulator += (accumulator ? ' ' : '') + clean;
+
+            // Check if statement is complete (ends with ';')
+            if (accumulator.endsWith(';')) {
+                const decl = this.parseDeclarationStatement(accumulator);
+                if (decl) {
+                    results.push({ decl, lineIndex: statementStartLine });
+                    debug(`  Parsed declaration: ${decl.names.join(', ')} : ${decl.dataType}`);
+                } else {
+                    debug(`  Could not parse statement: "${accumulator}"`);
+                }
+                accumulator = '';
+            }
+        }
+
+        // Handle unterminated accumulator (missing ';')
+        if (accumulator.trim()) {
+            debug(`  Unterminated statement: "${accumulator}"`);
+            const decl = this.parseDeclarationStatement(accumulator + ';');
+            if (decl) {
+                results.push({ decl, lineIndex: statementStartLine });
+            }
+        }
+
+        return results;
+    }
+
+    // ─── declaration statement parser ────────────────────────────
+
+    /**
+     * Parse a single complete declaration statement (already joined from multi-line).
+     * Handles:
+     *   name : TYPE;
+     *   name : TYPE := value;
+     *   a, b, c : TYPE;
+     *   name AT %IX0.0 : TYPE;
+     *   name : ARRAY[1..10] OF TYPE;
+     *   name : ARRAY[1..10, 1..20] OF TYPE;
+     *   name : STRING[80];
+     *   name : POINTER TO TYPE;
+     *   name : REFERENCE TO TYPE;
+     *   name : TYPE {attribute := 'value'};
+     *   name : TYPE := [1, 2, 3];
+     *   name : TYPE := (field1 := val, field2 := val);
+     */
+    private parseDeclarationStatement(stmt: string): ParsedDeclaration | null {
+        // Remove trailing semicolon
+        let s = stmt.replace(/;\s*$/, '').trim();
+        if (!s) return null;
+
+        // Remove trailing attribute block {…}
+        s = s.replace(/\s*\{[^}]*\}\s*$/, '').trim();
+
+        // ── Split into LHS (names + optional AT) and RHS (type + optional init) ──
+        // Find the first ':' that is NOT ':='
+        const colonIdx = this.findTypeColon(s);
+        if (colonIdx < 0) return null;
+
+        const lhs = s.substring(0, colonIdx).trim();
+        const rhs = s.substring(colonIdx + 1).trim();
+
+        // ── Parse LHS: names and optional AT address ──
+        let namesStr = lhs;
+        let hasAT = false;
+        let atAddress: string | undefined;
+
+        const atMatch = lhs.match(/^(.+?)\s+AT\s+(%\w+[\w.]*)\s*$/i);
+        if (atMatch) {
+            namesStr = atMatch[1].trim();
+            hasAT = true;
+            atAddress = atMatch[2];
+        }
+
+        // Split by comma for multi-variable declarations
+        const names = namesStr.split(',').map(n => n.trim()).filter(n => /^[A-Za-z_]\w*$/.test(n));
+        if (names.length === 0) return null;
+
+        // ── Parse RHS: type and optional := initialValue ──
+        let typeText: string;
+        let initialValue: string | undefined;
+
+        // Find ':=' assignment that is not inside brackets/parens
+        const assignIdx = this.findAssignmentOperator(rhs);
+        if (assignIdx >= 0) {
+            typeText = rhs.substring(0, assignIdx).trim();
+            initialValue = rhs.substring(assignIdx + 2).trim();
+        } else {
+            typeText = rhs.trim();
+        }
+
+        if (!typeText) return null;
+
+        // ── Classify type ──
+        const upperType = typeText.toUpperCase();
+        const isPointer = /^POINTER\s+TO\s+/i.test(typeText);
+        const isReference = /^REFERENCE\s+TO\s+/i.test(typeText);
+        const isArray = upperType.startsWith('ARRAY');
+
+        const baseType = this.extractBaseType(typeText);
+
+        return {
+            names,
+            dataType: typeText,
+            baseType,
+            initialValue,
+            hasAT,
+            atAddress,
+            isArray,
+            isPointer,
+            isReference
+        };
+    }
+
+    /**
+     * Find the index of the type-colon ':' that separates names from type.
+     * Skips ':=' sequences.
+     */
+    private findTypeColon(s: string): number {
+        for (let i = 0; i < s.length; i++) {
+            if (s[i] === ':') {
+                if (i + 1 < s.length && s[i + 1] === '=') {
+                    i++; // skip ':='
+                    continue;
+                }
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Find ':=' assignment operator in the RHS, ignoring those inside
+     * brackets [], parens (), or struct inits.
+     */
+    private findAssignmentOperator(s: string): number {
+        let depth = 0;
+        for (let i = 0; i < s.length - 1; i++) {
+            const c = s[i];
+            if (c === '(' || c === '[') depth++;
+            else if (c === ')' || c === ']') depth--;
+            else if (depth === 0 && c === ':' && s[i + 1] === '=') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // ─── END keyword finder ──────────────────────────────────────
+
+    /**
+     * Find matching END_<keyword> handling nesting
      */
     private findEndKeyword(startLine: number, keyword: string): number {
         const endKeyword = `END_${keyword}`;
-        let depth = 0;
+        let depth = 1;
 
-        // First find the actual starting line with the keyword (in case the match was earlier in the line)
-        let actualStartLine = startLine;
-        const startLineText = this.lines[startLine].trim().toUpperCase();
-        if (startLineText.startsWith(keyword)) {
-            depth = 1;
-        }
-
-        for (let i = actualStartLine + 1; i < this.lines.length; i++) {
-            // Get the trimmed, uppercase line for matching
+        for (let i = startLine + 1; i < this.lines.length; i++) {
             const line = this.stripComments(this.lines[i]).trim().toUpperCase();
             if (!line) continue;
 
-            // Check for the same keyword (nesting)
-            // We need to check for word boundaries to avoid partial matches
-            // e.g., PROGRAM should not match PROGRAM_TEST
-            const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'i');
+            // Check for nested same keyword (word-boundary aware)
+            const keywordRegex = new RegExp(`^${keyword}\\b`, 'i');
             if (keywordRegex.test(line)) {
                 depth++;
-            }
-            // Check for the end keyword
-            else if (line.startsWith(endKeyword)) {
+            } else if (line.startsWith(endKeyword)) {
                 depth--;
-                if (depth === 0) {
-                    return i;
-                }
+                if (depth === 0) return i;
             }
         }
 
-        // If no end found, return the last line (defensive)
-        console.warn(`Could not find matching ${endKeyword} for ${keyword} starting at line ${startLine}`);
+        console.warn(`Could not find matching ${endKeyword} starting at line ${startLine}`);
         return this.lines.length - 1;
     }
 
+    // ─── comment stripping ───────────────────────────────────────
+
     /**
-     * Strip comments from a line of code
-     * Handles both single-line (//) and block ((*...*)) comments
+     * Strip single-line (//) and block ((* *)) comments from a line.
+     * Does not handle nested block comments.
      */
     private stripComments(line: string): string {
         if (!line) return '';
-
         let result = line;
         let modified = true;
 
-        // Iteratively process comments until no more are found
-        // This handles cases with multiple comments in one line
         while (modified) {
             modified = false;
 
-            // Remove single-line comments
-            const singleLineComment = result.indexOf('//');
-            if (singleLineComment !== -1) {
-                result = result.substring(0, singleLineComment);
+            const slIdx = result.indexOf('//');
+            if (slIdx !== -1) {
+                result = result.substring(0, slIdx);
                 modified = true;
                 continue;
             }
 
-            // Remove block comments - note: doesn't handle nested block comments
-            const blockCommentStart = result.indexOf('(*');
-            if (blockCommentStart !== -1) {
-                const blockCommentEnd = result.indexOf('*)', blockCommentStart);
-                if (blockCommentEnd !== -1) {
-                    result = result.substring(0, blockCommentStart) +
-                        ' ' + // Replace with space to avoid joining tokens
-                        result.substring(blockCommentEnd + 2);
+            const bsIdx = result.indexOf('(*');
+            if (bsIdx !== -1) {
+                const beIdx = result.indexOf('*)', bsIdx);
+                if (beIdx !== -1) {
+                    result = result.substring(0, bsIdx) + ' ' + result.substring(beIdx + 2);
                     modified = true;
-                    continue;
                 } else {
-                    // If no closing tag, remove everything after the start tag
-                    result = result.substring(0, blockCommentStart);
+                    result = result.substring(0, bsIdx);
                     break;
                 }
             }
         }
-
         return result.trim();
+    }
+
+    // ─── type utilities ──────────────────────────────────────────
+
+    /**
+     * Extract the base/element type from complex type declarations.
+     *   ARRAY[…] OF T     → T
+     *   POINTER TO T       → T
+     *   REFERENCE TO T     → T
+     *   STRING[80]         → STRING
+     *   WSTRING[255]       → WSTRING
+     *   plain type         → type
+     */
+    private extractBaseType(typeText: string): string {
+        const t = typeText.trim();
+
+        // ARRAY[…] OF T
+        const arrayMatch = t.match(/ARRAY\s*\[.*?\]\s*OF\s+(.+)/i);
+        if (arrayMatch) return this.extractBaseType(arrayMatch[1]);
+
+        // POINTER TO T
+        const ptrMatch = t.match(/^POINTER\s+TO\s+(.+)/i);
+        if (ptrMatch) return this.extractBaseType(ptrMatch[1]);
+
+        // REFERENCE TO T
+        const refMatch = t.match(/^REFERENCE\s+TO\s+(.+)/i);
+        if (refMatch) return this.extractBaseType(refMatch[1]);
+
+        // STRING[n] / WSTRING[n]
+        const strLenMatch = t.match(/^(STRING|WSTRING)\s*\[.*?\]/i);
+        if (strLenMatch) return strLenMatch[1].toUpperCase();
+
+        return t;
+    }
+
+    /**
+     * Check if a type is a known standard IEC 61131-3 data type
+     */
+    private isKnownDataType(dataType: string): boolean {
+        if (!dataType) return false;
+
+        const upper = dataType.toUpperCase();
+
+        // STRING/WSTRING with or without length spec
+        if (upper === 'STRING' || upper === 'WSTRING' ||
+            upper.startsWith('STRING[') || upper.startsWith('WSTRING[')) {
+            return true;
+        }
+
+        return KNOWN_TYPES.has(upper);
     }
 
     /**
@@ -603,12 +660,10 @@ export class STASTParser {
     private getLiteralType(value: string | undefined, dataType: string): string {
         if (!value) return dataType;
 
-        // Return the declared type directly for standard string types
         const upperDataType = dataType.toUpperCase();
         if (upperDataType === 'STRING' || upperDataType === 'WSTRING' ||
             upperDataType === 'CHAR' || upperDataType === 'WCHAR' ||
             upperDataType.startsWith('STRING[') || upperDataType.startsWith('WSTRING[')) {
-            console.log(`Returning string type: ${upperDataType} for value: ${value}`);
             return upperDataType;
         }
 
@@ -625,27 +680,12 @@ export class STASTParser {
         if (upperVal.startsWith('DT#') || upperVal.startsWith('DATE_AND_TIME#')) return 'DATE_AND_TIME';
         if (upperVal.startsWith('TOD#') || upperVal.startsWith('TIME_OF_DAY#')) return 'TIME_OF_DAY';
 
-        // String & Char literals - improved detection
-        if (upperVal.startsWith('WSTRING#') || val.startsWith('\"')) {
-            console.log(`Detected WSTRING literal: ${val}`);
-            return 'WSTRING';
-        }
-        if (upperVal.startsWith('STRING#')) {
-            console.log(`Detected STRING literal with prefix: ${val}`);
-            return 'STRING';
-        }
-        if (upperVal.startsWith('WCHAR#')) {
-            console.log(`Detected WCHAR literal: ${val}`);
-            return 'WCHAR';
-        }
-        if (val.startsWith('\'')) {
-            // 'a' is CHAR, '' and 'ab' are STRING
-            if (val.length === 3) {
-                console.log(`Detected CHAR literal: ${val}`);
-                return 'CHAR';
-            }
-            console.log(`Detected STRING literal with single quotes: ${val}`);
-            return 'STRING';
+        // String & Char literals
+        if (upperVal.startsWith('WSTRING#') || val.startsWith('"')) return 'WSTRING';
+        if (upperVal.startsWith('STRING#')) return 'STRING';
+        if (upperVal.startsWith('WCHAR#')) return 'WCHAR';
+        if (val.startsWith("'")) {
+            return val.length === 3 ? 'CHAR' : 'STRING';
         }
 
         // Number literals
@@ -653,59 +693,11 @@ export class STASTParser {
         if (/^[0-9]+\.[0-9]+$/.test(val)) return 'REAL';
         if (upperVal === 'TRUE' || upperVal === 'FALSE') return 'BOOL';
 
-        return dataType; // Fallback to the declared type
+        return dataType;
     }
 
-    /**
-     * Checks if a given type is a known standard IEC 61131-3 data type.
-     * This helps distinguish between variable declarations and function block instances.
-     */
-    private isKnownDataType(dataType: string): boolean {
-        if (!dataType) return false;
+    // ─── scope mapping ───────────────────────────────────────────
 
-        // First check for string types with length specification like STRING[80]
-        const stringLengthMatch = dataType.match(/^(STRING|WSTRING)\s*\[\s*(\d+)\s*\]$/i);
-        if (stringLengthMatch) {
-            console.log(`Detected STRING with length specification: ${dataType}`);
-            return true; // STRING[n] is a known data type
-        }
-
-        const upperDataType = dataType.toUpperCase();
-
-        // Special handling for STRING types which are often problematic
-        if (upperDataType === 'STRING' || upperDataType === 'WSTRING' ||
-            upperDataType.startsWith('STRING[') || upperDataType.startsWith('WSTRING[')) {
-            console.log(`Special handling for string type: ${dataType}`);
-            return true;
-        }
-
-        const knownTypes = new Set([
-            // Elementary Types
-            'BOOL', 'BYTE', 'WORD', 'DWORD', 'LWORD',
-            'SINT', 'USINT', 'INT', 'UINT', 'DINT', 'UDINT', 'LINT', 'ULINT',
-            'REAL', 'LREAL',
-            'TIME', 'LTIME',
-            'DATE', 'LDATE',
-            'TIME_OF_DAY', 'TOD',
-            'DATE_AND_TIME', 'DT',
-            'STRING', 'WSTRING',
-            'CHAR', 'WCHAR',
-
-            // Generic Types
-            'ANY', 'ANY_INT', 'ANY_REAL', 'ANY_BIT', 'ANY_STRING', 'ANY_DATE',
-            'ANY_NUM', 'ANY_ELEMENTARY', 'ANY_DERIVED', 'ANY_MAGNITUDE',
-            'ANY_CHAR', 'ANY_CHARS',
-
-            // Standard Function Block Types - these are sometimes used as types but 
-            // we consider them "known" to avoid confusion with user-defined types
-            'TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'SR', 'RS'
-        ]);
-        return knownTypes.has(upperDataType);
-    }
-
-    /**
-     * Convert VAR section type to scope
-     */
     private getVarScope(varType: string): STScope {
         switch (varType.toUpperCase()) {
             case '_INPUT': return STScope.Input;
@@ -716,9 +708,8 @@ export class STASTParser {
         }
     }
 
-    /**
-     * Create a Location object for the given position
-     */
+    // ─── location helpers ────────────────────────────────────────
+
     private createLocation(line: number, character: number, length: number): Location {
         return {
             uri: this.document.uri,
@@ -730,26 +721,50 @@ export class STASTParser {
     }
 
     /**
-     * Extract the base type from a potentially complex type declaration
-     * e.g. from "ARRAY[0..10] OF INT" extract "INT"
+     * Find the column of a variable name in a source line.
+     * Falls back to 0 if not found.
      */
-    private extractBaseType(typeText: string): string {
-        const arrayMatch = typeText.match(/ARRAY\s*\[.*\]\s*OF\s*(\w+)/i);
-        if (arrayMatch) {
-            return arrayMatch[1];
-        }
-        return typeText.trim();
+    private findColumnOf(lineIndex: number, name: string): number {
+        const line = this.lines[lineIndex] || '';
+        const idx = line.indexOf(name);
+        return idx >= 0 ? idx : 0;
     }
 
-    /**
-     * Standardize variable names for consistent lookup
-     * IEC 61131-3 identifiers are case-insensitive
-     */
     private normalizeIdentifier(name: string): string {
-        if (!name) return '';
-        // For ST, we use lowercase as the standard form
-        const normalized = name.toLowerCase();
-        console.log(`Normalized identifier: '${name}' to '${normalized}'`);
-        return normalized;
+        return name ? name.toLowerCase() : '';
+    }
+
+    // ─── safe wrapper ────────────────────────────────────────────
+
+    private safeOp<T>(operation: () => T[], operationName: string): T[] {
+        try {
+            return operation();
+        } catch (error) {
+            console.error(`Error in ${operationName}: ${error}`);
+            return [];
+        }
     }
 }
+
+// ─── known data types (see src/iec61131_specification.ts) ───
+
+const KNOWN_TYPES = new Set([
+    // Elementary types
+    'BOOL', 'BYTE', 'WORD', 'DWORD', 'LWORD',
+    'SINT', 'USINT', 'INT', 'UINT', 'DINT', 'UDINT', 'LINT', 'ULINT',
+    'REAL', 'LREAL',
+    'TIME', 'LTIME',
+    'DATE', 'LDATE',
+    'TIME_OF_DAY', 'TOD',
+    'DATE_AND_TIME', 'DT',
+    'STRING', 'WSTRING',
+    'CHAR', 'WCHAR',
+
+    // Generic types
+    'ANY', 'ANY_INT', 'ANY_REAL', 'ANY_BIT', 'ANY_STRING', 'ANY_DATE',
+    'ANY_NUM', 'ANY_ELEMENTARY', 'ANY_DERIVED', 'ANY_MAGNITUDE',
+    'ANY_CHAR', 'ANY_CHARS',
+
+    // Standard FBs (treated as known to distinguish from user-defined types)
+    'TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'SR', 'RS'
+]);
