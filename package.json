@@ -73,17 +73,13 @@
     ]
   },
   "scripts": {
-    "pretest": "npm install",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "npm run compile && node ./out/runUnitTests.js",
     "test:e2e": "npm run compile && node ./out/runTest.js",
-    "test:watch": "npm run watch",
-    "test:pre-commit": "npm run test:unit && npm run test:e2e",
     "clean": "rm -rf out dist",
     "prepare": "husky",
     "vscode:prepublish": "npm run webpack-prod",
     "compile": "rm -rf out && tsc -p ./",
-    "compile-test": "rm -rf out && tsc -p ./",
     "webpack": "rm -rf dist && webpack --config webpack.config.js --mode development",
     "webpack-prod": "rm -rf dist && webpack --config webpack.config.js --mode production",
     "watch": "webpack --config webpack.config.js --mode development --watch",
