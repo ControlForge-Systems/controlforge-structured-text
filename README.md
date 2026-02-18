@@ -8,6 +8,7 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 ## Key Features
 
 - **Real-time Diagnostics**: Errors and warnings as you type — Problems panel, red squiggly underlines, hover tooltips
+- **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, unclosed strings, unmatched parentheses
 - **Go to Definition & Find References**: Cross-file symbol navigation
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
 - **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
@@ -86,6 +87,12 @@ END_PROGRAM
 - **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
 - **Case-insensitive**: Keyword matching per IEC 61131-3
 
+### Code Actions & Quick Fixes
+- **Missing END blocks**: Auto-insert `END_IF`, `END_FOR`, `END_WHILE`, `END_CASE`, `END_PROGRAM`, `END_FUNCTION`, `END_FUNCTION_BLOCK`, `END_VAR`, etc.
+- **Unclosed strings**: Append closing quote (single or double) at end of line
+- **Unmatched parentheses**: Insert missing closing `)` at end of expression
+- **Light bulb menu**: Fixes appear via `Ctrl+.` or clicking the light bulb icon
+
 ### Syntax Highlighting
 - **Keywords**: `IF`, `THEN`, `ELSE`, `FOR`, `WHILE`, `CASE`, `VAR`, `END_VAR`
 - **Data Types**: `BOOL`, `INT`, `REAL`, `TIME`, `STRING`, `ARRAY`, `STRUCT`
@@ -109,9 +116,11 @@ END_PROGRAM
 - **Operating System**: Windows, macOS, or Linux
 
 ## What's New (Unreleased)
+<<<<<<< HEAD
+- **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **151 unit tests**: Comprehensive coverage for all LSP providers and diagnostics
+- **182 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, and code actions
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly

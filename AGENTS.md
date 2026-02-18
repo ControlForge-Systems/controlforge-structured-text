@@ -46,7 +46,7 @@ npm run clean         # rm -rf out dist
 ## Testing
 
 ```bash
-npm run test:unit     # compile + mocha unit tests (~151 tests, <1s)
+npm run test:unit     # compile + mocha unit tests (~182 tests, <1s)
 npm run test:e2e      # compile + @vscode/test-electron (needs display)
 npm test              # both
 ```

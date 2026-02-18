@@ -14,7 +14,8 @@ import {
     InitializeResult,
     DefinitionParams,
     Location,
-    Position
+    Position,
+    CodeAction
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -26,6 +27,7 @@ import { MemberAccessProvider } from './providers/member-access-provider';
 import { EnhancedDefinitionProvider } from './providers/definition-provider';
 import { MemberCompletionProvider } from './providers/completion-provider';
 import { computeDiagnostics } from './providers/diagnostics-provider';
+import { provideCodeActions } from './providers/code-action-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -82,7 +84,8 @@ connection.onInitialize((params: InitializeParams) => {
                 hoverProvider: true,
                 completionProvider: {
                     resolveProvider: true
-                }
+                },
+                codeActionProvider: true
             }
         };
 
@@ -319,6 +322,16 @@ connection.onReferences((params): Location[] => {
     if (!symbols) return [];
 
     return symbols.map(symbol => symbol.location);
+});
+
+// Code action handler - provides quick fixes for diagnostics
+connection.onCodeAction((params): CodeAction[] => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return [];
+    }
+
+    return provideCodeActions(document, params);
 });
 
 // Document change handlers - now with workspace indexer integration and debouncing
