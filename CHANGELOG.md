@@ -7,8 +7,10 @@
 - Verbose console.log in definition provider polluting test and server output
 
 ### Added
+- Real-time diagnostics with Problems panel integration: unmatched blocks, unclosed strings, unmatched parentheses (#27)
 - AST parser rewrite with multi-line statement accumulator architecture (#41)
 - 62 unit tests for workspace-indexer, member-access-provider, definition-provider, completion-provider (44 → 106 total) (#44)
+- 45 unit tests for diagnostics provider (106 → 151 total) (#27)
 - Clean build steps for compile and webpack scripts
 
 ### Changed

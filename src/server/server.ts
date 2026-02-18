@@ -25,6 +25,7 @@ import { setExtensionPath } from './extension-path';
 import { MemberAccessProvider } from './providers/member-access-provider';
 import { EnhancedDefinitionProvider } from './providers/definition-provider';
 import { MemberCompletionProvider } from './providers/completion-provider';
+import { computeDiagnostics } from './providers/diagnostics-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -332,17 +333,28 @@ documents.onDidChangeContent(change => {
     changeDebounceTimer = setTimeout(() => {
         updateSymbolIndex(change.document);
         workspaceIndexer.updateFileIndex(change.document);
+
+        // Publish diagnostics
+        const diagnostics = computeDiagnostics(change.document);
+        connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
     }, 300); // Wait 300ms after last change
 });
 
 documents.onDidOpen(change => {
     updateSymbolIndex(change.document);
     workspaceIndexer.updateFileIndex(change.document);
+
+    // Publish diagnostics on open
+    const diagnostics = computeDiagnostics(change.document);
+    connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
 });
 
 // File close handler — cleanup index
 documents.onDidClose(event => {
     const uri = event.document.uri;
+
+    // Clear diagnostics for closed file
+    connection.sendDiagnostics({ uri, diagnostics: [] });
 
     // Remove from local symbol index
     const fileSymbols = symbolIndex.files.get(uri);
