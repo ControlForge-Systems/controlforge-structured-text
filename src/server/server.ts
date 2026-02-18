@@ -21,6 +21,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { STSymbolKind, FileSymbols, SymbolIndex, STSymbolExtended } from '../shared/types';
 import { STASTParser } from './ast-parser';
 import { WorkspaceIndexer } from './workspace-indexer';
+import { setExtensionPath } from './extension-path';
 import { MemberAccessProvider } from './providers/member-access-provider';
 import { EnhancedDefinitionProvider } from './providers/definition-provider';
 import { MemberCompletionProvider } from './providers/completion-provider';
@@ -55,13 +56,11 @@ const memberCompletionProvider = new MemberCompletionProvider(memberAccessProvid
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 
-// Store extension path for accessing iec61131-definitions/
-let extensionPath: string | undefined;
-
 connection.onInitialize((params: InitializeParams) => {
     try {
-        extensionPath = (params.initializationOptions as any)?.extensionPath;
-        if (!extensionPath) {
+        const extPath = (params.initializationOptions as any)?.extensionPath;
+        setExtensionPath(extPath);
+        if (!extPath) {
             connection.console.warn('Extension path not provided in initialization options');
         }
 
@@ -102,10 +101,8 @@ connection.onInitialize((params: InitializeParams) => {
     }
 });
 
-// Export getter for extension path (used by providers)
-export function getExtensionPath(): string | undefined {
-    return extensionPath;
-}
+// Re-export for backward compatibility
+export { getExtensionPath } from './extension-path';
 
 connection.onRequest('custom/showIndexStats', () => {
     return workspaceIndexer.getIndexStats();
