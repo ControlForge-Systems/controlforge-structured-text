@@ -96,6 +96,19 @@ feature/issue-N-desc   ← short-lived; cut from the active release branch
 - Create `release-X.Y.0` at milestone start; delete after merge to `main`
 - Active release branch is the one matching the current in-progress milestone
 
+## Release Process
+
+1. All milestone issues closed and merged into `release-X.Y.0`
+2. QA passes on `release-X.Y.0`
+3. Tag `vX.Y.0-rc.1` on `release-X.Y.0`, publish as GitHub **pre-release** — signals QA in progress, not for production
+4. When QA complete:
+   - Move `CHANGELOG.md` `[Unreleased]` entries to `[X.Y.0] - YYYY-MM-DD`
+   - Open PR `release-X.Y.0` → `main`
+   - Merge PR, tag `vX.Y.0` on `main`
+   - `vsce package && vsce publish`
+   - Close the milestone
+   - Delete `release-X.Y.0` branch
+
 ## Pull Requests
 
 Template at `.github/PULL_REQUEST_TEMPLATE.md`. Two sections:
