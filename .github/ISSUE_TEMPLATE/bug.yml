@@ -7,7 +7,7 @@ body:
     attributes:
       label: Problem
       description: What's broken? Be concise.
-      placeholder: Go to definition fails when symbol casing differs from declaration.
+      placeholder: "Go to definition fails when symbol casing differs from declaration.\n\nNote: do not prefix the issue title with category labels — use labels instead."
     validations:
       required: true
 

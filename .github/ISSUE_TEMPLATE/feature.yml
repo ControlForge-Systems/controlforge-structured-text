@@ -7,7 +7,7 @@ body:
     attributes:
       label: Summary
       description: What and why, in 1-3 sentences.
-      placeholder: Add signature help for function calls. Popup shows parameter names, types, and current position when typing function arguments.
+      placeholder: "Add signature help for function calls. Popup shows parameter names, types, and current position when typing function arguments.\n\nNote: do not prefix the issue title with category labels (e.g. 'Grammar:', 'Diagnostic:') — use labels instead."
     validations:
       required: true
 

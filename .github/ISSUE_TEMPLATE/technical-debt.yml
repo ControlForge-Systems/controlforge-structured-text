@@ -7,7 +7,7 @@ body:
     attributes:
       label: Context
       description: Why does this need doing? What triggered it?
-      placeholder: Dead code audit after parser rewrite (#41) found significant unused code.
+      placeholder: "Dead code audit after parser rewrite (#41) found significant unused code.\n\nNote: do not prefix the issue title with category labels — use labels instead."
     validations:
       required: true
 
