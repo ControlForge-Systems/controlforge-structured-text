@@ -108,7 +108,7 @@ feature/issue-N-desc   ← short-lived; cut from the active release branch
    {
      "required_pull_request_reviews": {"required_approving_review_count": 0},
      "required_status_checks": null,
-     "enforce_admins": false,
+     "enforce_admins": true,
      "restrictions": null,
      "allow_force_pushes": false,
      "allow_deletions": false
