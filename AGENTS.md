@@ -81,6 +81,21 @@ Use GitHub issue templates in `.github/ISSUE_TEMPLATE/`. Blank issues disabled.
 
 Add `Priority:` and `Effort:` labels manually per issue. No emoji/icons in titles. Concise text, no time estimates.
 
+## Branching
+
+```
+main                   ← stable, tagged releases only; never commit directly
+release-X.Y.0          ← integration branch per milestone; PRs merge here
+feature/issue-N-desc   ← short-lived; cut from the active release branch
+```
+
+- **Feature branches** cut from the active `release-X.Y.0` (matches issue milestone)
+- **PRs** target `release-X.Y.0`, never `main`
+- **`main`** updated only when releasing — merge `release-X.Y.0` → `main` via a release PR, then tag
+- **Hotfixes** branch off `main`, PR back to both `main` and the active release branch
+- Create `release-X.Y.0` at milestone start; delete after merge to `main`
+- Active release branch is the one matching the current in-progress milestone
+
 ## Pull Requests
 
 Template at `.github/PULL_REQUEST_TEMPLATE.md`. Two sections:
