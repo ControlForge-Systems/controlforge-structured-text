@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- License changed from BUSL-1.1 to MIT (#78)
+
 ### Fixed
 - Parser regex fails on multi-line variable declarations (#41)
 - Verbose console.log in definition provider polluting test and server output
