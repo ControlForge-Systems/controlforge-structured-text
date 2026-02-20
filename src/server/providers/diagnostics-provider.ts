@@ -10,6 +10,8 @@
  *  - Unmatched VAR section keywords (VAR/END_VAR, VAR_INPUT/END_VAR, etc.)
  *  - Unclosed string literals (single and double quotes)
  *  - Unmatched parentheses within lines
+ *  - ELSE IF should be ELSIF (IEC 61131-3 §3.3.2)
+ *  - Missing THEN after IF/ELSIF, missing DO after FOR/WHILE
  *
  * Phase 2 — semantic checks (require parsed symbols):
  *  - Missing semicolons on statement lines
@@ -1342,6 +1344,150 @@ function stripStringLiterals(line: string): string {
     return chars.join('');
 }
 
+// ─── ELSE IF → ELSIF check ───────────────────────────────────────────────────
+
+/**
+ * Detect `ELSE IF` (two separate keywords) which is invalid in IEC 61131-3.
+ * The correct keyword is `ELSIF`. Common mistake from C/Python/JavaScript devs.
+ *
+ * Detects the pattern on a single clean line: the token ELSE immediately
+ * followed (as the next token) by IF. Case-insensitive.
+ */
+function checkElseIfShouldBeElsif(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    // Matches ELSE <optional whitespace> IF at a word boundary
+    const elseIfRegex = /\b(else)\s+(if)\b/i;
+
+    for (const cl of cleanLines) {
+        const noStrings = stripStringLiterals(cl.text);
+        const match = elseIfRegex.exec(noStrings);
+        if (match) {
+            diagnostics.push(createDiagnostic(
+                cl.lineIndex,
+                match.index,
+                match[0].length,
+                "'ELSE IF' is not valid IEC 61131-3 syntax; use 'ELSIF'",
+                DiagnosticSeverity.Error
+            ));
+        }
+    }
+
+    return diagnostics;
+}
+
+// ─── Missing THEN / DO check ─────────────────────────────────────────────────
+
+/**
+ * Detect missing THEN after IF/ELSIF conditions and missing DO after
+ * FOR/WHILE headers.
+ *
+ * Strategy: within POU bodies (outside VAR sections), find lines where:
+ *  - The first token is IF or ELSIF, and the last token is not THEN
+ *  - The first token is FOR or WHILE, and the last token is not DO
+ *
+ * Multi-line conditions (open parens) are skipped until the paren closes,
+ * then the closing line is checked for THEN/DO.
+ */
+function checkMissingThenDo(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        // Track accumulated condition lines for multi-line IF/FOR/WHILE headers
+        let accumulatingFor: 'IF' | 'FOR' | 'WHILE' | null = null;
+        let accStartLine = -1;
+        let parenDepth = 0;
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            const noStrings = stripStringLiterals(trimmed);
+            const upperTrimmed = noStrings.toUpperCase().trim();
+
+            if (accumulatingFor) {
+                // Count parens on this continuation line
+                for (const ch of noStrings) {
+                    if (ch === '(') parenDepth++;
+                    else if (ch === ')') parenDepth--;
+                }
+                if (parenDepth < 0) parenDepth = 0;
+
+                if (parenDepth > 0) continue; // still in open paren
+
+                // Parens balanced — check terminal keyword
+                const expectedTerminal = accumulatingFor === 'IF' ? 'THEN' : 'DO';
+                const lastToken = getLastKeywordToken(upperTrimmed);
+
+                if (lastToken !== expectedTerminal) {
+                    diagnostics.push(createDiagnostic(
+                        cl.lineIndex,
+                        cl.text.trimEnd().length,
+                        0,
+                        `'${accumulatingFor}' condition is missing '${expectedTerminal}'`,
+                        DiagnosticSeverity.Error
+                    ));
+                }
+                accumulatingFor = null;
+                accStartLine = -1;
+                continue;
+            }
+
+            // Check for IF / ELSIF / FOR / WHILE header start
+            const firstToken = getFirstKeywordToken(upperTrimmed);
+            if (firstToken !== 'IF' && firstToken !== 'ELSIF' &&
+                firstToken !== 'FOR' && firstToken !== 'WHILE') continue;
+
+            const keyword = firstToken as 'IF' | 'ELSIF' | 'FOR' | 'WHILE';
+            const expectedTerminal = (keyword === 'IF' || keyword === 'ELSIF')
+                ? 'THEN' : 'DO';
+
+            // Count parens on this line
+            parenDepth = 0;
+            for (const ch of noStrings) {
+                if (ch === '(') parenDepth++;
+                else if (ch === ')') parenDepth--;
+            }
+            if (parenDepth < 0) parenDepth = 0;
+
+            if (parenDepth > 0) {
+                // Multi-line condition — accumulate
+                accumulatingFor = (keyword === 'FOR' || keyword === 'WHILE') ? keyword : 'IF';
+                accStartLine = cl.lineIndex;
+                continue;
+            }
+
+            // Single-line header — check last token
+            const lastToken = getLastKeywordToken(upperTrimmed);
+            if (lastToken !== expectedTerminal) {
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex,
+                    cl.text.trimEnd().length,
+                    0,
+                    `'${firstToken}' is missing '${expectedTerminal}'`,
+                    DiagnosticSeverity.Error
+                ));
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Get the last keyword-like token from an uppercased trimmed line.
+ */
+function getLastKeywordToken(upperTrimmed: string): string | null {
+    const matches = [...upperTrimmed.matchAll(/\b([A-Z_][A-Z0-9_]*)\b/g)];
+    if (matches.length === 0) return null;
+    return matches[matches.length - 1][1];
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function createDiagnostic(
@@ -1385,6 +1531,8 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
     diagnostics.push(...checkUnmatchedBlocks(cleanLines, rawLines));
     diagnostics.push(...checkUnclosedStrings(cleanLines));
     diagnostics.push(...checkUnmatchedParentheses(cleanLines));
+    diagnostics.push(...checkElseIfShouldBeElsif(cleanLines));
+    diagnostics.push(...checkMissingThenDo(cleanLines));
 
     // Phase 2: semantic checks (only when symbols available)
     if (symbols && symbols.length > 0) {
