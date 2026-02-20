@@ -26,6 +26,29 @@ export class MemberCompletionProvider {
     ): CompletionItem[] {
         const completionItems: CompletionItem[] = [];
 
+        // Check if we're in an FB call argument context (inside "instance(")
+        const callContext = this.getFBCallContext(document, position);
+        if (callContext) {
+            const instanceType = this.getInstanceType(callContext.instanceName, workspaceIndexer);
+            if (instanceType) {
+                const customFBTypes = this.getCustomFBTypes(workspaceIndexer);
+                const members = this.memberAccessProvider.getAvailableMembers(instanceType, customFBTypes);
+                members
+                    .filter(m => m.direction === 'VAR_INPUT' || m.direction === 'VAR_IN_OUT')
+                    .forEach(m => {
+                        completionItems.push({
+                            label: m.name,
+                            kind: CompletionItemKind.Property,
+                            detail: `${m.dataType} (${m.direction})`,
+                            documentation: m.description,
+                            insertText: `${m.name} := `,
+                            sortText: `1_${m.name}`
+                        });
+                    });
+            }
+            return completionItems;
+        }
+
         // Check if we're in a member access context (typing after "instance.")
         const memberContext = this.getMemberAccessContext(document, position);
 
@@ -49,6 +72,23 @@ export class MemberCompletionProvider {
         }
 
         return completionItems;
+    }
+
+    /**
+     * Check if position is inside an FB call argument list (after "instance(")
+     */
+    private getFBCallContext(document: TextDocument, position: Position): { instanceName: string } | null {
+        const lines = document.getText().split('\n');
+        const currentLine = lines[position.line];
+        if (!currentLine) return null;
+
+        const beforeCursor = currentLine.substring(0, position.character);
+        // Match instanceName( with optional whitespace/args already typed, no closing paren yet
+        const match = beforeCursor.match(/(\w+)\s*\([^)]*$/);
+        if (match) {
+            return { instanceName: match[1] };
+        }
+        return null;
     }
 
     /**
@@ -173,20 +213,66 @@ export class MemberCompletionProvider {
         const completionItems: CompletionItem[] = [];
         const allSymbols = workspaceIndexer.getAllSymbols();
 
-        // Add variables and function block instances
+        // Add workspace symbols — deduplicate by normalizedName+kind
+        const seen = new Set<string>();
         allSymbols.forEach(symbol => {
             if (symbol.kind === STSymbolKind.Variable ||
-                symbol.kind === STSymbolKind.FunctionBlockInstance) {
+                symbol.kind === STSymbolKind.FunctionBlockInstance ||
+                symbol.kind === STSymbolKind.FunctionBlock ||
+                symbol.kind === STSymbolKind.Function ||
+                symbol.kind === STSymbolKind.Program) {
+                const dedupeKey = `${symbol.kind}:${symbol.normalizedName ?? symbol.name.toLowerCase()}`;
+                if (seen.has(dedupeKey)) return;
+                seen.add(dedupeKey);
+                const kind =
+                    symbol.kind === STSymbolKind.Variable ? CompletionItemKind.Variable :
+                    symbol.kind === STSymbolKind.FunctionBlockInstance ? CompletionItemKind.Class :
+                    symbol.kind === STSymbolKind.Function ? CompletionItemKind.Function :
+                    CompletionItemKind.Class;
                 completionItems.push({
                     label: symbol.name,
-                    kind: symbol.kind === STSymbolKind.Variable ?
-                        CompletionItemKind.Variable :
-                        CompletionItemKind.Class,
+                    kind,
                     detail: symbol.dataType || symbol.kind,
                     documentation: symbol.description,
                     insertText: symbol.name
                 });
             }
+        });
+
+        // Add standard IEC 61131-3 function blocks (always available)
+        const standardFBs = [
+            'TON', 'TOF', 'TP',
+            'CTU', 'CTD', 'CTUD',
+            'R_TRIG', 'F_TRIG',
+            'SR', 'RS'
+        ];
+        standardFBs.forEach(fb => {
+            completionItems.push({
+                label: fb,
+                kind: CompletionItemKind.Class,
+                detail: 'Standard Function Block',
+                insertText: fb,
+                sortText: `7_${fb}`
+            });
+        });
+
+        // Add data types
+        const dataTypes = [
+            'BOOL', 'BYTE', 'WORD', 'DWORD', 'LWORD',
+            'SINT', 'INT', 'DINT', 'LINT',
+            'USINT', 'UINT', 'UDINT', 'ULINT',
+            'REAL', 'LREAL',
+            'TIME', 'DATE', 'TIME_OF_DAY', 'DATE_AND_TIME',
+            'STRING', 'WSTRING'
+        ];
+
+        dataTypes.forEach(dt => {
+            completionItems.push({
+                label: dt,
+                kind: CompletionItemKind.TypeParameter,
+                insertText: dt,
+                sortText: `8_${dt}`
+            });
         });
 
         // Add standard keywords

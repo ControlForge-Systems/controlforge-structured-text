@@ -59,16 +59,46 @@ VAR
     mainTimer : TON;
     emergencyTrigger : R_TRIG;
     productCounter : CTU;
-    
+
     // Custom function block instance
     temperatureController : FB_PIDController;
-    
+
     // Local variables
     currentTemp : REAL;
     targetTemp : REAL := 75.5;
     timerRunning : BOOL;
     cycleCount : INT;
 END_VAR
+
+// --- MANUAL TEST INSTRUCTIONS ---
+//
+// 1. STANDARD FB CALL PARAMETERS
+//    - Delete args from "mainTimer(...)" below, type "mainTimer(" and pause
+//    - Expected: IN :=, PT := auto-suggested (TON inputs)
+//    - Same for "emergencyTrigger(" → CLK :=
+//    - Same for "productCounter(" → CU :=, R :=, PV :=
+
+// 2. CUSTOM FB CALL PARAMETERS
+//    - Delete args from "temperatureController(...)" below, type "temperatureController(" and pause
+//    - Expected: setpoint :=, processValue :=, kP :=, kI :=, kD :=
+
+// 3. MEMBER ACCESS ON STANDARD FB
+//    - Place cursor after "mainTimer." on the timerRunning line and press Ctrl+Space
+//    - Expected: IN, PT, Q, ET
+//    - Place cursor after "productCounter." on the cycleCount line
+//    - Expected: CU, R, PV, Q, CV
+
+// 4. MEMBER ACCESS ON CUSTOM FB
+//    - Type "temperatureController." somewhere in the body and press Ctrl+Space
+//    - Expected: setpoint, processValue, kP, kI, kD, output, error
+
+// 5. CROSS-POU FUNCTION CALL COMPLETION
+//    - On a blank line type "Calc" and press Ctrl+Space
+//    - Expected: CalculateAverage appears
+
+// 6. GLOBAL VARIABLE COMPLETION
+//    - On a blank line type "g_" and press Ctrl+Space
+//    - Expected: g_SystemRunning, g_EmergencyStop, g_MainCounter
 
 // Timer logic
 mainTimer(IN := g_SystemRunning, PT := T#10s);

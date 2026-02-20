@@ -40,7 +40,7 @@ IF Enable THEN
         Output := 100.0;
     ELSIF Output < -100.0 THEN
         Output := -100.0;
-    END_IF;
+    END_IF
     
     // Store current error for next cycle
     LastError := Error;
@@ -50,6 +50,6 @@ ELSE
     Error := 0.0;
     Integral := 0.0;
     LastError := 0.0;
-END_IF;
+END_IF
 
 END_FUNCTION_BLOCK

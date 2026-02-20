@@ -86,15 +86,49 @@ Add `Priority:` and `Effort:` labels manually per issue. No emoji/icons in title
 ```
 main                   ← stable, tagged releases only; never commit directly
 release-X.Y.0          ← integration branch per milestone; PRs merge here
-feature/issue-N-desc   ← short-lived; cut from the active release branch
+feature/issue-N-desc   ← new functionality
+fix/issue-N-desc       ← bug fixes
+chore/desc             ← tooling, config, deps
+docs/desc              ← documentation only
 ```
 
-- **Feature branches** cut from the active `release-X.Y.0` (matches issue milestone)
-- **PRs** target `release-X.Y.0`, never `main`
+- All branch types target the active `release-X.Y.0` via PR — no direct pushes, no exceptions
 - **`main`** updated only when releasing — merge `release-X.Y.0` → `main` via a release PR, then tag
 - **Hotfixes** branch off `main`, PR back to both `main` and the active release branch
 - Create `release-X.Y.0` at milestone start; delete after merge to `main`
 - Active release branch is the one matching the current in-progress milestone
+
+## Release Process
+
+**At milestone start — create release branch:**
+1. `git checkout main && git pull`
+2. `git checkout -b release-X.Y.0 && git push -u origin release-X.Y.0`
+3. Apply branch protection (require PR, no force push, no deletion):
+   ```bash
+   gh api repos/ControlForge-Systems/controlforge-structured-text/branches/release-X.Y.0/protection \
+     --method PUT --input - <<'EOF'
+   {
+     "required_pull_request_reviews": {"required_approving_review_count": 0},
+     "required_status_checks": null,
+     "enforce_admins": true,
+     "restrictions": null,
+     "allow_force_pushes": false,
+     "allow_deletions": false
+   }
+   EOF
+   ```
+
+**During milestone — tag pre-release when QA starts:**
+1. All milestone issues closed and merged into `release-X.Y.0`
+2. Tag `vX.Y.0-rc.1` on `release-X.Y.0`, publish as GitHub **pre-release** — signals QA in progress, not for production
+
+**When QA complete — ship:**
+1. Move `CHANGELOG.md` `[Unreleased]` entries to `[X.Y.0] - YYYY-MM-DD`
+2. Open PR `release-X.Y.0` → `main`
+3. Merge PR, tag `vX.Y.0` on `main`
+4. `vsce package && vsce publish`
+5. Close the milestone
+6. Delete `release-X.Y.0` branch
 
 ## Pull Requests
 

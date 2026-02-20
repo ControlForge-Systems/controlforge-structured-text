@@ -547,7 +547,8 @@ export class STASTParser {
             }
         }
 
-        console.warn(`Could not find matching ${endKeyword} starting at line ${startLine}`);
+        // Silently return end of document if no match found
+        // (proper diagnostics are handled by diagnostics-provider.ts)
         return this.lines.length - 1;
     }
 

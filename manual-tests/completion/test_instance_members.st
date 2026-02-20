@@ -41,6 +41,6 @@ counterValue := upCounter.CV;
 
 IF upCounter.CV >= 10 THEN
     resetSignal := TRUE;
-END_IF;
+END_IF
 
 END_PROGRAM

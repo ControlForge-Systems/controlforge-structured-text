@@ -555,10 +555,11 @@ function checkMissingSemicolons(cleanLines: CleanLine[], rawLines: string[]): Di
 
             // At this point, line should be a statement. Check for semicolon.
             if (!trimmed.endsWith(';')) {
-                const rawLine = rawLines[cl.lineIndex];
-                const lastNonSpace = rawLine.trimEnd().length;
+                // Point squiggle at end of cleaned text (after comments stripped),
+                // not end of raw line which may include trailing comments.
+                const cleanedEnd = cl.text.trimEnd().length;
                 diagnostics.push(createDiagnostic(
-                    cl.lineIndex, lastNonSpace > 0 ? lastNonSpace - 1 : 0, 1,
+                    cl.lineIndex, cleanedEnd, 0,
                     'Missing semicolon at end of statement',
                     DiagnosticSeverity.Error
                 ));
@@ -762,9 +763,10 @@ function checkUndefinedVariables(
             const trimmed = cl.text.trim();
             if (!trimmed) continue;
 
-            const upperTrimmed = trimmed.toUpperCase();
+            // Leading whitespace offset so token columns map back to raw line
+            const lineIndent = cl.text.length - cl.text.trimStart().length;
 
-            // Track CASE context
+            const upperTrimmed = trimmed.toUpperCase();
             if (/^CASE\b/i.test(trimmed)) inCaseOf = true;
             if (upperTrimmed.startsWith('END_CASE')) inCaseOf = false;
 
@@ -793,7 +795,7 @@ function checkUndefinedVariables(
 
                 diagnostics.push(createDiagnostic(
                     cl.lineIndex,
-                    token.column,
+                    lineIndent + token.column,
                     token.name.length,
                     `Undefined identifier '${token.name}'`,
                     DiagnosticSeverity.Warning
@@ -834,6 +836,13 @@ function extractBodyIdentifiers(line: string): BodyToken[] {
 
         // Skip if preceded by # (typed literal: TIME#, T#, etc.)
         if (col > 0 && noStrings[col - 1] === '#') continue;
+
+        // Skip typed literal prefixes followed by # (T#, TIME#, D#, DATE#, DT#, TOD#, LTIME#, etc.)
+        if (col + name.length < noStrings.length && noStrings[col + name.length] === '#') continue;
+
+        // Skip named parameter assigns in FB calls: "IN :=" — "IN" is a param name, not a variable
+        const afterToken = noStrings.slice(col + name.length).trimStart();
+        if (afterToken.startsWith(':=')) continue;
 
         tokens.push({ name, column: col });
     }
@@ -994,10 +1003,14 @@ function checkTypeMismatches(
         if (!rhsType) continue;
 
         if (!areTypesCompatible(lhsType, rhsType)) {
+            // Point squiggle at the RHS expression only
+            const assignIdx = cl.text.indexOf(':=');
+            const rhsStart = assignIdx + 2;
+            const rhsCol = cl.text.indexOf(rhsExpr, rhsStart);
             diagnostics.push(createDiagnostic(
                 cl.lineIndex,
-                cl.text.indexOf(':='),
-                match[0].trim().length,
+                rhsCol >= 0 ? rhsCol : assignIdx,
+                rhsExpr.length,
                 `Type mismatch: cannot assign '${rhsType}' to '${lhsType}'`,
                 DiagnosticSeverity.Error
             ));
@@ -1238,17 +1251,14 @@ function checkUnmatchedParentheses(cleanLines: CleanLine[]): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
 
     for (const cl of cleanLines) {
-        // Strip string literals to avoid counting parens inside them
         const lineNoStrings = stripStringLiterals(cl.text);
 
         let depth = 0;
-        let firstUnmatchedOpen = -1;
+        let firstOpenCol = -1;
 
         for (let i = 0; i < lineNoStrings.length; i++) {
             if (lineNoStrings[i] === '(') {
-                if (depth === 0) {
-                    firstUnmatchedOpen = i;
-                }
+                if (depth === 0) firstOpenCol = i;
                 depth++;
             } else if (lineNoStrings[i] === ')') {
                 depth--;
@@ -1258,15 +1268,18 @@ function checkUnmatchedParentheses(cleanLines: CleanLine[]): Diagnostic[] {
                         'Unmatched closing parenthesis',
                         DiagnosticSeverity.Error
                     ));
-                    depth = 0; // reset to continue scanning
+                    depth = 0;
                 }
             }
         }
 
-        if (depth > 0) {
-            const col = firstUnmatchedOpen >= 0 ? firstUnmatchedOpen : 0;
+        // Unclosed parens on a statement line (ends with ;) — multi-line FB
+        // calls don't end with ; so we only flag genuine errors here.
+        if (depth > 0 && cl.text.trimEnd().endsWith(';')) {
             diagnostics.push(createDiagnostic(
-                cl.lineIndex, col, 1,
+                cl.lineIndex,
+                firstOpenCol >= 0 ? firstOpenCol : 0,
+                1,
                 `Unmatched opening parenthesis (${depth} unclosed)`,
                 DiagnosticSeverity.Error
             ));

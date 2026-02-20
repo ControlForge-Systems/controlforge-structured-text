@@ -1,0 +1,40 @@
+(* Manual test: .iecst file extension support
+   This file verifies the extension activates for .iecst files.
+   Expected: syntax highlighting, diagnostics, completion, and all
+   LSP features work identically to .st files. *)
+
+PROGRAM IecstExtensionTest
+VAR
+    counter : INT := 0;
+    running : BOOL := TRUE;
+    temperature : REAL := 22.5;
+    message : STRING := 'Hello from .iecst';
+END_VAR
+
+(* Verify syntax highlighting works *)
+IF running THEN
+    counter := counter + 1;
+    IF counter > 100 THEN
+        running := FALSE;
+    END_IF
+END_IF
+
+(* Verify completion works — type "cou" and expect "counter" *)
+(* Verify diagnostics — uncomment next line for missing semicolon *)
+// temperature := 50.0
+
+(* Verify hover — hover on TON below *)
+// timerInstance : TON;
+
+CASE counter OF
+    1: message := 'One';
+    2: message := 'Two';
+ELSE
+    message := 'Other';
+END_CASE
+
+FOR counter := 1 TO 10 DO
+    temperature := temperature + 0.1;
+END_FOR
+
+END_PROGRAM

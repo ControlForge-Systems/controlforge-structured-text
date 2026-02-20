@@ -2,7 +2,7 @@
   "name": "controlforge-structured-text",
   "displayName": "ControlForge Structured Text",
   "description": "Professional Structured Text (IEC 61131-3) IDE with function block IntelliSense, syntax highlighting, and smart code completion for PLC programming",
-  "version": "1.2.5",
+  "version": "1.3.0",
   "author": "Michael Distel",
   "publisher": "ControlForgeSystems",
   "license": "MIT",
@@ -39,6 +39,11 @@
   "//": "Note: iec61131-definitions folder is required at runtime for hover, navigation and completion features",
   "activationEvents": [],
   "contributes": {
+    "configurationDefaults": {
+      "[structured-text]": {
+        "editor.defaultFormatter": "ControlForgeSystems.controlforge-structured-text"
+      }
+    },
     "languages": [
       {
         "id": "structured-text",
@@ -69,6 +74,10 @@
       {
         "command": "controlforge-structured-text.showIndexStats",
         "title": "ControlForge Structured Text: Show Index Statistics"
+      },
+      {
+        "command": "controlforge-structured-text.checkLspStatus",
+        "title": "ControlForge Structured Text: Check LSP Status"
       }
     ],
     "configuration": {

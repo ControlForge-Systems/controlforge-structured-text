@@ -7,7 +7,7 @@ PROGRAM Main
 VAR
     x : INT;
 END_VAR
-    END_IF;
+    END_IF
 (* Orphaned END_IF without matching IF - should offer quick fix to remove *)
     
     END_VAR

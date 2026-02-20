@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { validateStructuredText, formatValidationMessage } from './validator';
-import { activateLanguageServer, deactivateLanguageServer } from './client/lsp-client';
+import { activateLanguageServer, deactivateLanguageServer, sendRequest } from './client/lsp-client';
 
 // NOTE: Parser imports removed - completion now handled by LSP server
 // See src/server/providers/completion-provider.ts for implementation
@@ -65,6 +65,26 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Register the show index stats command
+    const showIndexStatsCommand = vscode.commands.registerCommand('controlforge-structured-text.showIndexStats', async () => {
+        const stats = await sendRequest<{
+            fileCount: number;
+            programCount: number;
+            functionCount: number;
+            functionBlockCount: number;
+            globalVariableCount: number;
+        }>('custom/showIndexStats');
+        if (stats) {
+            vscode.window.showInformationMessage(
+                `Index: ${stats.fileCount} file(s) | ${stats.programCount} program(s) | ` +
+                `${stats.functionCount} function(s) | ${stats.functionBlockCount} FB(s) | ` +
+                `${stats.globalVariableCount} global var(s)`
+            );
+        } else {
+            vscode.window.showWarningMessage('LSP server not running or index unavailable.');
+        }
+    });
+
     // Register event handler for when Structured Text files are opened
     const onDidOpenTextDocument = vscode.workspace.onDidOpenTextDocument((document) => {
         if (document.languageId === 'structured-text') {
@@ -77,6 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Add commands to the extension context
     context.subscriptions.push(validateSyntaxCommand);
+    context.subscriptions.push(showIndexStatsCommand);
     context.subscriptions.push(onDidOpenTextDocument);
 
     /**

@@ -65,8 +65,8 @@ VAR
 END_VAR
     FOR i := 1 TO 10 DO
         sum := sum + i;
-    END_FOR;
+    END_FOR
     IF sum > 50 THEN
         running := FALSE;
-    END_IF;
+    END_IF
 END_PROGRAM

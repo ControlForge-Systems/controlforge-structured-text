@@ -2,14 +2,11 @@
 
 ## [Unreleased]
 
-### Changed
-- License changed from BUSL-1.1 to MIT (#78)
-
-### Fixed
-- Parser regex fails on multi-line variable declarations (#41)
-- Verbose console.log in definition provider polluting test and server output
+## [1.3.0] - 2026-02-20
 
 ### Added
+- Pre-release QA manual testing checklist covering all 14 feature categories (#75)
+- Manual test fixtures for rename symbol, find references, .iecst extension, commands, formatting settings (#75)
 - Rich hover tooltips for standard function blocks: parameter tables, behavior descriptions, usage examples (#22)
 - Advanced diagnostics and linting: missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches (#6)
 - Semantic analysis powered by AST parser symbols for deeper code inspection (#6)
@@ -31,9 +28,14 @@
 - Clean build steps for compile and webpack scripts
 
 ### Changed
+- License changed from BUSL-1.1 to MIT (#78)
 - Extracted `getExtensionPath` from server.ts into extension-path.ts for testability (#44)
 - Updated all npm dependencies (TypeScript 4.9→5.9, webpack 5.99→5.105, node types 16→20) (#50)
 - Removed legacy parser (`parser.ts`) and its tests
+
+### Fixed
+- Parser regex fails on multi-line variable declarations (#41)
+- Verbose console.log in definition provider polluting test and server output
 
 ### Removed
 - Stale documentation (FEATURES.md, MANUAL_TEST_GUIDE.md, RELEASE_PLAN.md, TESTING.md)
