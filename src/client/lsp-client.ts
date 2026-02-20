@@ -122,6 +122,16 @@ export async function activateLanguageServer(context: ExtensionContext): Promise
  * Deactivates the Language Server
  * @returns Promise that resolves when client is stopped
  */
+/**
+ * Send a custom request to the language server.
+ */
+export async function sendRequest<T>(method: string, params?: unknown): Promise<T | null> {
+    if (!client || client.state !== State.Running) {
+        return null;
+    }
+    return client.sendRequest<T>(method, params);
+}
+
 export async function deactivateLanguageServer(): Promise<void> {
     outputChannel?.appendLine('Deactivating Structured Text Language Server...');
 

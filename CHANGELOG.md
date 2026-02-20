@@ -10,6 +10,8 @@
 - Verbose console.log in definition provider polluting test and server output
 
 ### Added
+- Pre-release QA manual testing checklist covering all 14 feature categories (#75)
+- Manual test fixtures for rename symbol, find references, .iecst extension, commands, formatting settings (#75)
 - Rich hover tooltips for standard function blocks: parameter tables, behavior descriptions, usage examples (#22)
 - Advanced diagnostics and linting: missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches (#6)
 - Semantic analysis powered by AST parser symbols for deeper code inspection (#6)

@@ -21,3 +21,5 @@ END_VAR
 // - Data types: BOOL, INT, REAL, etc.
 // - Function blocks: TON, CTU, FB_TestMotor, etc.
 // - Variables: motor, counter, temperature
+
+END_PROGRAM

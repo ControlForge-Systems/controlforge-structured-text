@@ -316,8 +316,10 @@ function createCloseParenthesisAction(
     const lines = text.split('\n');
     const lineText = lines[line];
 
-    // Insert at end of line
-    const insertPosition = Position.create(line, lineText.length);
+    // Insert before the trailing semicolon (and any trailing whitespace/comments)
+    const semiIdx = lineText.lastIndexOf(';');
+    const insertCol = semiIdx >= 0 ? semiIdx : lineText.length;
+    const insertPosition = Position.create(line, insertCol);
     const closeParens = ')'.repeat(unclosedCount);
 
     const edit: WorkspaceEdit = {

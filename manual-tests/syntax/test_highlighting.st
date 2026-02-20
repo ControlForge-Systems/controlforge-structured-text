@@ -42,12 +42,34 @@ VAR
     myCounter : CTU;
     myEdgeDetector : R_TRIG;
     myFlipFlop : RS;
+    
+    // Loop variable
+    i : INT;
 END_VAR
+
+(* Block comment test - should be highlighted as comment
+   Multi-line block comments with keywords like IF THEN ELSE inside
+   should not be highlighted as keywords *)
 
 // Test control structures with highlighting
 IF boolVar THEN
     intVar := intVar + 1;
     realVar := ABS(realVar);
+    
+    // Test logical operators: AND, OR, NOT, XOR
+    IF boolVar AND (intVar > 50) THEN
+        stringVar := 'Condition met';
+    END_IF
+    
+    boolVar := (intVar > 0) OR (realVar < 0.0);
+    boolVar := NOT boolVar;
+    
+    // Test MOD operator
+    intVar := intVar MOD 10;
+    
+    // Test string literals with both quote styles
+    stringVar := 'Single-quoted string';
+    wstringVar := "Double-quoted string";
     
     CASE intVar OF
         1..10:
@@ -56,12 +78,18 @@ IF boolVar THEN
             stringVar := 'Medium range';
     ELSE
         stringVar := 'High range';
-    END_CASE;
+    END_CASE
     
     FOR i := 1 TO 10 DO
         lrealVar := lrealVar * 1.1;
-    END_FOR;
+    END_FOR
     
-END_IF;
+    WHILE intVar < 100 DO
+        intVar := intVar + 1;
+    END_WHILE
+    
+END_IF
+
+(* Another block comment at the end *)
 
 END_PROGRAM
