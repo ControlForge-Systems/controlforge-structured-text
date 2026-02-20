@@ -31,12 +31,12 @@ END_VAR
 onDelay(IN := running, PT := T#5s);
 IF onDelay.Q THEN
     counter := counter + 1;
-END_IF;
+END_IF
 
 countUp(CU := rising.Q, R := FALSE, PV := 100);
 IF countUp.Q THEN
     running := FALSE;
-END_IF;
+END_IF
 
 resetDom(S := running, R1 := falling.Q);
 

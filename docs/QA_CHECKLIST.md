@@ -189,7 +189,7 @@ Open `manual-tests/diagnostics/code-action-fixes.st`:
 
 Open `manual-tests/formatting/unformatted-input.st`:
 
-- [ ] Shift+Alt+F (Format Document) → file matches `manual-tests/formatting/expected-output.st`
+- [ ] Format Document (`Ctrl+Shift+I` on Linux, `Shift+Alt+F` on Windows/macOS, or Ctrl+Shift+P → "Format Document") → file matches `manual-tests/formatting/expected-output.st`
 - [ ] Keywords converted to UPPERCASE
 - [ ] Spaces inserted around operators (`:=`, `+`, `*`, etc.)
 - [ ] VAR declarations aligned (colons aligned)

@@ -85,7 +85,8 @@ connection.onInitialize((params: InitializeParams) => {
                 referencesProvider: true,
                 hoverProvider: true,
                 completionProvider: {
-                    resolveProvider: true
+                    resolveProvider: true,
+                    triggerCharacters: ['.', '(']
                 },
                 codeActionProvider: true,
                 renameProvider: {

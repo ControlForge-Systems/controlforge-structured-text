@@ -26,8 +26,8 @@ ELSIF increment THEN
         count := count + 1;
     ELSE
         overflow := TRUE;
-    END_IF;
-END_IF;
+    END_IF
+END_IF
 
 END_FUNCTION_BLOCK
 

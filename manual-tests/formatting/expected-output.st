@@ -18,25 +18,25 @@ PROGRAM main
         temperature := temperature * 0.99;
     ELSE
         temperature := temperature + 0.1;
-    END_IF;
+    END_IF
 
     // Test 3: Nested blocks
     FOR i := 1 TO 10 BY 1 DO
         IF temperature > 50.0 THEN
             counter := counter + 1;
-        END_IF;
-    END_FOR;
+        END_IF
+    END_FOR
 
     // Test 4: WHILE loop
     WHILE counter < 100 AND temperature < 80.0 DO
         counter := counter + 1;
-    END_WHILE;
+    END_WHILE
 
     // Test 5: REPEAT..UNTIL
     REPEAT
         temperature := temperature - 0.1;
     UNTIL temperature <= 25.0
-    END_REPEAT;
+    END_REPEAT
 
     // Test 6: CASE statement
     CASE motorState OF
@@ -46,7 +46,7 @@ PROGRAM main
             message := 'Motor running';
     ELSE
         message := 'Unknown state';
-    END_CASE;
+    END_CASE
 
     // Test 7: Comments should not be modified
     // this comment has if then else keywords

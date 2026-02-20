@@ -16,8 +16,8 @@ IF running THEN
     counter := counter + 1;
     IF counter > 100 THEN
         running := FALSE;
-    END_IF;
-END_IF;
+    END_IF
+END_IF
 
 (* Verify completion works — type "cou" and expect "counter" *)
 (* Verify diagnostics — uncomment next line for missing semicolon *)
@@ -31,10 +31,10 @@ CASE counter OF
     2: message := 'Two';
 ELSE
     message := 'Other';
-END_CASE;
+END_CASE
 
 FOR counter := 1 TO 10 DO
     temperature := temperature + 0.1;
-END_FOR;
+END_FOR
 
 END_PROGRAM

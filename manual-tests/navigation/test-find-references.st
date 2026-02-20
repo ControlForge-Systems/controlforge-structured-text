@@ -14,7 +14,7 @@ END_VAR
     IF counter >= max THEN
         done := TRUE;
         counter := 0;
-    END_IF;
+    END_IF
 END_PROGRAM
 
 (* === Test 2: FB instance references including member access === *)

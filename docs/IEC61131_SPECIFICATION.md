@@ -265,7 +265,7 @@ MotorSpeed := SpeedSetpoint * ScalingFactor;
 ```
 IF ActualTemperature > HighTempAlarm THEN
     AlarmActive := TRUE;
-END_IF;
+END_IF
 ```
 
 **Logical operators (`AND`, `OR`, `NOT`)**: Critical for safety interlocks and condition evaluation:
@@ -381,8 +381,8 @@ IF StartButton.Q THEN
     StartDelay(IN := TRUE, PT := T#3s);
     IF StartDelay.Q THEN
         ProductCounter(CU := TRUE, PV := 100);
-    END_IF;
-END_IF;
+    END_IF
+END_IF
 ```
 
 ### Vendor Support Comparison

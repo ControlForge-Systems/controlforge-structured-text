@@ -13,7 +13,7 @@ END_VAR
     counter := counter + 1;
     IF counter >= limit THEN
         counter := 0;
-    END_IF;
+    END_IF
 END_PROGRAM
 
 (* === Test 2: Rename a function block instance === *)
@@ -110,5 +110,5 @@ VAR
 END_VAR
     IF x > 0 THEN
         x := 0;
-    END_IF;
+    END_IF
 END_PROGRAM

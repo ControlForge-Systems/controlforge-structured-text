@@ -59,7 +59,7 @@ IF boolVar THEN
     // Test logical operators: AND, OR, NOT, XOR
     IF boolVar AND (intVar > 50) THEN
         stringVar := 'Condition met';
-    END_IF;
+    END_IF
     
     boolVar := (intVar > 0) OR (realVar < 0.0);
     boolVar := NOT boolVar;
@@ -78,17 +78,17 @@ IF boolVar THEN
             stringVar := 'Medium range';
     ELSE
         stringVar := 'High range';
-    END_CASE;
+    END_CASE
     
     FOR i := 1 TO 10 DO
         lrealVar := lrealVar * 1.1;
-    END_FOR;
+    END_FOR
     
     WHILE intVar < 100 DO
         intVar := intVar + 1;
-    END_WHILE;
+    END_WHILE
     
-END_IF;
+END_IF
 
 (* Another block comment at the end *)
 

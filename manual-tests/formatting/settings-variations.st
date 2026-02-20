@@ -20,7 +20,7 @@ temperature := temperature * 1.5 + 2.0;
 
 IF running AND counter < 100 THEN
     running := FALSE;
-END_IF;
+END_IF
 
 END_PROGRAM
 

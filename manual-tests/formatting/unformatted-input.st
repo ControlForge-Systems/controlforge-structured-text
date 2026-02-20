@@ -1,5 +1,6 @@
 (* Manual test: Code Formatting - Unformatted input *)
-(* Use Shift+Alt+F to format this file and verify results *)
+(* Use Format Document to format this file and verify results *)
+(* Linux: Ctrl+Shift+I  |  Windows/macOS: Shift+Alt+F  |  Any: Ctrl+Shift+P -> "Format Document" *)
 
 // Test 1: Keyword casing (should become uppercase)
 program main

@@ -134,7 +134,7 @@ IF isRunning THEN
         temperature := temperature * 0.99;
     ELSE
         temperature := temperature + 0.1;
-    END_IF;
+    END_IF
     
     // CASE statement with enumeration
     CASE motorState OF
@@ -150,7 +150,7 @@ IF isRunning THEN
             message := 'Motor fault detected';
     ELSE
         message := 'Unknown motor state';
-    END_CASE;
+    END_CASE
     
     // Traditional CASE with ranges
     CASE counter OF
@@ -162,28 +162,28 @@ IF isRunning THEN
             message := 'Finishing phase';
     ELSE
         message := 'Unknown phase';
-    END_CASE;
+    END_CASE
     
     // FOR loop with array processing
     FOR i := 1 TO 10 BY 1 DO
         tempArray[i] := temperature + REAL(i);
         IF tempArray[i] > 100.0 THEN
             EXIT;
-        END_IF;
-    END_FOR;
+        END_IF
+    END_FOR
     
     // WHILE loop
     j := 1;
     WHILE j <= 5 AND temperature < 100.0 DO
         temperature := temperature + 0.5;
         j := j + 1;
-    END_WHILE;
+    END_WHILE
     
     // REPEAT-UNTIL loop
     REPEAT
         temperature := temperature - 0.1;
     UNTIL temperature <= 25.0 OR counter > 200
-    END_REPEAT;
+    END_REPEAT
     
     // Standard function blocks usage
     pulseTimer(IN := startSignal, PT := T#5s);
@@ -227,7 +227,7 @@ IF isRunning THEN
     globalCounter := globalCounter + 1;
     systemStatus := isRunning AND motor1.running;
     
-END_IF;
+END_IF
 
 END_PROGRAM
 
@@ -274,7 +274,7 @@ CASE status OF
         
         IF start_edge.Q AND enable AND NOT fault THEN
             status := STARTING;
-        END_IF;
+        END_IF
         
     STARTING:
         motor_on := TRUE;
@@ -285,13 +285,13 @@ CASE status OF
             speed_ramp := speed_ramp + 1.0; // 1 unit per scan
         ELSE
             status := RUNNING;
-        END_IF;
+        END_IF
         
         actual_speed := speed_ramp * 0.95; // 95% efficiency
         
         IF stop_edge.Q OR NOT enable THEN
             status := STOPPING;
-        END_IF;
+        END_IF
         
     RUNNING:
         motor_on := TRUE;
@@ -300,7 +300,7 @@ CASE status OF
         
         IF stop_edge.Q OR NOT enable THEN
             status := STOPPING;
-        END_IF;
+        END_IF
         
     STOPPING:
         motor_on := FALSE;
@@ -313,7 +313,7 @@ CASE status OF
             status := STOPPED;
             running := FALSE;
             actual_speed := 0.0;
-        END_IF;
+        END_IF
         
     FAULT:
         motor_on := FALSE;
@@ -324,21 +324,21 @@ CASE status OF
         IF reset_fault THEN
             fault := FALSE;
             status := STOPPED;
-        END_IF;
-END_CASE;
+        END_IF
+END_CASE
 
 // Fault detection with timer
 fault_timer(IN := actual_speed > speed_setpoint * 1.2, PT := T#1s);
 IF fault_timer.Q THEN
     fault := TRUE;
     status := FAULT;
-END_IF;
+END_IF
 
 // Runtime calculation
 runtime_timer(IN := running, PT := T#0s);
 IF running THEN
     runtime := runtime + T#100ms; // Assuming 100ms scan time
-END_IF;
+END_IF
 
 END_FUNCTION_BLOCK
 
@@ -366,13 +366,13 @@ END_VAR
 
 FOR i := 1 TO count DO
     sum := sum + values[i];
-END_FOR;
+END_FOR
 
 IF count > 0 THEN
     ArrayAverage := sum / INT_TO_REAL(count);
 ELSE
     ArrayAverage := 0.0;
-END_IF;
+END_IF
 
 END_FUNCTION
 
@@ -420,7 +420,7 @@ IF enable THEN
     IF NOT (output >= output_max AND error > 0.0) AND 
        NOT (output <= output_min AND error < 0.0) THEN
         integral_sum := integral_sum + error * dt_real;
-    END_IF;
+    END_IF
     integral_term := ki * integral_sum;
     
     // Derivative term (avoid derivative kick on setpoint change)
@@ -429,7 +429,7 @@ IF enable THEN
     ELSE
         derivative_term := 0.0;
         first_scan := FALSE;
-    END_IF;
+    END_IF
     
     // Calculate output
     output := proportional_term + integral_term + derivative_term;
@@ -449,12 +449,12 @@ ELSE
     derivative_term := 0.0;
     proportional_term := 0.0;
     first_scan := TRUE;
-END_IF;
+END_IF
 
 // Reset integral sum on reset signal
 IF reset THEN
     integral_sum := 0.0;
-END_IF;
+END_IF
 
 END_FUNCTION_BLOCK
 

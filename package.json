@@ -39,6 +39,11 @@
   "//": "Note: iec61131-definitions folder is required at runtime for hover, navigation and completion features",
   "activationEvents": [],
   "contributes": {
+    "configurationDefaults": {
+      "[structured-text]": {
+        "editor.defaultFormatter": "ControlForgeSystems.controlforge-structured-text"
+      }
+    },
     "languages": [
       {
         "id": "structured-text",
@@ -69,6 +74,10 @@
       {
         "command": "controlforge-structured-text.showIndexStats",
         "title": "ControlForge Structured Text: Show Index Statistics"
+      },
+      {
+        "command": "controlforge-structured-text.checkLspStatus",
+        "title": "ControlForge Structured Text: Check LSP Status"
       }
     ],
     "configuration": {
