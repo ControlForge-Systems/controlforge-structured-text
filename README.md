@@ -5,6 +5,8 @@
 
 Professional **Structured Text (IEC 61131-3)** development environment for **PLC programming** in Visual Studio Code.
 
+![ControlForge Structured Text Demo](images/demo.gif)
+
 ## Key Features
 
 - **Code Formatting**: Format Document, Format Selection, configurable keyword casing, operator spacing, VAR alignment
@@ -17,10 +19,6 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 - **Smart Code Completion**: Context-aware suggestions for keywords, types, and variables
 - **Workspace Indexing**: Automatic cross-file symbol discovery and resolution
 - **Code Snippets**: Pre-built templates for common PLC patterns
-
-## Demo
-
-https://github.com/user-attachments/assets/76c61465-f230-4d0b-ac11-c1683bbf4aa3
 
 ## Getting Started
 
