@@ -18,11 +18,9 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 - **Workspace Indexing**: Automatic cross-file symbol discovery and resolution
 - **Code Snippets**: Pre-built templates for common PLC patterns
 
-## Screenshots
+## Demo
 
-### Syntax Highlighting & IntelliSense
-![Syntax Highlighting](images/syntax-highlighting.png)
-*Rich syntax highlighting for all IEC 61131-3 constructs*
+https://github.com/user-attachments/assets/76c61465-f230-4d0b-ac11-c1683bbf4aa3
 
 ## Getting Started
 
