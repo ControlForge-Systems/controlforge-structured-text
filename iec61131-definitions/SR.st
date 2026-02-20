@@ -17,7 +17,7 @@
 FUNCTION_BLOCK SR
 VAR_INPUT
     S1 : BOOL;      // Set input - sets Q1 TRUE (dominant, priority)
-    R : BOOL;        // Reset input - resets Q1 FALSE (non-dominant)
+    R : BOOL;       // Reset input - resets Q1 FALSE (non-dominant)
 END_VAR
 VAR_OUTPUT
     Q1 : BOOL;      // Output - latched bistable state
