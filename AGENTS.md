@@ -86,11 +86,13 @@ Add `Priority:` and `Effort:` labels manually per issue. No emoji/icons in title
 ```
 main                   ← stable, tagged releases only; never commit directly
 release-X.Y.0          ← integration branch per milestone; PRs merge here
-feature/issue-N-desc   ← short-lived; cut from the active release branch
+feature/issue-N-desc   ← new functionality
+fix/issue-N-desc       ← bug fixes
+chore/desc             ← tooling, config, deps
+docs/desc              ← documentation only
 ```
 
-- **Feature branches** cut from the active `release-X.Y.0` (matches issue milestone)
-- **PRs** target `release-X.Y.0`, never `main`
+- All branch types target the active `release-X.Y.0` via PR — no direct pushes, no exceptions
 - **`main`** updated only when releasing — merge `release-X.Y.0` → `main` via a release PR, then tag
 - **Hotfixes** branch off `main`, PR back to both `main` and the active release branch
 - Create `release-X.Y.0` at milestone start; delete after merge to `main`
