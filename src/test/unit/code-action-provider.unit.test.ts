@@ -681,4 +681,176 @@ END_PROGRAM`;
             assert.strictEqual(actions[0].isPreferred, true);
         });
     });
+
+    suite("ELSE IF → ELSIF (#57)", () => {
+        test('replaces ELSE IF with ELSIF', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(4, 0, 7, "'ELSE IF' is not valid IEC 61131-3 syntax; use 'ELSIF'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, "Replace 'ELSE IF' with 'ELSIF'");
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+            assert.strictEqual(actions[0].isPreferred, true);
+
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits.length, 1);
+            assert.strictEqual(edits[0].newText, 'ELSIF');
+        });
+
+        test('replaces lowercase else if', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+else if x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(4, 0, 7, "'ELSE IF' is not valid IEC 61131-3 syntax; use 'ELSIF'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 1);
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits[0].newText, 'ELSIF');
+        });
+
+        test('replacement range covers exactly ELSE IF text', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(4, 0, 7, "'ELSE IF' is not valid IEC 61131-3 syntax; use 'ELSIF'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            const edit = actions[0].edit!.changes![document.uri][0];
+            // Range start should be at "ELSE"
+            assert.strictEqual(edit.range.start.line, 4);
+            assert.strictEqual(edit.range.start.character, 0);
+            // Range end should be just after "IF"
+            assert.strictEqual(edit.range.end.line, 4);
+            assert.ok(edit.range.end.character > 0);
+        });
+    });
+
+    suite("Missing THEN / DO (#58)", () => {
+        test('inserts THEN for IF missing THEN', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10
+    x := 1;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 9, 0, "'IF' is missing 'THEN'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Insert THEN');
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+            assert.strictEqual(actions[0].isPreferred, true);
+
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits[0].newText, ' THEN');
+        });
+
+        test('inserts DO for FOR missing DO', () => {
+            const content = `PROGRAM Main
+VAR i : INT; END_VAR
+FOR i := 1 TO 10
+    i := i + 1;
+END_FOR;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 16, 0, "'FOR' is missing 'DO'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Insert DO');
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits[0].newText, ' DO');
+        });
+
+        test('inserts DO for WHILE missing DO', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+WHILE x < 10
+    x := x + 1;
+END_WHILE;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 12, 0, "'WHILE' is missing 'DO'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Insert DO');
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits[0].newText, ' DO');
+        });
+
+        test('inserts THEN for ELSIF missing THEN', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSIF x > 5
+    x := 2;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(4, 11, 0, "'ELSIF' is missing 'THEN'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, 'Insert THEN');
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits[0].newText, ' THEN');
+        });
+
+        test('insertion is at end of trimmed line content', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10
+    x := 1;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 9, 0, "'IF' is missing 'THEN'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            const edit = actions[0].edit!.changes![document.uri][0];
+            // Insert position on line 2: "IF x > 10" is 9 chars
+            assert.strictEqual(edit.range.start.line, 2);
+            assert.strictEqual(edit.range.start.character, 9);
+        });
+    });
 });

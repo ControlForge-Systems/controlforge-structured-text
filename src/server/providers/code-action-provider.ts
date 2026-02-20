@@ -126,6 +126,20 @@ export function provideCodeActions(
                 actions.push(action);
             }
         }
+        // ELSE IF → ELSIF
+        else if (message.includes("'ELSE IF' is not valid")) {
+            const action = createReplaceElseIfWithElsifAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Missing THEN / DO
+        else if (message.includes("is missing 'THEN'") || message.includes("is missing 'DO'")) {
+            const action = createInsertMissingThenDoAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
     }
 
     return actions;
@@ -471,6 +485,78 @@ function createRemoveUnusedVariableAction(
         diagnostics: [diagnostic],
         edit,
         isPreferred: true
+    };
+}
+
+// ─── #57 / #58 action creators ──────────────────────────────────────────────
+
+/**
+ * Replace `ELSE IF` with `ELSIF` on the diagnostic line.
+ *
+ * Message: "'ELSE IF' is not valid IEC 61131-3 syntax; use 'ELSIF'"
+ */
+function createReplaceElseIfWithElsifAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const line = diagnostic.range.start.line;
+    const text = document.getText();
+    const lineText = text.split('\n')[line];
+
+    // Find ELSE IF (case-insensitive) and replace with ELSIF
+    const match = lineText.match(/\b(else)\s+(if)\b/i);
+    if (!match || match.index === undefined) return null;
+
+    const range: Range = {
+        start: Position.create(line, match.index),
+        end: Position.create(line, match.index + match[0].length),
+    };
+
+    // Preserve original casing of ELSE for the replacement (always use ELSIF)
+    const replacement = match[1][0] === match[1][0].toLowerCase() ? 'ELSIF' : 'ELSIF';
+
+    const edit: WorkspaceEdit = {
+        changes: { [document.uri]: [TextEdit.replace(range, replacement)] }
+    };
+
+    return {
+        title: "Replace 'ELSE IF' with 'ELSIF'",
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
+    };
+}
+
+/**
+ * Insert missing THEN or DO keyword at the end of the statement line.
+ *
+ * Message: "'IF/ELSIF/FOR/WHILE' is missing 'THEN'" or "'...' is missing 'DO'"
+ */
+function createInsertMissingThenDoAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const match = diagnostic.message.match(/is missing '(THEN|DO)'/);
+    if (!match) return null;
+    const keyword = match[1];
+
+    const line = diagnostic.range.start.line;
+    const text = document.getText();
+    const lineText = text.split('\n')[line];
+    const insertCol = lineText.trimEnd().length;
+    const insertPosition = Position.create(line, insertCol);
+
+    const edit: WorkspaceEdit = {
+        changes: { [document.uri]: [TextEdit.insert(insertPosition, ` ${keyword}`)] }
+    };
+
+    return {
+        title: `Insert ${keyword}`,
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
     };
 }
 

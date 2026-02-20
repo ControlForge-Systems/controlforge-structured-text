@@ -1136,4 +1136,289 @@ END_PROGRAM`);
             assert.strictEqual(tm!.severity, DiagnosticSeverity.Error);
         });
     });
+
+    // ─── #57: ELSE IF → ELSIF ────────────────────────────────────────────────
+
+    suite('ELSE IF should be ELSIF (#57)', () => {
+        test('detects bare ELSE IF on same line', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("'ELSE IF' is not valid"));
+            assert.ok(d, 'Expected ELSE IF diagnostic');
+        });
+
+        test('detects lowercase else if', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+else if x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("'ELSE IF' is not valid"));
+            assert.ok(d);
+        });
+
+        test('detects mixed case Else If', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+Else If x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("'ELSE IF' is not valid"));
+            assert.ok(d);
+        });
+
+        test('no diagnostic for correct ELSIF', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSIF x > 5 THEN
+    x := 2;
+ELSE
+    x := 3;
+END_IF;
+END_PROGRAM`);
+        });
+
+        test('no diagnostic for ELSE alone', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE
+    x := 2;
+END_IF;
+END_PROGRAM`);
+        });
+
+        test('no false positive for ELSE IF in a comment', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+(* ELSE IF this is just a comment *)
+IF x > 10 THEN
+    x := 1;
+END_IF;
+END_PROGRAM`);
+        });
+
+        test('no false positive for ELSE IF in string literal', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR s : STRING; END_VAR
+s := 'use ELSIF not ELSE_IF';
+END_PROGRAM`);
+        });
+
+        test('diagnostic is Error severity', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("'ELSE IF' is not valid"));
+            assert.ok(d);
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('squiggle range covers ELSE IF span', () => {
+            const src = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`;
+            const diags = diagnose(src);
+            const d = diags.find(d => d.message.includes("'ELSE IF' is not valid"));
+            assert.ok(d);
+            // line 4 (0-indexed): "ELSE IF x > 5 THEN"
+            assert.strictEqual(d!.range.start.line, 4);
+            // should start at column 0 (ELSE is at start)
+            assert.strictEqual(d!.range.start.character, 0);
+        });
+
+        test('multiple ELSE IF occurrences each get a diagnostic', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 8 THEN
+    x := 2;
+ELSE IF x > 5 THEN
+    x := 3;
+END_IF;
+END_PROGRAM`);
+            const found = diags.filter(d => d.message.includes("'ELSE IF' is not valid"));
+            assert.strictEqual(found.length, 2);
+        });
+    });
+
+    // ─── #58: Missing THEN / DO ──────────────────────────────────────────────
+
+    suite('Missing THEN / DO (#58)', () => {
+        test('detects missing THEN after IF condition', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10
+    x := 1;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'THEN'"));
+            assert.ok(d, 'Expected missing THEN diagnostic');
+        });
+
+        test('detects missing THEN after ELSIF condition', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSIF x > 5
+    x := 2;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'THEN'"));
+            assert.ok(d, 'Expected missing THEN on ELSIF');
+        });
+
+        test('detects missing DO after FOR loop header', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR i : INT; END_VAR
+FOR i := 1 TO 10
+    i := i + 1;
+END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'DO'"));
+            assert.ok(d, 'Expected missing DO diagnostic');
+        });
+
+        test('detects missing DO after WHILE condition', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+WHILE x < 10
+    x := x + 1;
+END_WHILE;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'DO'"));
+            assert.ok(d, 'Expected missing DO on WHILE');
+        });
+
+        test('no diagnostic for correct IF...THEN', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+END_IF;
+END_PROGRAM`);
+        });
+
+        test('no diagnostic for correct FOR...DO', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR i : INT; END_VAR
+FOR i := 1 TO 10 DO
+    i := i + 1;
+END_FOR;
+END_PROGRAM`);
+        });
+
+        test('no diagnostic for correct WHILE...DO', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+WHILE x < 10 DO
+    x := x + 1;
+END_WHILE;
+END_PROGRAM`);
+        });
+
+        test('no diagnostic for correct ELSIF...THEN', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSIF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`);
+        });
+
+        test('missing THEN diagnostic is Error severity', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10
+    x := 1;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'THEN'"));
+            assert.ok(d);
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('missing DO diagnostic is Error severity', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR i : INT; END_VAR
+FOR i := 1 TO 10
+    i := i + 1;
+END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'DO'"));
+            assert.ok(d);
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('no false positive for IF in comment', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR x : INT; END_VAR
+(* IF x > 10 -- this is just a comment, no THEN needed *)
+IF x > 10 THEN
+    x := 1;
+END_IF;
+END_PROGRAM`);
+        });
+
+        test('case-insensitive detection for missing THEN', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+if x > 10
+    x := 1;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is missing 'THEN'"));
+            assert.ok(d);
+        });
+    });
 });
