@@ -31,6 +31,7 @@ out/**
 docs/**
 !docs/IEC61131_SPECIFICATION.md
 images/README.md
+images/*.mp4
 publish-extension.sh
 
 # iec61131-definitions/ is needed at runtime for member access - DO NOT EXCLUDE
