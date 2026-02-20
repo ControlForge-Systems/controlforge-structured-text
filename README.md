@@ -7,7 +7,7 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 
 ## Key Features
 
-- **Code Formatting**: Format Document (Shift+Alt+F), Format Selection, configurable keyword casing, operator spacing, VAR alignment
+- **Code Formatting**: Format Document, Format Selection, configurable keyword casing, operator spacing, VAR alignment
 - **Real-time Diagnostics**: Errors and warnings as you type — missing semicolons, type mismatches, undefined/unused variables, unmatched blocks
 - **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, semicolons, duplicate/unused declarations, unclosed strings
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
@@ -105,7 +105,7 @@ END_PROGRAM
 - **Light bulb menu**: Fixes appear via `Ctrl+.` or clicking the light bulb icon
 
 ### Code Formatting
-- **Format Document**: `Shift+Alt+F` to format entire file
+- **Format Document**: Format entire file via Command Palette (`Ctrl+Shift+P` > Format Document)
 - **Format Selection**: Format only selected code
 - **Keyword casing**: Configurable UPPER, lower, or preserve
 - **Operator spacing**: Automatic spaces around `:=`, `+`, `-`, `*`, `/`, `=`, `<>`, `<=`, `>=`
@@ -136,15 +136,15 @@ END_PROGRAM
 - **Visual Studio Code** 1.100.0 or higher
 - **Operating System**: Windows, macOS, or Linux
 
-## What's New (Unreleased)
+## What's New in v1.3.0
 - **Rich FB Hover Tooltips**: Standard function blocks show parameter tables, behavior descriptions, and usage examples on hover
 - **Advanced Diagnostics**: Missing semicolons, duplicate declarations, undefined variables, unused variables, type mismatches — all with quick fixes
-- **Code Formatting**: Format Document (Shift+Alt+F) and Format Selection with keyword casing, operator spacing, indentation, VAR alignment
+- **Code Formatting**: Format Document and Format Selection with keyword casing, operator spacing, indentation, VAR alignment
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with identifier validation and comment-awareness
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **353 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
+- **366 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
