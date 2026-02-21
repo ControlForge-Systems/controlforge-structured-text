@@ -66,6 +66,12 @@
         "path": "./syntaxes/structured-text.tmLanguage.json"
       }
     ],
+    "snippets": [
+      {
+        "language": "structured-text",
+        "path": "./snippets/structured-text.code-snippets"
+      }
+    ],
     "commands": [
       {
         "command": "controlforge-structured-text.validateSyntax",
