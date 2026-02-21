@@ -189,7 +189,16 @@ function checkUnmatchedBlocks(cleanLines: CleanLine[], rawLines: string[]): Diag
         // But we need position info, so we scan with regex.
         const tokens = extractKeywordTokens(lineUpper);
 
-        for (const token of tokens) {
+        for (let ti = 0; ti < tokens.length; ti++) {
+            const token = tokens[ti];
+
+            // Skip bare IF that is preceded by ELSE on the same line —
+            // that is an ELSE IF pattern, already flagged by checkElseIfShouldBeElsif.
+            // Treating it as a block opener causes a spurious unmatched-IF diagnostic.
+            if (token.text === 'IF' && ti > 0 && tokens[ti - 1].text === 'ELSE') {
+                continue;
+            }
+
             // Check close keywords first (longer first)
             let matchedClose = false;
             for (const closeKw of allCloseKeywordsSorted) {

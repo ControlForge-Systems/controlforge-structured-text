@@ -544,7 +544,12 @@ function createInsertMissingThenDoAction(
     const line = diagnostic.range.start.line;
     const text = document.getText();
     const lineText = text.split('\n')[line];
-    const insertCol = lineText.trimEnd().length;
+    // Strip inline comments before computing insert column so that THEN/DO
+    // is not appended inside or after a trailing block/line comment.
+    const strippedLine = lineText
+        .replace(/\(\*.*?\*\)/g, match => ' '.repeat(match.length)) // inline block comments
+        .replace(/\/\/.*$/, '');                                      // line comments
+    const insertCol = strippedLine.trimEnd().length;
     const insertPosition = Position.create(line, insertCol);
 
     const edit: WorkspaceEdit = {

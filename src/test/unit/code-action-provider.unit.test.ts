@@ -852,5 +852,51 @@ END_PROGRAM`;
             assert.strictEqual(edit.range.start.line, 2);
             assert.strictEqual(edit.range.start.character, 9);
         });
+
+        test('inserts THEN before trailing block comment, not after it', () => {
+            // Line: "IF level > 90                  (* <-- missing THEN *)"
+            // THEN must be inserted before the comment, not at end of raw line.
+            const content = `PROGRAM Main
+VAR level : INT; END_VAR
+IF level > 90                  (* missing THEN *)
+    level := 0;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            // diagnostic col points to end of stripped line: "IF level > 90" = col 13
+            const diagnostic = createDiagnostic(2, 13, 0, "'IF' is missing 'THEN'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 1);
+            const edit = actions[0].edit!.changes![document.uri][0];
+            assert.strictEqual(edit.newText, ' THEN');
+            // Insert col must be BEFORE the comment, not at raw line end
+            const rawLineLen = `IF level > 90                  (* missing THEN *)`.length;
+            assert.ok(
+                edit.range.start.character < rawLineLen,
+                `Expected insert col ${edit.range.start.character} < raw line len ${rawLineLen}`
+            );
+        });
+
+        test('inserts THEN before trailing line comment, not after it', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10   // missing THEN here
+    x := 1;
+END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 9, 0, "'IF' is missing 'THEN'");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            const edit = actions[0].edit!.changes![document.uri][0];
+            assert.strictEqual(edit.newText, ' THEN');
+            // Must insert before "// missing THEN here"
+            const commentStart = `IF x > 10   `.length;
+            assert.ok(edit.range.start.character <= commentStart,
+                `Expected insert at or before col ${commentStart}, got ${edit.range.start.character}`);
+        });
     });
 });

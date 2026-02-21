@@ -1275,6 +1275,20 @@ END_PROGRAM`);
             const found = diags.filter(d => d.message.includes("'ELSE IF' is not valid"));
             assert.strictEqual(found.length, 2);
         });
+
+        test('ELSE IF does not produce spurious unmatched-IF diagnostic', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR x : INT; END_VAR
+IF x > 10 THEN
+    x := 1;
+ELSE IF x > 5 THEN
+    x := 2;
+END_IF;
+END_PROGRAM`);
+            const spurious = diags.filter(d => d.message.includes("'IF' is missing closing 'END_IF'"));
+            assert.strictEqual(spurious.length, 0, 'Expected no spurious unmatched-IF from ELSE IF');
+        });
     });
 
     // ─── #58: Missing THEN / DO ──────────────────────────────────────────────

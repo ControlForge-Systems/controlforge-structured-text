@@ -158,6 +158,17 @@ Open `manual-tests/code-actions/unmatched-parens.st`:
 
 - [ ] Unmatched parentheses → diagnostics shown
 
+Open `manual-tests/diagnostics/keyword-syntax-checks.st`:
+
+- [ ] `ELSE IF` (both occurrences) → error squiggle on `ELSE IF` span
+- [ ] Lowercase `else if` and mixed-case `Else If` → both flagged
+- [ ] `ELSIF` (correct) → no diagnostic
+- [ ] `IF level > 90` with no `THEN` → error squiggle at end of line
+- [ ] `ELSIF level > 70` with no `THEN` → error squiggle at end of line
+- [ ] `FOR i := 1 TO 100` with no `DO` → error squiggle at end of line
+- [ ] `WHILE count < 10` with no `DO` → error squiggle at end of line
+- [ ] `NoFalsePositives` block → no diagnostics (keywords in comments ignored)
+
 ## 9. Code Actions (Quick Fixes)
 
 Open `manual-tests/code-actions/missing-end-blocks.st`:
@@ -184,6 +195,14 @@ Open `manual-tests/diagnostics/code-action-fixes.st`:
 - [ ] Missing semicolon → "Insert semicolon" action works
 - [ ] Duplicate variable → "Remove duplicate declaration" action works
 - [ ] Unused variable → "Remove unused variable" action works
+
+Open `manual-tests/code-actions/keyword-syntax-fixes.st`:
+
+- [ ] `ELSE IF` line → lightbulb offers "Replace 'ELSE IF' with 'ELSIF'", apply → line becomes `ELSIF`
+- [ ] `IF level > 90` (no THEN) → lightbulb offers "Insert THEN", apply → ` THEN` inserted before any trailing comment
+- [ ] `ELSIF level > 70` (no THEN) → same fix works
+- [ ] `FOR i := 1 TO 10` (no DO) → lightbulb offers "Insert DO", apply → ` DO` appended
+- [ ] `WHILE count > 0` (no DO) → same fix works
 
 ## 10. Code Formatting
 
