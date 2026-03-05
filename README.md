@@ -97,6 +97,7 @@ END_PROGRAM
 - **Unused variables**: Local variables declared but never referenced in body
 - **Type mismatches**: Incompatible assignments (e.g., STRING to INT, BOOL to INT)
 - **CONSTANT assignment**: Assignment to `VAR CONSTANT` or `VAR_GLOBAL CONSTANT` variables flagged as error
+- **Array bounds**: Out-of-bounds literal index on `ARRAY[L..U]` variables flagged as error (single- and multi-dimensional)
 - **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
 - **Case-insensitive**: Keyword matching per IEC 61131-3
 
