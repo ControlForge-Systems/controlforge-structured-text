@@ -140,6 +140,13 @@ export function provideCodeActions(
                 actions.push(action);
             }
         }
+        // Invalid FB member — offer closest-match replacement if suggestion present
+        else if (message.includes('is not a member of') && message.includes('did you mean')) {
+            const action = createReplaceInvalidMemberAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
     }
 
     return actions;
@@ -578,4 +585,32 @@ function findNextPouStart(lines: string[], startLine: number): number {
     }
 
     return -1;
+}
+
+/**
+ * Create action to replace an invalid FB member with the closest valid one.
+ *
+ * Message format: "'MEMBER' is not a member of 'FBTYPE' (did you mean 'CLOSEST'?)"
+ */
+function createReplaceInvalidMemberAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const match = diagnostic.message.match(/did you mean '(\w+)'/);
+    if (!match) return null;
+    const suggestion = match[1];
+
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [TextEdit.replace(diagnostic.range, suggestion)]
+        }
+    };
+
+    return {
+        title: `Replace with '${suggestion}'`,
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
+    };
 }

@@ -1421,4 +1421,214 @@ END_PROGRAM`);
             assert.ok(d);
         });
     });
+
+    suite('FB Call Validation — Invalid Member Access', () => {
+
+        test('flags access to non-existent member on standard FB', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+IF myTimer.INVALID THEN
+    myTimer.Q := FALSE;
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is not a member of 'TON'"));
+            assert.ok(d, 'Should flag invalid member access');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('does not flag valid standard FB member', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+IF myTimer.Q THEN
+    myTimer(IN := TRUE, PT := T#5s);
+END_IF;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes("is not a member of 'TON'"));
+            assert.strictEqual(d.length, 0, 'Should not flag valid members');
+        });
+
+        test('suggests closest match in message', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+IF myTimer.QQ THEN
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("is not a member of 'TON'"));
+            assert.ok(d, 'Should flag invalid member');
+            assert.ok(d!.message.includes('did you mean'), 'Should include suggestion');
+        });
+
+        test('case-insensitive member comparison', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+IF myTimer.q THEN
+END_IF;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes("is not a member of 'TON'"));
+            assert.strictEqual(d.length, 0, 'Lowercase member should be valid');
+        });
+
+        test('does not flag member access on non-FB variable', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 1;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('is not a member of'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('does not flag member on unknown FB type', () => {
+            // If FB type is not in standard or custom, skip validation (no false positives)
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myDrive : SOME_VENDOR_FB;
+END_VAR
+IF myDrive.Running THEN
+END_IF;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('is not a member of'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('flags invalid member on custom FB', () => {
+            const diags = diagnoseWithSymbols(`
+FUNCTION_BLOCK FB_Motor
+VAR_INPUT
+    Enable : BOOL;
+END_VAR
+VAR_OUTPUT
+    Running : BOOL;
+END_VAR
+END_FUNCTION_BLOCK
+
+PROGRAM Main
+VAR
+    motor : FB_Motor;
+END_VAR
+IF motor.NONEXISTENT THEN
+END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('is not a member of'));
+            assert.ok(d, 'Should flag invalid member on custom FB');
+        });
+
+        test('does not flag valid member on custom FB', () => {
+            const diags = diagnoseWithSymbols(`
+FUNCTION_BLOCK FB_Motor
+VAR_INPUT
+    Enable : BOOL;
+END_VAR
+VAR_OUTPUT
+    Running : BOOL;
+END_VAR
+END_FUNCTION_BLOCK
+
+PROGRAM Main
+VAR
+    motor : FB_Motor;
+END_VAR
+IF motor.Running THEN
+END_IF;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('is not a member of'));
+            assert.strictEqual(d.length, 0);
+        });
+    });
+
+    suite('FB Call Validation — Duplicate Parameters', () => {
+
+        test('flags duplicate named parameter in FB call', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+myTimer(IN := TRUE, PT := T#5s, IN := FALSE);
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Duplicate parameter 'IN'"));
+            assert.ok(d, 'Should flag duplicate parameter');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('does not flag unique parameters', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+myTimer(IN := TRUE, PT := T#5s);
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Duplicate parameter'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('duplicate detection is case-insensitive', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+myTimer(IN := TRUE, PT := T#5s, in := FALSE);
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('Duplicate parameter'));
+            assert.ok(d, 'Case-insensitive duplicate should be flagged');
+        });
+
+        test('flags duplicate on second occurrence', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+myTimer(IN := TRUE, PT := T#5s, IN := FALSE);
+END_PROGRAM`);
+            // Should only flag the second IN, not both
+            const dups = diags.filter(d => d.message.includes("Duplicate parameter 'IN'"));
+            assert.strictEqual(dups.length, 1, 'Only second occurrence flagged');
+        });
+
+        test('does not flag non-FB call param assignments', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    x : INT;
+    y : INT;
+END_VAR
+x := 1;
+y := 2;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Duplicate parameter'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('handles multi-duplicate parameters', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+myTimer(IN := TRUE, PT := T#5s, IN := FALSE, PT := T#10s);
+END_PROGRAM`);
+            const ins = diags.filter(d => d.message.includes("Duplicate parameter 'IN'"));
+            const pts = diags.filter(d => d.message.includes("Duplicate parameter 'PT'"));
+            assert.strictEqual(ins.length, 1);
+            assert.strictEqual(pts.length, 1);
+        });
+    });
 });
