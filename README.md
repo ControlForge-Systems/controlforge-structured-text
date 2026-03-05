@@ -96,6 +96,7 @@ END_PROGRAM
 - **Undefined variables**: Identifiers used but not declared, with fuzzy "did you mean?" matching
 - **Unused variables**: Local variables declared but never referenced in body
 - **Type mismatches**: Incompatible assignments (e.g., STRING to INT, BOOL to INT)
+- **CONSTANT assignment**: Assignment to `VAR CONSTANT` or `VAR_GLOBAL CONSTANT` variables flagged as error
 - **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
 - **Case-insensitive**: Keyword matching per IEC 61131-3
 
@@ -149,7 +150,7 @@ END_PROGRAM
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **366 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
+- **465 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly

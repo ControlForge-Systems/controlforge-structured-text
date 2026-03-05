@@ -1306,7 +1306,104 @@ function inferExpressionType(expr: string, symByName: Map<string, STSymbolExtend
     return null;
 }
 
-// ─── Fuzzy matching for "did you mean?" suggestions ─────────────────────────
+// ─── Constant assignment detection ──────────────────────────────────────────
+
+/**
+ * Detect assignments to variables declared with the CONSTANT qualifier.
+ *
+ * Scans POU body lines (outside VAR sections) and global-scope lines for
+ * assignment statements whose LHS identifier is a known constant symbol.
+ * Case-insensitive per IEC 61131-3.
+ *
+ * Message format: "Cannot assign to constant '<NAME>'"
+ */
+function checkConstantAssignment(
+    cleanLines: CleanLine[],
+    rawLines: string[],
+    symbols: STSymbolExtended[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Build set of constant names (upper-case) — includes globals and locals
+    const constantNames = new Set<string>();
+    for (const sym of symbols) {
+        if (sym.isConstant) {
+            constantNames.add(sym.name.toUpperCase());
+        }
+    }
+    if (constantNames.size === 0) return diagnostics;
+
+    // Simple assignment LHS pattern: optional whitespace, identifier, optional
+    // whitespace, := (not preceded by another :, i.e. not a named-param assign
+    // at start of line — which is impossible, but guarded anyway).
+    // We only check the outermost (not inside parens) LHS to avoid flagging
+    // named-parameter assigns like  FB(IN := MAX_TEMP).
+    const pouRanges = buildPouRanges(symbols, rawLines);
+
+    // ── Check inside POUs ──
+    for (const pou of pouRanges) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            checkLineForConstantAssign(cl, constantNames, diagnostics);
+        }
+    }
+
+    // ── Check global scope (outside any POU) ──
+    // Build set of all POU line ranges so we can skip them
+    const pouLineRanges = pouRanges.map(p => ({ start: p.startLine, end: p.endLine }));
+
+    for (const cl of cleanLines) {
+        if (pouLineRanges.some(r => cl.lineIndex >= r.start && cl.lineIndex <= r.end)) continue;
+        checkLineForConstantAssign(cl, constantNames, diagnostics);
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Check a single clean line for a top-level (depth-0) assignment to a constant.
+ */
+function checkLineForConstantAssign(
+    cl: CleanLine,
+    constantNames: Set<string>,
+    diagnostics: Diagnostic[]
+): void {
+    const noStrings = stripStringLiterals(cl.text);
+
+    // Walk character-by-character tracking paren depth.
+    // At depth 0, look for:  <identifier> <whitespace>* :=
+    const identRegex = /\b([A-Za-z_]\w*)\s*:=/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = identRegex.exec(noStrings)) !== null) {
+        const colonEqIdx = match.index + match[0].lastIndexOf(':=');
+
+        // Verify paren depth at the position of ':='
+        let depth = 0;
+        for (let k = 0; k < colonEqIdx; k++) {
+            if (noStrings[k] === '(') depth++;
+            else if (noStrings[k] === ')') depth--;
+        }
+        if (depth !== 0) continue; // inside a parenthesised expression — named param
+
+        const name = match[1];
+        if (!constantNames.has(name.toUpperCase())) continue;
+
+        diagnostics.push(createDiagnostic(
+            cl.lineIndex,
+            match.index,
+            name.length,
+            `Cannot assign to constant '${name}'`,
+            DiagnosticSeverity.Error
+        ));
+    }
+}
+
+
 
 /**
  * Compute Levenshtein distance between two strings.
@@ -1779,6 +1876,7 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
         diagnostics.push(...checkTypeMismatches(cleanLines, symbols));
         diagnostics.push(...checkFBCallInvalidMembers(cleanLines, rawLines, symbols));
         diagnostics.push(...checkFBCallDuplicateParams(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkConstantAssignment(cleanLines, rawLines, symbols));
     }
 
     return diagnostics;
