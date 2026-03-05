@@ -45,6 +45,10 @@ Files for testing document and range formatting:
 - `expected-output.st` - Expected result after formatting (idempotency check)
 - `settings-variations.st` - Test formatting with different VS Code settings (keywordCase, operator spacing, alignment, etc.)
 
+### `/snippets/` - Code Snippet Tests
+Files for testing IEC 61131-3 code snippets:
+- `snippets-test.st` - All snippet prefixes, expected expansions, and tab stop behaviour
+
 ### `/hover/` - Hover Tooltip Tests
 Files for testing hover information and tooltips:
 - `fb-hover-tooltips.st` - Standard function block hover tooltips with parameter tables, behavior, examples

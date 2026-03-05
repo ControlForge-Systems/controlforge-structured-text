@@ -16,7 +16,8 @@
   "homepage": "https://controlforge.dev/",
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.100.0",
+    "node": ">=22.0.0"
   },
   "categories": [
     "Programming Languages"
@@ -64,6 +65,12 @@
         "language": "structured-text",
         "scopeName": "source.structured-text",
         "path": "./syntaxes/structured-text.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "structured-text",
+        "path": "./syntaxes/structured-text.code-snippets"
       }
     ],
     "commands": [

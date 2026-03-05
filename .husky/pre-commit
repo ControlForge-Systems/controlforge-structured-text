@@ -1,3 +1,11 @@
+#!/bin/sh
+# Load nvm so the correct Node version is available in non-interactive shells
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+# shellcheck disable=SC1091
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" --no-use
+# Use the version specified in .nvmrc or the default nvm alias
+nvm use 2>/dev/null || nvm use default 2>/dev/null || true
+
 echo "🔍 Running pre-commit tests..."
 
 # Colors for output

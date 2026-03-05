@@ -1,0 +1,295 @@
+{
+    "IF / THEN / END_IF": {
+        "prefix": "st if",
+        "body": [
+            "IF ${1:condition} THEN",
+            "\t${2:// body}",
+            "END_IF;"
+        ],
+        "description": "IF / THEN / END_IF block"
+    },
+    "IF / ELSIF / ELSE / END_IF": {
+        "prefix": "st ife",
+        "body": [
+            "IF ${1:condition} THEN",
+            "\t${2:// if-body}",
+            "ELSIF ${3:condition2} THEN",
+            "\t${4:// elsif-body}",
+            "ELSE",
+            "\t${5:// else-body}",
+            "END_IF;"
+        ],
+        "description": "IF / ELSIF / ELSE / END_IF block"
+    },
+    "CASE / OF / END_CASE": {
+        "prefix": "st case",
+        "body": [
+            "CASE ${1:expression} OF",
+            "\t${2:0}:",
+            "\t\t${3:// case-body}",
+            "\t${4:1}:",
+            "\t\t${5:// case-body}",
+            "ELSE",
+            "\t${6:// default-body}",
+            "END_CASE;"
+        ],
+        "description": "CASE / OF / END_CASE statement"
+    },
+    "FOR loop": {
+        "prefix": "st for",
+        "body": [
+            "FOR ${1:i} := ${2:0} TO ${3:9} BY ${4:1} DO",
+            "\t${5:// body}",
+            "END_FOR;"
+        ],
+        "description": "FOR / TO / BY / DO / END_FOR loop"
+    },
+    "WHILE loop": {
+        "prefix": "st while",
+        "body": [
+            "WHILE ${1:condition} DO",
+            "\t${2:// body}",
+            "END_WHILE;"
+        ],
+        "description": "WHILE / DO / END_WHILE loop"
+    },
+    "REPEAT / UNTIL loop": {
+        "prefix": "st repeat",
+        "body": [
+            "REPEAT",
+            "\t${1:// body}",
+            "UNTIL ${2:condition}",
+            "END_REPEAT;"
+        ],
+        "description": "REPEAT / UNTIL / END_REPEAT loop"
+    },
+    "PROGRAM": {
+        "prefix": "st program",
+        "body": [
+            "PROGRAM ${1:ProgramName}",
+            "VAR",
+            "\t${2:varName} : ${3|BOOL,INT,DINT,REAL,STRING,TIME,TOD,DATE,DT|};",
+            "END_VAR",
+            "",
+            "\t${4:// body}",
+            "",
+            "END_PROGRAM"
+        ],
+        "description": "PROGRAM / END_PROGRAM declaration"
+    },
+    "FUNCTION": {
+        "prefix": "st function",
+        "body": [
+            "FUNCTION ${1:FunctionName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME,VOID|}",
+            "VAR_INPUT",
+            "\t${3:paramName} : ${4|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR",
+            "VAR",
+            "\t${5:varName} : ${6|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR",
+            "",
+            "\t${1} := ${7:// return value};",
+            "",
+            "END_FUNCTION"
+        ],
+        "description": "FUNCTION / END_FUNCTION declaration"
+    },
+    "FUNCTION_BLOCK": {
+        "prefix": "st fb",
+        "body": [
+            "FUNCTION_BLOCK ${1:FBName}",
+            "VAR_INPUT",
+            "\t${2:inputName} : ${3|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR",
+            "VAR_OUTPUT",
+            "\t${4:outputName} : ${5|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR",
+            "VAR",
+            "\t${6:varName} : ${7|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR",
+            "",
+            "\t${8:// body}",
+            "",
+            "END_FUNCTION_BLOCK"
+        ],
+        "description": "FUNCTION_BLOCK / END_FUNCTION_BLOCK declaration"
+    },
+    "VAR block": {
+        "prefix": "st var",
+        "body": [
+            "VAR",
+            "\t${1:varName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME,TOD,DATE,DT|};",
+            "END_VAR"
+        ],
+        "description": "VAR / END_VAR local variable block"
+    },
+    "VAR_INPUT block": {
+        "prefix": "st var_input",
+        "body": [
+            "VAR_INPUT",
+            "\t${1:paramName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR"
+        ],
+        "description": "VAR_INPUT / END_VAR block"
+    },
+    "VAR_OUTPUT block": {
+        "prefix": "st var_output",
+        "body": [
+            "VAR_OUTPUT",
+            "\t${1:paramName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR"
+        ],
+        "description": "VAR_OUTPUT / END_VAR block"
+    },
+    "VAR_IN_OUT block": {
+        "prefix": "st var_in_out",
+        "body": [
+            "VAR_IN_OUT",
+            "\t${1:paramName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR"
+        ],
+        "description": "VAR_IN_OUT / END_VAR block"
+    },
+    "VAR_TEMP block": {
+        "prefix": "st var_temp",
+        "body": [
+            "VAR_TEMP",
+            "\t${1:varName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR"
+        ],
+        "description": "VAR_TEMP / END_VAR block"
+    },
+    "VAR_GLOBAL block": {
+        "prefix": "st var_global",
+        "body": [
+            "VAR_GLOBAL",
+            "\t${1:varName} : ${2|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR"
+        ],
+        "description": "VAR_GLOBAL / END_VAR block"
+    },
+    "TYPE STRUCT": {
+        "prefix": "st struct",
+        "body": [
+            "TYPE ${1:StructName} :",
+            "\tSTRUCT",
+            "\t\t${2:fieldName} : ${3|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "\tEND_STRUCT",
+            "END_TYPE"
+        ],
+        "description": "TYPE / STRUCT / END_STRUCT / END_TYPE definition"
+    },
+    "TYPE ENUM": {
+        "prefix": "st enum",
+        "body": [
+            "TYPE ${1:EnumName} :",
+            "\t(",
+            "\t\t${2:VALUE1},",
+            "\t\t${3:VALUE2},",
+            "\t\t${4:VALUE3}",
+            "\t) ${5|INT,DINT,UINT,UDINT|};",
+            "END_TYPE"
+        ],
+        "description": "TYPE enumeration / END_TYPE definition"
+    },
+    "TYPE UNION": {
+        "prefix": "st union",
+        "body": [
+            "TYPE ${1:UnionName} :",
+            "\tUNION",
+            "\t\t${2:fieldName1} : ${3|BOOL,INT,DINT,REAL|};",
+            "\t\t${4:fieldName2} : ${5|BYTE,WORD,DWORD,LWORD|};",
+            "\tEND_UNION",
+            "END_TYPE"
+        ],
+        "description": "TYPE / UNION / END_UNION / END_TYPE definition"
+    },
+    "SFC INITIAL_STEP": {
+        "prefix": "st initial_step",
+        "body": [
+            "INITIAL_STEP ${1:StepName} :",
+            "\t${2:ActionName}(${3|N,P,D,L,S,R,SL,SD,DS|});",
+            "END_STEP"
+        ],
+        "description": "SFC INITIAL_STEP / END_STEP"
+    },
+    "SFC STEP": {
+        "prefix": "st step",
+        "body": [
+            "STEP ${1:StepName} :",
+            "\t${2:ActionName}(${3|N,P,D,L,S,R,SL,SD,DS|});",
+            "END_STEP"
+        ],
+        "description": "SFC STEP / END_STEP"
+    },
+    "SFC ACTION": {
+        "prefix": "st action",
+        "body": [
+            "ACTION ${1:ActionName} :",
+            "\t${2:// body}",
+            "END_ACTION"
+        ],
+        "description": "SFC ACTION / END_ACTION"
+    },
+    "SFC TRANSITION": {
+        "prefix": "st transition",
+        "body": [
+            "TRANSITION FROM ${1:SourceStep} TO ${2:DestStep} :=",
+            "\t${3:condition};",
+            "END_TRANSITION"
+        ],
+        "description": "SFC TRANSITION / END_TRANSITION"
+    },
+    "CLASS": {
+        "prefix": "st class",
+        "body": [
+            "CLASS ${1:ClassName}",
+            "VAR",
+            "\t${2:fieldName} : ${3|BOOL,INT,DINT,REAL,STRING,TIME|};",
+            "END_VAR",
+            "",
+            "\t${4:// methods}",
+            "",
+            "END_CLASS"
+        ],
+        "description": "CLASS / END_CLASS declaration (Edition 3 OOP)"
+    },
+    "METHOD": {
+        "prefix": "st method",
+        "body": [
+            "METHOD ${1:MethodName} : ${2|BOOL,INT,DINT,REAL,STRING,VOID|}",
+            "VAR_INPUT",
+            "\t${3:paramName} : ${4|BOOL,INT,DINT,REAL,STRING|};",
+            "END_VAR",
+            "",
+            "\t${1} := ${5:// return value};",
+            "",
+            "END_METHOD"
+        ],
+        "description": "METHOD / END_METHOD declaration (Edition 3 OOP)"
+    },
+    "PROPERTY": {
+        "prefix": "st property",
+        "body": [
+            "PROPERTY ${1:PropertyName} : ${2|BOOL,INT,DINT,REAL,STRING|}",
+            "END_PROPERTY"
+        ],
+        "description": "PROPERTY / END_PROPERTY (Beckhoff TwinCAT extension)"
+    },
+    "NAMESPACE": {
+        "prefix": "st namespace",
+        "body": [
+            "NAMESPACE ${1:NamespaceName}",
+            "\t${2:// declarations}",
+            "END_NAMESPACE"
+        ],
+        "description": "NAMESPACE / END_NAMESPACE (Edition 3 OOP)"
+    },
+    "Variable declaration": {
+        "prefix": "st var decl",
+        "body": [
+            "${1:varName} : ${2|BOOL,INT,DINT,LINT,UINT,UDINT,ULINT,REAL,LREAL,STRING,WSTRING,TIME,TOD,DATE,DT,BYTE,WORD,DWORD,LWORD|};"
+        ],
+        "description": "Single variable declaration with type choice"
+    }
+}

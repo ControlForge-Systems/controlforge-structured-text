@@ -19,12 +19,15 @@
  *  - Undefined variable usage
  *  - Unused variable warnings
  *  - Type mismatch on assignment
+ *  - FB member access validation (invalid members, closest-match suggestion)
+ *  - FB call duplicate named parameter detection
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, DiagnosticSeverity, Range, Position } from 'vscode-languageserver';
-import { STSymbolExtended, STSymbolKind, STScope } from '../../shared/types';
+import { STSymbolExtended, STSymbolKind, STScope, STDeclaration } from '../../shared/types';
 import { IEC61131Specification, isKeyword, isDataType } from '../../iec61131_specification';
+import { MemberAccessProvider } from './member-access-provider';
 
 // ─── Block keyword pairs ────────────────────────────────────────────────────
 
@@ -906,6 +909,244 @@ function escapeRegex(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// ─── FB call validation ──────────────────────────────────────────────────────
+
+/**
+ * Build a Map<string, STDeclaration> of custom FB types from the symbol list.
+ * Used by FB call validation checks.
+ */
+function buildCustomFBTypes(symbols: STSymbolExtended[]): Map<string, STDeclaration> {
+    const map = new Map<string, STDeclaration>();
+    for (const sym of symbols) {
+        if (sym.kind !== STSymbolKind.FunctionBlock) continue;
+        const decl: STDeclaration = {
+            type: 'function_block' as never,
+            location: sym.location.range,
+            name: sym.name,
+            parameters: sym.parameters,
+            variables: sym.members as STDeclaration['variables'],
+        };
+        map.set(sym.name.toUpperCase(), decl);
+    }
+    return map;
+}
+
+/**
+ * Detect accesses to non-existent members on FB instances.
+ *
+ * For each `instance.member` token pair found in POU body lines:
+ *  - Resolve the instance to an FB type via the symbol list
+ *  - Look up available members via MemberAccessProvider
+ *  - If the member is unknown, emit an error with a closest-match suggestion
+ *
+ * Message format: "'MEMBER' is not a member of 'FBTYPE' (did you mean 'CLOSEST'?)"
+ * or             "'MEMBER' is not a member of 'FBTYPE'"
+ */
+function checkFBCallInvalidMembers(
+    cleanLines: CleanLine[],
+    rawLines: string[],
+    symbols: STSymbolExtended[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const memberProvider = new MemberAccessProvider();
+    const customFBTypes = buildCustomFBTypes(symbols);
+    const pouRanges = buildPouRanges(symbols, rawLines);
+
+    // Build instance→type map: variable name (upper) → dataType (upper)
+    // Include both FunctionBlockInstance and Variable — standard FBs (TON, CTU, etc.)
+    // are classified as Variable by the parser since they're in KNOWN_TYPES.
+    const instanceTypeMap = new Map<string, string>();
+    for (const sym of symbols) {
+        if (!sym.dataType) continue;
+        if (sym.kind === STSymbolKind.FunctionBlockInstance ||
+            sym.kind === STSymbolKind.Variable) {
+            const typeUpper = sym.dataType.toUpperCase();
+            // Only register if the type has known FB members
+            if (memberProvider.getAvailableMembers(typeUpper, customFBTypes).length > 0) {
+                instanceTypeMap.set(sym.name.toUpperCase(), typeUpper);
+            }
+        }
+    }
+
+    for (const pou of pouRanges) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const noStrings = stripStringLiterals(cl.text);
+            const regex = /\b([A-Za-z_]\w*)\s*\.\s*([A-Za-z_]\w*)\b/g;
+            let match: RegExpExecArray | null;
+
+            while ((match = regex.exec(noStrings)) !== null) {
+                const instanceName = match[1];
+                const memberName = match[2];
+                const fbType = instanceTypeMap.get(instanceName.toUpperCase());
+                if (!fbType) continue; // not a known FB instance
+
+                const available = memberProvider.getAvailableMembers(fbType, customFBTypes);
+                if (available.length === 0) continue; // unknown FB type — skip
+
+                const validNames = available.map(m => m.name);
+                const validNamesUpper = validNames.map(n => n.toUpperCase());
+                if (validNamesUpper.includes(memberName.toUpperCase())) continue; // valid
+
+                // Compute column: find actual match position in raw line
+                const lineText = cl.text;
+                const dotIndex = lineText.indexOf(instanceName + '.');
+                const memberCol = dotIndex >= 0
+                    ? dotIndex + instanceName.length + 1
+                    : match.index + instanceName.length + 1;
+
+                const closest = findClosestMatch(memberName, validNames);
+                const suggestion = closest ? ` (did you mean '${closest}'?)` : '';
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex,
+                    memberCol,
+                    memberName.length,
+                    `'${memberName}' is not a member of '${fbType}'${suggestion}`,
+                    DiagnosticSeverity.Error
+                ));
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Detect duplicate named parameter assignments in FB call expressions.
+ *
+ * Scans body lines for `instance(... param := ..., param := ...)` patterns.
+ * Handles multi-line calls via paren-depth tracking.
+ * Comparison is case-insensitive per IEC 61131-3.
+ *
+ * Message format: "Duplicate parameter 'PARAM' in call to 'INSTANCE'"
+ */
+function checkFBCallDuplicateParams(
+    cleanLines: CleanLine[],
+    rawLines: string[],
+    symbols: STSymbolExtended[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouRanges = buildPouRanges(symbols, rawLines);
+    const memberProvider = new MemberAccessProvider();
+    const customFBTypes = buildCustomFBTypes(symbols);
+
+    // Build set of FB instance names (upper) for quick lookup.
+    // Include both FunctionBlockInstance and Variable kinds — standard FBs (TON, etc.)
+    // are classified as Variable by the parser since they're in KNOWN_TYPES.
+    const fbInstanceNames = new Set<string>();
+    for (const sym of symbols) {
+        if (!sym.dataType) continue;
+        if (sym.kind === STSymbolKind.FunctionBlockInstance ||
+            sym.kind === STSymbolKind.Variable) {
+            const typeUpper = sym.dataType.toUpperCase();
+            if (memberProvider.getAvailableMembers(typeUpper, customFBTypes).length > 0) {
+                fbInstanceNames.add(sym.name.toUpperCase());
+            }
+        }
+    }
+
+    for (const pou of pouRanges) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        // Accumulate multi-line FB calls
+        let currentCallInstance: string | null = null;
+        let callAccum = '';
+        let callStartLine = -1;
+        let parenDepth = 0;
+        // Track which lines contributed to the accumulated call
+        const callLines: Array<{ lineIndex: number; text: string }> = [];
+
+        const flushCall = () => {
+            if (!currentCallInstance) return;
+            // Parse paramName := from accumulated call text
+            const seen = new Map<string, { lineIndex: number; col: number; original: string }>();
+            // We need per-line positions; re-scan callLines
+            for (const { lineIndex, text: lineText } of callLines) {
+                const noStr = stripStringLiterals(lineText);
+                // Match named param pattern: word followed by :=
+                const paramRegex = /\b([A-Za-z_]\w*)\s*:=/g;
+                let pm: RegExpExecArray | null;
+                while ((pm = paramRegex.exec(noStr)) !== null) {
+                    const paramName = pm[1];
+                    const paramUpper = paramName.toUpperCase();
+                    const col = pm.index;
+                    const existing = seen.get(paramUpper);
+                    if (existing) {
+                        diagnostics.push(createDiagnostic(
+                            lineIndex,
+                            col,
+                            paramName.length,
+                            `Duplicate parameter '${paramName}' in call to '${currentCallInstance}'`,
+                            DiagnosticSeverity.Error
+                        ));
+                    } else {
+                        seen.set(paramUpper, { lineIndex, col, original: paramName });
+                    }
+                }
+            }
+            currentCallInstance = null;
+            callAccum = '';
+            callStartLine = -1;
+            parenDepth = 0;
+            callLines.length = 0;
+        };
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const noStrings = stripStringLiterals(cl.text);
+
+            if (currentCallInstance) {
+                // Inside a multi-line call — accumulate
+                callLines.push({ lineIndex: cl.lineIndex, text: noStrings });
+                for (const ch of noStrings) {
+                    if (ch === '(') parenDepth++;
+                    else if (ch === ')') {
+                        parenDepth--;
+                        if (parenDepth <= 0) { flushCall(); break; }
+                    }
+                }
+                continue;
+            }
+
+            // Look for `instanceName(` on this line
+            const callRegex = /\b([A-Za-z_]\w*)\s*\(/g;
+            let cm: RegExpExecArray | null;
+            while ((cm = callRegex.exec(noStrings)) !== null) {
+                const name = cm[1];
+                if (!fbInstanceNames.has(name.toUpperCase())) continue;
+
+                // Found an FB call — collect from the opening paren onwards
+                const openIdx = cm.index + cm[0].length - 1; // index of '('
+                const restOfLine = noStrings.slice(openIdx);
+                currentCallInstance = name;
+                callStartLine = cl.lineIndex;
+                parenDepth = 0;
+                callLines.length = 0;
+                // Include from '(' to end-of-line in this line's accumulation
+                callLines.push({ lineIndex: cl.lineIndex, text: noStrings.slice(openIdx + 1) });
+                for (const ch of restOfLine) {
+                    if (ch === '(') parenDepth++;
+                    else if (ch === ')') {
+                        parenDepth--;
+                        if (parenDepth <= 0) { flushCall(); break; }
+                    }
+                }
+                break; // only handle first FB call per line
+            }
+        }
+        // Flush any unclosed call at end of POU
+        if (currentCallInstance) flushCall();
+    }
+
+    return diagnostics;
+}
+
 // ─── Type mismatch detection ────────────────────────────────────────────────
 
 /**
@@ -1515,7 +1756,7 @@ function createDiagnostic(
  *
  * When `symbols` is provided (from STASTParser), semantic checks run
  * in addition to syntax checks: missing semicolons, duplicate declarations,
- * undefined variables, unused variables, type mismatches.
+ * undefined variables, unused variables, type mismatches, FB call validation.
  *
  * @param document The text document
  * @param symbols Optional parsed symbols from STASTParser for semantic analysis
@@ -1541,6 +1782,8 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
         diagnostics.push(...checkUndefinedVariables(cleanLines, rawLines, symbols));
         diagnostics.push(...checkUnusedVariables(cleanLines, rawLines, symbols));
         diagnostics.push(...checkTypeMismatches(cleanLines, symbols));
+        diagnostics.push(...checkFBCallInvalidMembers(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkFBCallDuplicateParams(cleanLines, rawLines, symbols));
     }
 
     return diagnostics;
