@@ -3,8 +3,14 @@
     "tasks": [
         {
             "label": "npm: webpack",
-            "type": "npm",
-            "script": "webpack",
+            "type": "shell",
+            "command": "npm run webpack",
+            "options": {
+                "shell": {
+                    "executable": "/usr/bin/zsh",
+                    "args": ["-l", "-c"]
+                }
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -16,8 +22,14 @@
         },
         {
             "label": "npm: watch",
-            "type": "npm",
-            "script": "watch",
+            "type": "shell",
+            "command": "npm run watch",
+            "options": {
+                "shell": {
+                    "executable": "/usr/bin/zsh",
+                    "args": ["-l", "-c"]
+                }
+            },
             "group": "build",
             "presentation": {
                 "panel": "shared"
@@ -27,8 +39,14 @@
         },
         {
             "label": "npm: compile",
-            "type": "npm",
-            "script": "compile",
+            "type": "shell",
+            "command": "npm run compile",
+            "options": {
+                "shell": {
+                    "executable": "/usr/bin/zsh",
+                    "args": ["-l", "-c"]
+                }
+            },
             "group": "build",
             "presentation": {
                 "panel": "shared"
