@@ -341,7 +341,10 @@ connection.onCodeAction((params): CodeAction[] => {
         return [];
     }
 
-    return provideCodeActions(document, params);
+    const fileSymbols = symbolIndex.files.get(document.uri);
+    const symbols = fileSymbols ? (fileSymbols.symbols as STSymbolExtended[]) : [];
+
+    return provideCodeActions(document, params, symbols);
 });
 
 // Rename handlers

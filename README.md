@@ -98,6 +98,7 @@ END_PROGRAM
 - **Missing semicolons**: Insert `;` at end of statement
 - **Duplicate declarations**: Remove duplicate variable declaration line
 - **Unused variables**: Remove unused variable declaration line
+- **Missing variable declarations**: Auto-declare undefined variables with inferred types; batch-fix all missing declarations at once
 - **Light bulb menu**: Fixes appear via `Ctrl+.` or clicking the light bulb icon
 
 ### Code Formatting

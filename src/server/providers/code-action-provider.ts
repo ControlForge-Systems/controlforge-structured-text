@@ -13,6 +13,7 @@
  *  - Insert missing semicolons
  *  - Remove duplicate variable declarations
  *  - Remove unused variable declarations
+ *  - Declare missing (undefined) variables with inferred type (#32)
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -26,6 +27,11 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { STSymbolExtended } from '../../shared/types';
+import {
+    provideMissingDeclarationAction,
+    provideAddAllMissingDeclarationsAction
+} from './missing-declaration-provider';
 
 // ─── POU keywords (top-level blocks) ────────────────────────────────────────
 
@@ -56,11 +62,13 @@ const VAR_SECTION_KEYWORDS = new Set([
  *
  * @param document The text document
  * @param params Code action request params (includes diagnostics)
+ * @param symbols Parsed symbols for the document (used for missing-declaration fixes)
  * @returns Array of code actions (quick fixes)
  */
 export function provideCodeActions(
     document: TextDocument,
-    params: CodeActionParams
+    params: CodeActionParams,
+    symbols: STSymbolExtended[] = []
 ): CodeAction[] {
     const actions: CodeAction[] = [];
 
@@ -147,6 +155,19 @@ export function provideCodeActions(
                 actions.push(action);
             }
         }
+        // Missing variable declaration — infer type and insert into VAR block
+        else if (message.startsWith("Undefined identifier '")) {
+            const action = provideMissingDeclarationAction(document, diagnostic, symbols);
+            if (action) {
+                actions.push(action);
+            }
+        }
+    }
+
+    // Batch fix: declare all undefined vars in one action (only if 2+)
+    const batchAction = provideAddAllMissingDeclarationsAction(document, params.context.diagnostics, symbols);
+    if (batchAction) {
+        actions.push(batchAction);
     }
 
     return actions;
