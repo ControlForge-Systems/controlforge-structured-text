@@ -482,6 +482,39 @@ END_VAR
     x := 1;
 END_PROGRAM`);
         });
+
+        test('should not false-positive on unmatched parens in nested block comments', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    (* outer (* inner *) outer *)
+    x := 1;
+END_PROGRAM`);
+        });
+
+        test('should not false-positive on 3-level nested block comments', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    (* level1 (* level2 (* level3 *) level2 *) level1 *)
+    x := 1;
+END_PROGRAM`);
+        });
+
+        test('should not false-positive on nested comment with keywords inside', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    (* outer (* IF x > 0 THEN *) outer *)
+    x := 1;
+END_PROGRAM`);
+        });
     });
 
     suite('Complex Scenarios', () => {

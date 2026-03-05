@@ -82,39 +82,34 @@ interface CleanLine {
  * Strip all comments from the document and return per-line clean text.
  *
  * Handles:
- *  - Block comments (* ... *) spanning multiple lines
+ *  - Block comments (* ... *) spanning multiple lines, including nested (* (* *) *)
  *  - Single-line comments //
- *
- * Does NOT handle nested block comments (consistent with the AST parser).
  */
 function stripAllComments(lines: string[]): CleanLine[] {
     const result: CleanLine[] = [];
-    let inBlockComment = false;
+    let blockDepth = 0;
 
     for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
+        const line = lines[i];
         let cleaned = '';
         let j = 0;
 
         while (j < line.length) {
-            if (inBlockComment) {
-                const endIdx = line.indexOf('*)', j);
-                if (endIdx === -1) {
-                    // Rest of line is inside block comment
-                    j = line.length;
+            if (blockDepth > 0) {
+                if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
+                    blockDepth++;
+                    j += 2;
+                } else if (j < line.length - 1 && line[j] === '*' && line[j + 1] === ')') {
+                    blockDepth--;
+                    j += 2;
                 } else {
-                    j = endIdx + 2;
-                    inBlockComment = false;
+                    j++;
                 }
             } else {
-                // Check for block comment start
                 if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
-                    inBlockComment = true;
+                    blockDepth++;
                     j += 2;
-                }
-                // Check for single-line comment
-                else if (j < line.length - 1 && line[j] === '/' && line[j + 1] === '/') {
-                    // Rest of line is comment
+                } else if (j < line.length - 1 && line[j] === '/' && line[j + 1] === '/') {
                     break;
                 } else {
                     cleaned += line[j];
