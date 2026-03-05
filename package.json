@@ -65,6 +65,13 @@
         "language": "structured-text",
         "scopeName": "source.structured-text",
         "path": "./syntaxes/structured-text.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.structured-text.codeblock",
+        "path": "./syntaxes/structured-text.markdown-injection.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ]
       }
     ],
     "snippets": [
