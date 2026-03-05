@@ -15,7 +15,8 @@ import {
     STSymbolKind,
     STScope,
     STParameter,
-    STSymbolExtended
+    STSymbolExtended,
+    ArrayDimension
 } from '../shared/types';
 
 /**
@@ -31,6 +32,7 @@ interface ParsedDeclaration {
     isArray: boolean;
     isPointer: boolean;
     isReference: boolean;
+    arrayDimensions?: ArrayDimension[]; // parsed bounds for each dimension
 }
 
 /**
@@ -283,6 +285,7 @@ export class STASTParser {
                         references: []
                     };
                     if (isConstant) sym.isConstant = true;
+                    if (decl.arrayDimensions) sym.arrayDimensions = decl.arrayDimensions;
                     variables.push(sym);
                 }
             }
@@ -485,6 +488,7 @@ export class STASTParser {
         const isArray = upperType.startsWith('ARRAY');
 
         const baseType = this.extractBaseType(typeText);
+        const arrayDimensions = isArray ? this.parseArrayDimensions(typeText) : undefined;
 
         return {
             names,
@@ -495,7 +499,8 @@ export class STASTParser {
             atAddress,
             isArray,
             isPointer,
-            isReference
+            isReference,
+            arrayDimensions
         };
     }
 
@@ -631,6 +636,26 @@ export class STASTParser {
         if (strLenMatch) return strLenMatch[1].toUpperCase();
 
         return t;
+    }
+
+    /**
+     * Parse ARRAY dimension bounds from a type text.
+     * e.g. "ARRAY[1..10] OF REAL"       → [{lower:1, upper:10}]
+     *      "ARRAY[1..10, 0..5] OF INT"  → [{lower:1,upper:10},{lower:0,upper:5}]
+     * Returns undefined if not an array or bounds can't be parsed.
+     */
+    private parseArrayDimensions(typeText: string): ArrayDimension[] | undefined {
+        const match = typeText.match(/ARRAY\s*\[([^\]]+)\]\s*OF/i);
+        if (!match) return undefined;
+
+        const dimStrings = match[1].split(',');
+        const dims: ArrayDimension[] = [];
+        for (const dim of dimStrings) {
+            const rangeMatch = dim.trim().match(/^(-?\d+)\s*\.\.\s*(-?\d+)$/);
+            if (!rangeMatch) return undefined; // non-literal bound — bail
+            dims.push({ lower: parseInt(rangeMatch[1], 10), upper: parseInt(rangeMatch[2], 10) });
+        }
+        return dims.length > 0 ? dims : undefined;
     }
 
     /**

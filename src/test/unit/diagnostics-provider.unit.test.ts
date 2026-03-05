@@ -1802,4 +1802,161 @@ END_PROGRAM`);
             assert.strictEqual(d.length, 0);
         });
     });
+
+    suite('Array Bounds Checking', () => {
+        test('flags index above upper bound', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[15] := 25.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('15'));
+            assert.ok(d, 'index 15 out of [1..10] should be flagged');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('flags index below lower bound', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[0] := 10.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('0'));
+            assert.ok(d, 'index 0 below [1..10] should be flagged');
+        });
+
+        test('does not flag valid in-bounds access', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[1] := 0.0;
+    temps[5] := 12.5;
+    temps[10] := 99.9;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0, 'valid accesses should not be flagged');
+        });
+
+        test('does not flag variable (non-literal) index', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+    i : INT;
+END_VAR
+    temps[i] := 0.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0, 'variable index should not be flagged');
+        });
+
+        test('flags out-of-bounds on zero-based array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    buf : ARRAY[0..7] OF BYTE;
+END_VAR
+    buf[8] := 255;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('8'));
+            assert.ok(d, 'index 8 out of [0..7] should be flagged');
+        });
+
+        test('flags negative-lower-bound array: below lower', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    offsets : ARRAY[-5..5] OF INT;
+END_VAR
+    offsets[-6] := 0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('-6'));
+            assert.ok(d, 'index -6 below [-5..5] should be flagged');
+        });
+
+        test('does not flag valid access on negative-lower-bound array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    offsets : ARRAY[-5..5] OF INT;
+END_VAR
+    offsets[-5] := 0;
+    offsets[0] := 1;
+    offsets[5] := 2;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('flags out-of-bounds in second dimension of multi-dim array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+    matrix[2, 5] := 1.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('5'));
+            assert.ok(d, 'column index 5 out of [1..4] should be flagged');
+        });
+
+        test('flags out-of-bounds in first dimension of multi-dim array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+    matrix[0, 2] := 1.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('0'));
+            assert.ok(d, 'row index 0 out of [1..4] should be flagged');
+        });
+
+        test('does not flag valid multi-dim access', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+    matrix[1, 1] := 0.0;
+    matrix[4, 4] := 0.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('flags read (RHS) as well as write (LHS)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    arr : ARRAY[1..5] OF INT;
+    x : INT;
+END_VAR
+    x := arr[99];
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('99'));
+            assert.ok(d, 'out-of-bounds read should also be flagged');
+        });
+
+        test('message includes array name and bounds', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[20] := 0.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds'));
+            assert.ok(d);
+            assert.ok(d!.message.includes('temps'), 'message should include array name');
+            assert.ok(d!.message.includes('[1..10]'), 'message should include declared bounds');
+            assert.ok(d!.message.includes('20'), 'message should include offending index');
+        });
+    });
 });
