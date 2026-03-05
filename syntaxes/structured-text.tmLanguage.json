@@ -93,7 +93,21 @@
                 {
                     "name": "comment.block.st",
                     "begin": "\\(\\*",
-                    "end": "\\*\\)"
+                    "end": "\\*\\)",
+                    "patterns": [
+                        {
+                            "name": "comment.block.st",
+                            "begin": "\\(\\*",
+                            "end": "\\*\\)",
+                            "patterns": [
+                                {
+                                    "name": "comment.block.st",
+                                    "begin": "\\(\\*",
+                                    "end": "\\*\\)"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
