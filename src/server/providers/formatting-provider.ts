@@ -109,7 +109,7 @@ interface LineSegment {
 /**
  * Split a line into code and non-code segments. Accounts for:
  * - Single-line comments: // ...
- * - Block comments: (* ... *) (may start/end on this line)
+ * - Block comments: (* ... *) (may start/end on this line, supports nesting)
  * - String literals: '...' and "..."
  *
  * @param line The raw line text
@@ -123,6 +123,7 @@ function segmentLine(
     const segments: LineSegment[] = [];
     let i = 0;
     let segStart = 0;
+    let blockDepth = inBlockComment ? 1 : 0;
 
     function pushSegment(end: number, isCode: boolean): void {
         if (end > segStart) {
@@ -132,22 +133,26 @@ function segmentLine(
     }
 
     while (i < line.length) {
-        if (inBlockComment) {
-            const endIdx = line.indexOf('*)', i);
-            if (endIdx === -1) {
-                // Entire rest of line is comment
-                pushSegment(line.length, false);
-                i = line.length;
+        if (blockDepth > 0) {
+            if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
+                blockDepth++;
+                i += 2;
+            } else if (i + 1 < line.length && line[i] === '*' && line[i + 1] === ')') {
+                blockDepth--;
+                if (blockDepth === 0) {
+                    pushSegment(i + 2, false);
+                    i += 2;
+                    segStart = i;
+                } else {
+                    i += 2;
+                }
             } else {
-                pushSegment(endIdx + 2, false);
-                i = endIdx + 2;
-                segStart = i;
-                inBlockComment = false;
+                i++;
             }
         } else if (line[i] === '(' && i + 1 < line.length && line[i + 1] === '*') {
             // Start block comment
             pushSegment(i, true);
-            inBlockComment = true;
+            blockDepth++;
             i += 2;
         } else if (line[i] === '/' && i + 1 < line.length && line[i + 1] === '/') {
             // Line comment — rest of line
@@ -191,12 +196,14 @@ function segmentLine(
         }
     }
 
+    const nowInBlock = blockDepth > 0;
+
     // Remaining text is code (unless we're in a block comment)
     if (segStart < line.length) {
-        pushSegment(line.length, !inBlockComment);
+        pushSegment(line.length, !nowInBlock);
     }
 
-    return { segments, inBlockComment };
+    return { segments, inBlockComment: nowInBlock };
 }
 
 /**

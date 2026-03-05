@@ -137,12 +137,12 @@ interface CommentRange {
 /**
  * Build all comment ranges in a document. Handles:
  * - Line comments: // ... to end of line
- * - Block comments: (* ... *)
+ * - Block comments: (* ... *) including nested
  */
 function buildCommentRanges(text: string): CommentRange[] {
     const ranges: CommentRange[] = [];
     const lines = text.split('\n');
-    let inBlock = false;
+    let blockDepth = 0;
     let blockStartLine = 0;
     let blockStartChar = 0;
 
@@ -151,20 +151,23 @@ function buildCommentRanges(text: string): CommentRange[] {
         let i = 0;
 
         while (i < line.length) {
-            if (inBlock) {
-                // Look for block comment end
-                const endIdx = line.indexOf('*)', i);
-                if (endIdx !== -1) {
-                    ranges.push({
-                        startLine: blockStartLine,
-                        startChar: blockStartChar,
-                        endLine: lineIdx,
-                        endChar: endIdx + 2
-                    });
-                    inBlock = false;
-                    i = endIdx + 2;
+            if (blockDepth > 0) {
+                if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
+                    blockDepth++;
+                    i += 2;
+                } else if (i + 1 < line.length && line[i] === '*' && line[i + 1] === ')') {
+                    blockDepth--;
+                    if (blockDepth === 0) {
+                        ranges.push({
+                            startLine: blockStartLine,
+                            startChar: blockStartChar,
+                            endLine: lineIdx,
+                            endChar: i + 2
+                        });
+                    }
+                    i += 2;
                 } else {
-                    break; // rest of line is inside block comment
+                    i++;
                 }
             } else {
                 // Check for line comment
@@ -175,13 +178,13 @@ function buildCommentRanges(text: string): CommentRange[] {
                         endLine: lineIdx,
                         endChar: line.length
                     });
-                    break; // rest of line is comment
+                    break;
                 }
                 // Check for block comment start
                 if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
                     blockStartLine = lineIdx;
                     blockStartChar = i;
-                    inBlock = true;
+                    blockDepth++;
                     i += 2;
                     continue;
                 }
@@ -191,7 +194,7 @@ function buildCommentRanges(text: string): CommentRange[] {
     }
 
     // If still in block comment at EOF, close it
-    if (inBlock) {
+    if (blockDepth > 0) {
         const lastLine = lines.length - 1;
         ranges.push({
             startLine: blockStartLine,

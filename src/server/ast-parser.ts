@@ -556,35 +556,38 @@ export class STASTParser {
 
     /**
      * Strip single-line (//) and block ((* *)) comments from a line.
-     * Does not handle nested block comments.
+     * Handles nested block comments.
      */
     private stripComments(line: string): string {
         if (!line) return '';
-        let result = line;
-        let modified = true;
+        let result = '';
+        let depth = 0;
+        let i = 0;
 
-        while (modified) {
-            modified = false;
-
-            const slIdx = result.indexOf('//');
-            if (slIdx !== -1) {
-                result = result.substring(0, slIdx);
-                modified = true;
-                continue;
-            }
-
-            const bsIdx = result.indexOf('(*');
-            if (bsIdx !== -1) {
-                const beIdx = result.indexOf('*)', bsIdx);
-                if (beIdx !== -1) {
-                    result = result.substring(0, bsIdx) + ' ' + result.substring(beIdx + 2);
-                    modified = true;
+        while (i < line.length) {
+            if (depth > 0) {
+                if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
+                    depth++;
+                    i += 2;
+                } else if (i + 1 < line.length && line[i] === '*' && line[i + 1] === ')') {
+                    depth--;
+                    i += 2;
                 } else {
-                    result = result.substring(0, bsIdx);
+                    i++;
+                }
+            } else {
+                if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
+                    depth++;
+                    i += 2;
+                } else if (i + 1 < line.length && line[i] === '/' && line[i + 1] === '/') {
                     break;
+                } else {
+                    result += line[i];
+                    i++;
                 }
             }
         }
+
         return result.trim();
     }
 

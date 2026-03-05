@@ -93,9 +93,9 @@ However, **each platform interprets the IEC 61131-3 standard slightly differentl
 Structured Text supports two comment styles:
 
 - **Single-line comments**: `// Comment text`
-- **Block comments**: `(* Multi-line comment text *)`
+- **Block comments**: `(* Multi-line comment text *)` — supports nesting per IEC 61131-3: `(* outer (* inner *) outer *)` is valid
 
-> **Cross-Platform Note**: IEC supports both `//` for single-line and `(* ... *)` for block comments. Some tools may not handle nested block comments properly or allow comment placement in certain regions (e.g., before `VAR` blocks). Use `//` for single-line comments and avoid nesting block comments for maximum compatibility.
+> **Cross-Platform Note**: IEC supports both `//` for single-line and `(* ... *)` for block comments. `(* *)` block comments support nesting per the IEC 61131-3 standard; the ControlForge extension handles up to 3 levels of nesting. Some vendor tools may not handle nested block comments properly or allow comment placement in certain regions (e.g., before `VAR` blocks). Use `//` for single-line comments and avoid nesting beyond 3 levels for maximum compatibility.
 
 ### Case Sensitivity
 
