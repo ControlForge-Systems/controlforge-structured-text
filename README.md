@@ -14,6 +14,7 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 - **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, semicolons, duplicate/unused declarations, unclosed strings
 - **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
 - **Go to Definition & Find References**: Cross-file symbol navigation
+- **Signature Help**: Parameter hints for functions/FB calls with active argument highlight
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
 - **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
 - **Smart Code Completion**: Context-aware suggestions for keywords, types, and variables
@@ -41,6 +42,7 @@ Access via the Command Palette (`Ctrl+Shift+P`):
 2. Start typing - syntax highlighting activates automatically
 3. Use `Ctrl+Space` for IntelliSense completion
 4. Type function block instances followed by `.` for member completion
+5. Type `(` or `,` in function/FB calls for parameter hints (`Ctrl+Shift+Space` manual trigger)
 
 ### Function Block Completion Example
 ```st
@@ -70,6 +72,12 @@ END_PROGRAM
 - **Data Type Suggestions**: `BOOL`, `INT`, `REAL`, `TIME`, `STRING`, etc.
 - **Variable Detection**: Automatically detects declared variables
 - **Code Snippets**: Templates for common patterns (IF-THEN, FOR loops, etc.)
+
+### Signature Help
+- **Call hints**: Shows function/FB signature on `(` and `,`
+- **Active parameter**: Highlights current argument as you move through call parameters
+- **Manual trigger**: Use `Ctrl+Shift+Space` to re-open parameter hints
+- **Coverage**: Standard functions (`LIMIT`, `ABS`, `SQRT`, `LEN`, etc.), standard FBs (`TON`, `CTU`, `R_TRIG`, etc.), and custom workspace functions/FBs
 
 ### Navigation
 - **Go to Definition**: Jump to symbol declarations across files

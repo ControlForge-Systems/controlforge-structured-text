@@ -15,7 +15,8 @@ import {
     DefinitionParams,
     Location,
     Position,
-    CodeAction
+    CodeAction,
+    SignatureHelp
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -30,6 +31,7 @@ import { computeDiagnostics } from './providers/diagnostics-provider';
 import { provideCodeActions } from './providers/code-action-provider';
 import { prepareRename, provideRenameEdits } from './providers/rename-provider';
 import { formatDocument, FormattingOptions, DEFAULT_FORMATTING_OPTIONS } from './providers/formatting-provider';
+import { SignatureHelpProvider } from './providers/signature-help-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -57,6 +59,7 @@ const workspaceIndexer = new WorkspaceIndexer();
 const memberAccessProvider = new MemberAccessProvider();
 const enhancedDefinitionProvider = new EnhancedDefinitionProvider(memberAccessProvider);
 const memberCompletionProvider = new MemberCompletionProvider(memberAccessProvider);
+const signatureHelpProvider = new SignatureHelpProvider();
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -87,6 +90,10 @@ connection.onInitialize((params: InitializeParams) => {
                 completionProvider: {
                     resolveProvider: true,
                     triggerCharacters: ['.', '(']
+                },
+                signatureHelpProvider: {
+                    triggerCharacters: ['(', ','],
+                    retriggerCharacters: [',']
                 },
                 codeActionProvider: true,
                 renameProvider: {
@@ -311,6 +318,15 @@ connection.onCompletion((params): CompletionItem[] => {
     const completionItems = memberCompletionProvider.provideCompletionItems(document, params.position, workspaceIndexer);
 
     return completionItems;
+});
+
+connection.onSignatureHelp((params): SignatureHelp | null => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return null;
+    }
+
+    return signatureHelpProvider.provideSignatureHelp(document, params.position, workspaceIndexer);
 });
 
 // References handler - now with cross-file support

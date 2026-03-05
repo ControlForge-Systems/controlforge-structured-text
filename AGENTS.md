@@ -97,6 +97,8 @@ docs/desc              ← documentation only
 - **Hotfixes** branch off `main`, PR back to both `main` and the active release branch
 - Create `release-X.Y.0` at milestone start; delete after merge to `main`
 - Active release branch is the one matching the current in-progress milestone
+- **Close issues manually after their PR merges to `release-X.Y.0`** — GitHub auto-close only fires on merge to `main`; use the PR checklist item; reopen only if a regression is found before the release ships
+- Before starting any issue: check `git log release-X.Y.0 --oneline | grep "#N"` to confirm it hasn't already been merged
 
 ## Release Process
 
