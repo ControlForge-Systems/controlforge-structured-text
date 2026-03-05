@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Signature Help for function and function block calls: triggers on `(` and `,`, supports manual trigger, highlights active parameter, includes standard + workspace signatures (#33)
+
 ### Changed
 - Bump `@types/node` to `^25.0.0`, `glob` to `^13.0.0`; add `skipLibCheck` to tsconfig for TS 5.x / `@types/node` 25 compatibility (#124)
 
