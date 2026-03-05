@@ -7,6 +7,8 @@
 
 ### Changed
 - Bump `@types/node` to `^25.0.0`, `glob` to `^13.0.0`; add `skipLibCheck` to tsconfig for TS 5.x / `@types/node` 25 compatibility (#124)
+- Standardized manual test fixture naming (removed `test_`/`test-` prefixes) and updated references
+- Removed redundant QA and screenshot placeholder docs from repo (`docs/QA_CHECKLIST.md`, `images/README.md`)
 
 ## [1.3.0] - 2026-02-20
 
