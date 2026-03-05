@@ -1306,6 +1306,133 @@ function inferExpressionType(expr: string, symByName: Map<string, STSymbolExtend
     return null;
 }
 
+// ─── Array bounds checking ───────────────────────────────────────────────────
+
+/**
+ * Detect out-of-bounds array access with constant/literal indices.
+ *
+ * Scans POU body lines and global-scope lines for subscript expressions of the
+ * form  <ident>[<intLiteral>]  (single-dim) and  <ident>[<int>,<int>,...]
+ * (multi-dim).  Only checks dimensions where both bounds were parsed from the
+ * declaration.  Variable indices are ignored (not constant-foldable here).
+ *
+ * Case-insensitive per IEC 61131-3.
+ * Message format: "Array index <N> is out of bounds [<L>..<U>] for '<NAME>'"
+ */
+function checkArrayBoundsAccess(
+    cleanLines: CleanLine[],
+    rawLines: string[],
+    symbols: STSymbolExtended[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Build lookup: normalised name → arrayDimensions
+    const arraySymbols = new Map<string, { name: string; dims: { lower: number; upper: number }[] }>();
+    for (const sym of symbols) {
+        if (sym.arrayDimensions && sym.arrayDimensions.length > 0) {
+            arraySymbols.set(sym.name.toUpperCase(), { name: sym.name, dims: sym.arrayDimensions });
+        }
+    }
+    if (arraySymbols.size === 0) return diagnostics;
+
+    const pouRanges = buildPouRanges(symbols, rawLines);
+
+    function checkLine(cl: CleanLine): void {
+        const noStrings = stripStringLiterals(cl.text);
+
+        // Match: identifier followed by '['
+        // We then manually collect the bracket content to handle nested brackets correctly.
+        const identRegex = /\b([A-Za-z_]\w*)\s*\[/g;
+        let m: RegExpExecArray | null;
+
+        while ((m = identRegex.exec(noStrings)) !== null) {
+            const symInfo = arraySymbols.get(m[1].toUpperCase());
+            if (!symInfo) continue;
+
+            // Collect bracket content starting after the '[' we already matched
+            const bracketStart = m.index + m[0].length; // index just inside '['
+            let depth = 1;
+            let i = bracketStart;
+            while (i < noStrings.length && depth > 0) {
+                if (noStrings[i] === '[') depth++;
+                else if (noStrings[i] === ']') depth--;
+                i++;
+            }
+            if (depth !== 0) continue; // unmatched bracket — syntax error handled elsewhere
+
+            const bracketContent = noStrings.substring(bracketStart, i - 1); // exclude closing ']'
+
+            // Split by top-level commas (for multi-dim arrays)
+            const indexStrs = splitTopLevelCommas(bracketContent);
+
+            for (let d = 0; d < indexStrs.length; d++) {
+                const dimBounds = symInfo.dims[d];
+                if (!dimBounds) continue; // more indices than declared dims — not our problem here
+
+                const trimmed = indexStrs[d].trim();
+                // Only check pure integer literals (optionally signed)
+                if (!/^-?\d+$/.test(trimmed)) continue;
+
+                const idx = parseInt(trimmed, 10);
+                if (idx < dimBounds.lower || idx > dimBounds.upper) {
+                    // Find column of the literal in the raw line
+                    const rawLine = rawLines[cl.lineIndex] || '';
+                    // Search for the index literal within the bracket region
+                    const literalCol = rawLine.indexOf(trimmed, m.index);
+                    const col = literalCol >= 0 ? literalCol : m.index;
+
+                    diagnostics.push(createDiagnostic(
+                        cl.lineIndex,
+                        col,
+                        trimmed.length,
+                        `Array index ${idx} is out of bounds [${dimBounds.lower}..${dimBounds.upper}] for '${symInfo.name}'`,
+                        DiagnosticSeverity.Error
+                    ));
+                }
+            }
+        }
+    }
+
+    // Check inside POUs (body only, skip var sections)
+    for (const pou of pouRanges) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+            checkLine(cl);
+        }
+    }
+
+    // Check global scope (outside any POU)
+    const pouLineRanges = pouRanges.map(p => ({ start: p.startLine, end: p.endLine }));
+    for (const cl of cleanLines) {
+        if (pouLineRanges.some(r => cl.lineIndex >= r.start && cl.lineIndex <= r.end)) continue;
+        checkLine(cl);
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Split a string by top-level commas (not inside brackets or parens).
+ */
+function splitTopLevelCommas(s: string): string[] {
+    const parts: string[] = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === '(' || c === '[') depth++;
+        else if (c === ')' || c === ']') depth--;
+        else if (c === ',' && depth === 0) {
+            parts.push(s.substring(start, i));
+            start = i + 1;
+        }
+    }
+    parts.push(s.substring(start));
+    return parts;
+}
+
 // ─── Constant assignment detection ──────────────────────────────────────────
 
 /**
@@ -1877,6 +2004,7 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
         diagnostics.push(...checkFBCallInvalidMembers(cleanLines, rawLines, symbols));
         diagnostics.push(...checkFBCallDuplicateParams(cleanLines, rawLines, symbols));
         diagnostics.push(...checkConstantAssignment(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkArrayBoundsAccess(cleanLines, rawLines, symbols));
     }
 
     return diagnostics;
