@@ -16,7 +16,8 @@
   "homepage": "https://controlforge.dev/",
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.100.0",
+    "node": ">=22.0.0"
   },
   "categories": [
     "Programming Languages"
