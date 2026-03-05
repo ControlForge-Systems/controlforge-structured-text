@@ -1664,4 +1664,142 @@ END_PROGRAM`);
             assert.strictEqual(pts.length, 1);
         });
     });
+
+    suite('Constant Assignment Detection', () => {
+
+        test('flags assignment to VAR_GLOBAL CONSTANT', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    temp : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Cannot assign to constant 'MAX_TEMP'"));
+            assert.ok(d, 'Should flag assignment to VAR_GLOBAL CONSTANT');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('flags assignment to VAR CONSTANT', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR CONSTANT
+    PI : REAL := 3.14159;
+END_VAR
+VAR
+    result : REAL;
+END_VAR
+    PI := 3.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Cannot assign to constant 'PI'"));
+            assert.ok(d, 'Should flag assignment to VAR CONSTANT');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('does not flag assignment to non-constant variable', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL
+    counter : INT := 0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    counter := 1;
+    x := counter + 1;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Cannot assign to constant'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('does not flag constant used as named FB parameter (depth > 0)', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TIME : TIME := T#10s;
+END_VAR
+
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+    myTimer(IN := TRUE, PT := MAX_TIME);
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Cannot assign to constant'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('constant assignment check is case-insensitive', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    max_temp := 50.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.toLowerCase().includes("cannot assign to constant 'max_temp'"));
+            assert.ok(d, 'Case-insensitive constant check should flag lowercase usage');
+        });
+
+        test('flags multiple assignments to same constant', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+    MAX_TEMP := 300.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes("Cannot assign to constant 'MAX_TEMP'"));
+            assert.strictEqual(d.length, 2, 'Both assignments should be flagged');
+        });
+
+        test('flags assignments to multiple different constants', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+    MIN_TEMP : REAL := 0.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+    MIN_TEMP := -10.0;
+END_PROGRAM`);
+            const maxD = diags.find(d => d.message.includes("Cannot assign to constant 'MAX_TEMP'"));
+            const minD = diags.find(d => d.message.includes("Cannot assign to constant 'MIN_TEMP'"));
+            assert.ok(maxD, 'MAX_TEMP assignment should be flagged');
+            assert.ok(minD, 'MIN_TEMP assignment should be flagged');
+        });
+
+        test('does not flag VAR_GLOBAL without CONSTANT qualifier', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Cannot assign to constant'));
+            assert.strictEqual(d.length, 0);
+        });
+    });
 });

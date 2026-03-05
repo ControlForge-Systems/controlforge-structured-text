@@ -73,6 +73,7 @@ export interface STSymbolExtended extends STSymbol {
     references?: Location[];       // All reference locations
     literalType?: string;          // For literals, e.g., 'LTIME', 'WSTRING'
     normalizedName?: string;       // Lowercase name for case-insensitive lookups (IEC 61131-3 is case-insensitive)
+    isConstant?: boolean;          // Declared with CONSTANT qualifier — assignment is illegal
 }
 
 /**

@@ -173,6 +173,10 @@ export class STASTParser {
         for (let i = 0; i < this.lines.length; i++) {
             if (!regex.test(this.lines[i])) continue;
 
+            // Detect CONSTANT qualifier on VAR_GLOBAL line
+            const sectionMatch = this.matchVarSectionStart(this.stripComments(this.lines[i]).trim());
+            const isConstant = sectionMatch ? sectionMatch.qualifiers.includes('CONSTANT') : false;
+
             // Find END_VAR
             let endLine = i + 1;
             while (endLine < this.lines.length) {
@@ -199,7 +203,7 @@ export class STASTParser {
                         description = `Global instance of ${decl.baseType}`;
                     }
 
-                    globals.push({
+                    const sym: STSymbolExtended = {
                         name: varName,
                         normalizedName: varName.toLowerCase(),
                         kind,
@@ -209,7 +213,9 @@ export class STASTParser {
                         description,
                         literalType: this.getLiteralType(decl.initialValue, decl.baseType),
                         references: []
-                    });
+                    };
+                    if (isConstant) sym.isConstant = true;
+                    globals.push(sym);
                 }
             }
 
@@ -236,6 +242,7 @@ export class STASTParser {
             if (!sectionMatch) continue;
 
             const scope = this.getVarScope(sectionMatch.suffix);
+            const isConstant = sectionMatch.qualifiers.includes('CONSTANT');
 
             // Scan until END_VAR
             const sectionEnd = this.findEndVar(i + 1, endLine);
@@ -264,7 +271,7 @@ export class STASTParser {
 
                     const varLocation = this.createLocation(lineIndex, this.findColumnOf(lineIndex, varName), varName.length);
 
-                    variables.push({
+                    const sym: STSymbolExtended = {
                         name: varName,
                         normalizedName: varName.toLowerCase(),
                         kind,
@@ -274,7 +281,9 @@ export class STASTParser {
                         description,
                         literalType: this.getLiteralType(decl.initialValue, decl.baseType),
                         references: []
-                    });
+                    };
+                    if (isConstant) sym.isConstant = true;
+                    variables.push(sym);
                 }
             }
 
