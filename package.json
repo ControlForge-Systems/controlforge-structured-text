@@ -147,11 +147,11 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "^20.17.17",
+    "@types/node": "^25.0.0",
     "@types/vscode": "^1.100.0",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
-    "glob": "^11.0.2",
+    "glob": "^13.0.0",
     "husky": "^9.1.7",
     "mocha": "^11.6.0",
     "ts-loader": "^9.5.2",

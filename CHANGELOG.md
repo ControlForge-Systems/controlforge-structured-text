@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Bump `@types/node` to `^25.0.0`, `glob` to `^13.0.0`; add `skipLibCheck` to tsconfig for TS 5.x / `@types/node` 25 compatibility (#124)
+
 ## [1.3.0] - 2026-02-20
 
 ### Added
