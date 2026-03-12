@@ -1,0 +1,30 @@
+name: Epic
+description: Umbrella issue grouping related child issues for a single PR or theme
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is being grouped and why.
+      placeholder: "All TextMate grammar-only improvements for v1.4.0, delivered in one PR."
+    validations:
+      required: true
+
+  - type: textarea
+    id: included
+    attributes:
+      label: Included
+      description: Checklist of child issues.
+      placeholder: |
+        - [ ] #82 — hardware addresses
+        - [ ] #81 — pragma blocks
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What is explicitly excluded.
+      placeholder: "LSP, diagnostics, server-side changes."

@@ -81,15 +81,17 @@ interface CleanLine {
 }
 
 /**
- * Strip all comments from the document and return per-line clean text.
+ * Strip all comments and pragma blocks from the document and return per-line clean text.
  *
  * Handles:
  *  - Block comments (* ... *) spanning multiple lines, including nested (* (* *) *)
  *  - Single-line comments //
+ *  - Pragma blocks { ... } (IEC 61131-3 implementation-specific attributes)
  */
 function stripAllComments(lines: string[]): CleanLine[] {
     const result: CleanLine[] = [];
     let blockDepth = 0;
+    let inPragma = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -97,7 +99,12 @@ function stripAllComments(lines: string[]): CleanLine[] {
         let j = 0;
 
         while (j < line.length) {
-            if (blockDepth > 0) {
+            if (inPragma) {
+                if (line[j] === '}') {
+                    inPragma = false;
+                }
+                j++;
+            } else if (blockDepth > 0) {
                 if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
                     blockDepth++;
                     j += 2;
@@ -108,7 +115,10 @@ function stripAllComments(lines: string[]): CleanLine[] {
                     j++;
                 }
             } else {
-                if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
+                if (line[j] === '{') {
+                    inPragma = true;
+                    j++;
+                } else if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
                     blockDepth++;
                     j += 2;
                 } else if (j < line.length - 1 && line[j] === '/' && line[j + 1] === '/') {
@@ -495,6 +505,12 @@ function stripInlineComments(line: string): string {
                 continue;
             }
             break; // block comment to end of line
+        }
+
+        if (ch === '{') {
+            const endIdx = line.indexOf('}', i + 1);
+            i = endIdx !== -1 ? endIdx + 1 : line.length;
+            continue;
         }
 
         result += ch;
@@ -1768,7 +1784,7 @@ function checkUnmatchedParentheses(cleanLines: CleanLine[]): Diagnostic[] {
 }
 
 /**
- * Strip string literals from a line, replacing them with spaces
+ * Strip string literals and pragma blocks from a line, replacing them with spaces
  * to preserve character positions.
  */
 function stripStringLiterals(line: string): string {
@@ -1805,6 +1821,19 @@ function stripStringLiterals(line: string): string {
                         i += 2;
                         continue;
                     }
+                    chars[i] = ' ';
+                    i++;
+                    break;
+                }
+                chars[i] = ' ';
+                i++;
+            }
+        } else if (chars[i] === '{') {
+            // Pragma block { ... } — blank entire block on this line
+            chars[i] = ' ';
+            i++;
+            while (i < chars.length) {
+                if (chars[i] === '}') {
                     chars[i] = ' ';
                     i++;
                     break;
