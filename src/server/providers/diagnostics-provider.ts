@@ -1982,6 +1982,136 @@ function createDiagnostic(
     };
 }
 
+// ─── FOR loop bounds validation (#62) ───────────────────────────────────────
+
+/**
+ * Parsed components of a FOR loop header.
+ * Only populated when the component is a pure integer literal.
+ */
+interface ForLoopBounds {
+    /** Start value (constant integer) */
+    start: number | null;
+    /** End value (constant integer) */
+    end: number | null;
+    /** BY step value (constant integer); null when BY clause is absent */
+    by: number | null;
+    /** Whether BY clause was explicitly present in source */
+    hasByClause: boolean;
+}
+
+/**
+ * Parse a FOR loop header line (cleaned, comments stripped) into its bounds.
+ *
+ * Matches:  FOR <ident> := <expr> TO <expr> [BY <expr>] DO
+ * Returns null if the line is not a FOR header or bounds aren't constant integers.
+ *
+ * Per IEC 61131-3 §3.3.2.4 the default BY step is +1 when omitted.
+ */
+function parseForLoopHeader(line: string): ForLoopBounds | null {
+    // Case-insensitive. Capture the three numeric expressions.
+    // We allow optional whitespace and accept signed integers.
+    const forRegex = /^\s*FOR\s+\w+\s*:=\s*(.+?)\s+TO\s+(.+?)(?:\s+BY\s+(.+?))?\s+DO\s*$/i;
+    const match = line.match(forRegex);
+    if (!match) return null;
+
+    const parseConstant = (s: string): number | null => {
+        const trimmed = s.trim();
+        // Accept plain integer literals with optional leading sign
+        if (/^[+-]?\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+        return null;
+    };
+
+    return {
+        start: parseConstant(match[1]),
+        end: parseConstant(match[2]),
+        by: match[3] !== undefined ? parseConstant(match[3]) : null,
+        hasByClause: match[3] !== undefined,
+    };
+}
+
+/**
+ * Detect FOR loops with statically-provable bound problems.
+ *
+ * Checks (only when all relevant bounds are integer literals):
+ *  - BY 0          → error   (infinite loop)
+ *  - start > end with BY > 0 → warning (loop body never executes)
+ *  - start < end with BY < 0 → warning (loop body never executes)
+ *  - start === end           → info/hint (single iteration, likely unintended)
+ *
+ * Non-constant bounds (variables, expressions) are silently skipped.
+ */
+function checkForLoopBounds(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            // Quick pre-filter: must start with FOR (case-insensitive)
+            if (!/^FOR\b/i.test(trimmed)) continue;
+
+            const bounds = parseForLoopHeader(trimmed);
+            if (!bounds) continue;
+
+            const { start, end, by, hasByClause } = bounds;
+
+            // ── BY 0: always an error ────────────────────────────────
+            if (hasByClause && by === 0) {
+                // Point squiggle at the BY keyword
+                const byIdx = cl.text.toUpperCase().indexOf(' BY ');
+                const col = byIdx >= 0 ? byIdx + 1 : 0; // +1: skip the leading space
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, col, 2,
+                    'FOR loop step BY 0 causes an infinite loop',
+                    DiagnosticSeverity.Error
+                ));
+                continue; // don't stack more diagnostics on same line
+            }
+
+            // ── Range checks (only when start and end are constants) ──
+            if (start === null || end === null) continue;
+
+            // Effective step: explicit BY, or default +1
+            const step = by !== null ? by : 1;
+
+            if (start === end) {
+                // Single-iteration loop: start == end, body runs exactly once
+                const forCol = cl.text.search(/\bFOR\b/i);
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, forCol >= 0 ? forCol : 0, 3,
+                    `FOR loop executes exactly once (start equals end: ${start})`,
+                    DiagnosticSeverity.Hint
+                ));
+            } else if (start > end && step > 0) {
+                // Descending range with positive step: body never executes
+                const forCol = cl.text.search(/\bFOR\b/i);
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, forCol >= 0 ? forCol : 0, 3,
+                    `FOR loop body never executes: counting up (BY ${step}) but start (${start}) > end (${end}); use BY -1 or swap bounds`,
+                    DiagnosticSeverity.Warning
+                ));
+            } else if (start < end && step < 0) {
+                // Ascending range with negative step: body never executes
+                const forCol = cl.text.search(/\bFOR\b/i);
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, forCol >= 0 ? forCol : 0, 3,
+                    `FOR loop body never executes: counting down (BY ${step}) but start (${start}) < end (${end}); use BY 1 or swap bounds`,
+                    DiagnosticSeverity.Warning
+                ));
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -2019,6 +2149,7 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
         diagnostics.push(...checkFBCallDuplicateParams(cleanLines, rawLines, symbols));
         diagnostics.push(...checkConstantAssignment(cleanLines, rawLines, symbols));
         diagnostics.push(...checkArrayBoundsAccess(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkForLoopBounds(cleanLines));
     }
 
     return diagnostics;
