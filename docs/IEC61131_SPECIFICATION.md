@@ -641,6 +641,116 @@ DeviceName: STRING[20];            // Appropriate sizing reduces memory
 
 ---
 
+## Hardware Addresses
+
+IEC 61131-3 defines a syntax for directly addressing physical I/O and memory locations using hardware address literals. These are prefixed with `%` and use a location/size prefix followed by a numeric address.
+
+### Format
+
+```
+%<location><size><address>
+```
+
+- **Location prefix**: `I` (input), `Q` (output), `M` (memory/flag)
+- **Size prefix** (optional): `X` (1-bit), `B` (byte), `W` (word), `D` (double-word), `L` (long/64-bit)
+- **Address**: one or more decimal integers separated by `.`
+
+### Examples
+
+```
+%IX0.0    (* Input bit, byte 0, bit 0 *)
+%IX1.7    (* Input bit, byte 1, bit 7 *)
+%IW2      (* Input word, address 2 *)
+%QX0.0    (* Output bit *)
+%QW1      (* Output word *)
+%MD100    (* Memory double-word, address 100 *)
+%MB5      (* Memory byte, address 5 *)
+```
+
+### Usage in Declarations
+
+Hardware addresses appear in `AT` declarations inside `VAR` blocks:
+
+```
+VAR
+    Motor1_Run  AT %QX0.0 : BOOL;
+    Sensor1_Raw AT %IW2   : INT;
+    Flag_Byte   AT %MB5   : BYTE;
+END_VAR
+```
+
+> **Cross-Platform Note**: The exact addressing scheme (how addresses map to physical I/O slots) varies by PLC hardware and vendor. The `%IX0.0` notation is standard syntax, but the mapping to hardware depends on the system configuration. Always consult the hardware manual for your PLC platform.
+
+---
+
+## Pragmas and Attributes
+
+Many IEC 61131-3 platforms support compiler directives and attributes using `{...}` syntax. These are not part of the core language standard but are widely used in practice.
+
+### Syntax
+
+```
+{attribute 'qualifier'}
+{warning 'disable' 'C0198'}
+```
+
+### Common Attributes
+
+```
+{attribute 'qualified_only'}      (* Require namespace qualification *)
+{attribute 'hide'}                (* Hide from IntelliSense *)
+{attribute 'obsolete'}            (* Mark as deprecated *)
+{attribute 'no_check'}            (* Disable type checking *)
+{attribute 'pack_mode' := '1'}    (* Memory alignment control *)
+```
+
+### Conditional Compilation (CODESYS)
+
+```
+{IF defined(SomeSymbol)}
+  // Platform-specific code
+{ELSE}
+  // Fallback code
+{ENDIF}
+```
+
+> **Cross-Platform Note**: Pragma syntax varies by vendor. CODESYS uses `{attribute ...}` and `{IF}` / `{ENDIF}`. Siemens uses `//S7_SetPoint` style comments for properties. Beckhoff TwinCAT follows CODESYS conventions. Rockwell does not support `{...}` pragmas. Use pragmas only when targeting a specific platform.
+
+---
+
+## SFC Action Qualifiers
+
+Sequential Function Chart (SFC) is one of the five IEC 61131-3 languages. When integrating SFC actions with ST code, action qualifiers control when and how long an action executes.
+
+### Qualifiers
+
+| Qualifier | Name | Description |
+|-----------|------|-------------|
+| `N` | Non-stored | Action active while step is active |
+| `S` | Set (stored) | Action activated and remains until reset |
+| `R` | Reset | Resets a stored action |
+| `L` | Time-limited | Active for a limited time |
+| `D` | Time-delayed | Delayed activation |
+| `P` | Pulse | Active for one scan on entry |
+| `SD` | Stored and time-delayed | Set after a delay |
+| `DS` | Delayed and stored | Stored only if step still active after delay |
+| `SL` | Stored and time-limited | Set for a limited time |
+
+### Usage
+
+```
+// SFC action declaration using qualifiers
+ACTIONS
+    N  SomeAction;        (* Non-stored *)
+    S  LatchedAction;     (* Set/stored *)
+    SD DelayedSet: T#2s;  (* Stored after 2s delay *)
+END_ACTIONS
+```
+
+> **Note**: SFC is a graphical language typically edited in diagram form. ST code may reference SFC step status and action flags, but SFC qualifiers themselves appear only in SFC action blocks, not in plain ST code.
+
+---
+
 ---
 
 ## Best Practices for ST Code Portability
