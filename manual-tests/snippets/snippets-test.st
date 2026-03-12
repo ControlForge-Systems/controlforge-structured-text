@@ -1,4 +1,4 @@
-(* Snippet Manual Tests — IEC 61131-3 Code Snippets (#80) *)
+(* Snippet Manual Tests — IEC 61131-3 Code Snippets *)
 (*
    HOW TO TEST:
    In a .st file, type the prefix and press Tab (or select from IntelliSense).

@@ -1,4 +1,4 @@
-(* Manual test: named parameter highlighting in FB/function calls (#94)
+(* Manual test: named parameter highlighting in FB/function calls
    Open this file in VS Code with the extension active.
    Use "Developer: Inspect Editor Tokens and Scopes" (Ctrl+Shift+P) to
    verify scope names on each token. *)
