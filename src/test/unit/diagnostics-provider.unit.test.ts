@@ -861,6 +861,22 @@ END_PROGRAM`);
             assert.strictEqual(undef.length, 0);
         });
 
+        test('should not flag output named parameters (=>) in FB calls', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    MyTimer   : TON;
+    MyCounter : CTU;
+    StartSig  : BOOL;
+    StopSig   : BOOL;
+    Result    : BOOL;
+    CountOut  : INT;
+END_VAR
+    MyTimer(IN := StartSig, PT := T#5s, Q => Result, ET => CountOut);
+    MyCounter(CU := StartSig, RESET := StopSig, PV := 10, CV => CountOut);
+END_PROGRAM`);
+        });
+
         test('should not flag identifiers inside CASE branches', () => {
             const diags = diagnoseWithSymbols(`
 PROGRAM Main

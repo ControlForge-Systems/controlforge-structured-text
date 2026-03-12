@@ -844,6 +844,9 @@ function extractBodyIdentifiers(line: string): BodyToken[] {
         const afterToken = noStrings.slice(col + name.length).trimStart();
         if (afterToken.startsWith(':=')) continue;
 
+        // Skip named output parameter assigns in FB calls: "Q =>" — "Q" is a param name, not a variable
+        if (afterToken.startsWith('=>')) continue;
+
         tokens.push({ name, column: col });
     }
 
