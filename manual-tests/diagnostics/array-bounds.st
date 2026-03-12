@@ -1,4 +1,4 @@
-(* Manual QA: array bounds checking for constant indices (#61) *)
+(* Manual QA: array bounds checking for constant indices *)
 (* Open this file in VS Code. Verify red squiggles appear ONLY on lines marked  *)
 (* "EXPECT ERROR" and that no errors appear on lines marked "OK".               *)
 (* Check the Problems panel (Ctrl+Shift+M) for full messages.                   *)

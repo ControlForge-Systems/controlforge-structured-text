@@ -1,4 +1,4 @@
-// Manual test: Missing Variable Declaration Detection & Auto-Fix (#32)
+// Manual test: Missing Variable Declaration Detection & Auto-Fix
 //
 // How to test:
 //  1. Open this file in VS Code with ControlForge ST extension active.

@@ -1,4 +1,4 @@
-(* Manual test: Rename Symbol (#28)
+(* Manual test: Rename Symbol
    Use F2 or right-click > Rename Symbol to test rename across this file.
    Verify both successful renames and rejection of invalid names. *)
 

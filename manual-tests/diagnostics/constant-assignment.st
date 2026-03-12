@@ -1,4 +1,4 @@
-(* Manual QA: constant assignment detection (#60) *)
+(* Manual QA: constant assignment detection *)
 (* Open this file in VS Code. Verify red squiggles appear ONLY on the lines   *)
 (* marked "EXPECT ERROR" and that no errors appear on lines marked "OK".       *)
 

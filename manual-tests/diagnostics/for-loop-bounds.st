@@ -1,4 +1,4 @@
-(* Manual QA: FOR loop bounds validation (#62) *)
+(* Manual QA: FOR loop bounds validation *)
 (* Open this file in VS Code. Verify squiggles appear ONLY on lines marked     *)
 (* "EXPECT <SEVERITY>" and that no squiggles appear on lines marked "OK".      *)
 (* Check the Problems panel (Ctrl+Shift+M) for full messages.                   *)
