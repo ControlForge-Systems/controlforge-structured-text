@@ -8,6 +8,10 @@
 - Diagnostic error for assignment to CONSTANT-qualified variables (VAR CONSTANT, VAR_GLOBAL CONSTANT); paren-depth guard avoids false positives on named FB parameters (#60)
 - Diagnostic error for out-of-bounds array access with constant/literal indices; supports 1-D, multi-dimensional, zero-based, and negative-lower-bound arrays; variable indices ignored (#61)
 
+### Fixed
+- Multi-line FB calls with closing `)` on its own line falsely flagged as "Unmatched closing parenthesis"; fixed with cross-line depth tracking
+- Output named parameters (`Param =>`) falsely flagged as undefined identifiers; `=>` pattern now excluded from identifier extraction
+
 ### Changed
 - Bump `@types/node` to `^25.0.0`, `glob` to `^13.0.0`; add `skipLibCheck` to tsconfig for TS 5.x / `@types/node` 25 compatibility (#124)
 - Standardized manual test fixture naming (removed `test_`/`test-` prefixes) and updated references
