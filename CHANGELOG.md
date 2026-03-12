@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Named parameters in FB/function calls (`Param :=`, `Param =>`) now scoped as `variable.parameter.st` in syntax highlighting (#94)
 - Signature Help for function and function block calls: triggers on `(` and `,`, supports manual trigger, highlights active parameter, includes standard + workspace signatures (#33)
 - Diagnostic error for assignment to CONSTANT-qualified variables (VAR CONSTANT, VAR_GLOBAL CONSTANT); paren-depth guard avoids false positives on named FB parameters (#60)
 - Diagnostic error for out-of-bounds array access with constant/literal indices; supports 1-D, multi-dimensional, zero-based, and negative-lower-bound arrays; variable indices ignored (#61)
