@@ -1982,7 +1982,7 @@ function createDiagnostic(
     };
 }
 
-// ─── FOR loop bounds validation (#62) ───────────────────────────────────────
+// ─── FOR loop bounds validation ──────────────────────────────────────────────
 
 /**
  * Parsed components of a FOR loop header.

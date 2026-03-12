@@ -1200,9 +1200,9 @@ END_PROGRAM`);
         });
     });
 
-    // ─── #57: ELSE IF → ELSIF ────────────────────────────────────────────────
+    // ─── ELSE IF → ELSIF ─────────────────────────────────────────────────────
 
-    suite('ELSE IF should be ELSIF (#57)', () => {
+    suite('ELSE IF should be ELSIF', () => {
         test('detects bare ELSE IF on same line', () => {
             const diags = diagnose(`
 PROGRAM Main
@@ -1340,9 +1340,9 @@ END_PROGRAM`);
         });
     });
 
-    // ─── #58: Missing THEN / DO ──────────────────────────────────────────────
+    // ─── Missing THEN / DO ───────────────────────────────────────────────────
 
-    suite('Missing THEN / DO (#58)', () => {
+    suite('Missing THEN / DO', () => {
         test('detects missing THEN after IF condition', () => {
             const diags = diagnose(`
 PROGRAM Main
@@ -1990,7 +1990,7 @@ END_PROGRAM`);
         });
     });
 
-    // ─── FOR loop bounds validation (#62) ───────────────────────────────────
+    // ─── FOR loop bounds validation ──────────────────────────────────────────
 
     suite('FOR loop bounds validation', () => {
 

@@ -371,7 +371,7 @@ export class STASTParser {
     /**
      * Collect complete declarations from a line range.
      * Accumulates text across lines until ';', then parses.
-     * This is the core fix for #41 — multi-line declarations.
+     * Supports multi-line declarations by accumulating across lines until ';'.
      */
     private collectDeclarationsInRange(
         startLine: number,

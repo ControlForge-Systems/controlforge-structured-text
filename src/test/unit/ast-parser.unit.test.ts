@@ -83,7 +83,7 @@ END_PROGRAM`);
         });
     });
 
-    suite('Multi-Line Declarations (#41)', () => {
+    suite('Multi-Line Declarations', () => {
         test('should parse multi-line array initialization', () => {
             const symbols = parse(`
 PROGRAM Test

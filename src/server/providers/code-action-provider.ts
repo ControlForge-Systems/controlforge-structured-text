@@ -13,7 +13,7 @@
  *  - Insert missing semicolons
  *  - Remove duplicate variable declarations
  *  - Remove unused variable declarations
- *  - Declare missing (undefined) variables with inferred type (#32)
+ *  - Declare missing (undefined) variables with inferred type
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -516,7 +516,7 @@ function createRemoveUnusedVariableAction(
     };
 }
 
-// ─── #57 / #58 action creators ──────────────────────────────────────────────
+// ─── ELSE IF → ELSIF / Missing THEN / DO action creators ────────────────────
 
 /**
  * Replace `ELSE IF` with `ELSIF` on the diagnostic line.

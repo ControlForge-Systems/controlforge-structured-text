@@ -682,7 +682,7 @@ END_PROGRAM`;
         });
     });
 
-    suite("ELSE IF → ELSIF (#57)", () => {
+    suite("ELSE IF → ELSIF", () => {
         test('replaces ELSE IF with ELSIF', () => {
             const content = `PROGRAM Main
 VAR x : INT; END_VAR
@@ -751,7 +751,7 @@ END_PROGRAM`;
         });
     });
 
-    suite("Missing THEN / DO (#58)", () => {
+    suite("Missing THEN / DO", () => {
         test('inserts THEN for IF missing THEN', () => {
             const content = `PROGRAM Main
 VAR x : INT; END_VAR
