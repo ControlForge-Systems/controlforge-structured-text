@@ -22,6 +22,8 @@ export class WorkspaceIndexer {
     private index: WorkspaceSymbolIndex;
     private workspaceRoot: string | null = null;
     private indexedFiles: Set<string> = new Set();
+    /** Raw file content cache keyed by URI, populated during indexing. */
+    private fileContents: Map<string, string> = new Map();
 
     constructor() {
         this.index = {
@@ -106,6 +108,9 @@ export class WorkspaceIndexer {
         // Remove existing symbols for this file
         this.removeFileFromIndex(uri);
 
+        // Cache raw content for rename and other text-level operations
+        this.fileContents.set(uri, document.getText());
+
         // Parse symbols from the document
         const parser = new STASTParser(document);
         const symbols = parser.parseSymbols();
@@ -140,6 +145,9 @@ export class WorkspaceIndexer {
 
         // Remove file entry
         this.index.fileSymbols.delete(uri);
+
+        // Evict cached content
+        this.fileContents.delete(uri);
 
         // Remove from indexed files tracking
         const filePath = this.uriToPath(uri);
@@ -268,6 +276,20 @@ export class WorkspaceIndexer {
             }
             this.index.symbolReferences.get(lowerCaseName)!.push(symbol.location);
         });
+    }
+
+    /**
+     * Return cached raw text for a URI, or undefined if not cached.
+     */
+    public getFileContent(uri: string): string | undefined {
+        return this.fileContents.get(uri);
+    }
+
+    /**
+     * Return all URIs that have been indexed (and whose content is cached).
+     */
+    public getIndexedUris(): string[] {
+        return Array.from(this.fileContents.keys());
     }
 
     /**

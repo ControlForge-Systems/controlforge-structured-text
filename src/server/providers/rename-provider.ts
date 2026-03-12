@@ -287,13 +287,19 @@ export function prepareRename(
 /**
  * Provide rename edits: compute WorkspaceEdit replacing all occurrences
  * of the symbol across all indexed files.
+ *
+ * @param textResolver - Called with a URI to obtain that file's raw text.
+ *   Must return `undefined` for URIs whose content is unavailable (skipped).
+ *   The active document's text is always obtained directly and does not need
+ *   to be covered by this resolver.
  */
 export function provideRenameEdits(
     document: TextDocument,
     position: Position,
     newName: string,
     workspaceIndexer: WorkspaceIndexer,
-    symbolIndex: SymbolIndex
+    symbolIndex: SymbolIndex,
+    textResolver?: (uri: string) => string | undefined
 ): WorkspaceEdit {
     // Validate new name
     const nameError = validateNewName(newName);
@@ -325,9 +331,8 @@ export function provideRenameEdits(
     urisToScan.add(document.uri);
 
     // Add all workspace-indexed file URIs
-    const allSymbols = workspaceIndexer.getAllSymbols();
-    for (const sym of allSymbols) {
-        urisToScan.add(sym.location.uri);
+    for (const uri of workspaceIndexer.getIndexedUris()) {
+        urisToScan.add(uri);
     }
 
     // Also add files from local symbol index
@@ -337,33 +342,15 @@ export function provideRenameEdits(
 
     // Scan each file for occurrences
     for (const uri of urisToScan) {
-        let text: string;
+        let text: string | undefined;
         if (uri === document.uri) {
             text = document.getText();
         } else {
-            // Try to get text from workspace indexer's file symbols
-            // The workspace indexer doesn't store raw text, so we check
-            // if there are any symbols with this name in the file first
-            // to avoid unnecessary scanning of unrelated files
-            const fileHasSymbol = allSymbols.some(
-                s => s.location.uri === uri &&
-                    s.name.toLowerCase() === originalName.toLowerCase()
-            );
-            // Also check if any symbol in the file *references* this name
-            // (e.g., a variable of a type being renamed, or an FB instance call)
-            // For now we rely on the local symbolIndex for open documents
-            const localFile = symbolIndex.files.get(uri);
-            if (!fileHasSymbol && !localFile) {
-                continue;
-            }
-            if (localFile) {
-                // Re-create text from the file symbols document
-                // Actually, we don't have raw text stored. Skip non-current files
-                // that aren't in the local symbol index.
-                // For cross-file rename to work fully, we'd need document access.
-                // For now, only rename in the current document.
-                continue;
-            }
+            // Try resolver (covers both open documents and disk-cached files)
+            text = textResolver ? textResolver(uri) : workspaceIndexer.getFileContent(uri);
+        }
+
+        if (text === undefined) {
             continue;
         }
 
