@@ -7,6 +7,7 @@
 - Signature Help for function and function block calls: triggers on `(` and `,`, supports manual trigger, highlights active parameter, includes standard + workspace signatures (#33)
 - Diagnostic error for assignment to CONSTANT-qualified variables (VAR CONSTANT, VAR_GLOBAL CONSTANT); paren-depth guard avoids false positives on named FB parameters (#60)
 - Diagnostic error for out-of-bounds array access with constant/literal indices; supports 1-D, multi-dimensional, zero-based, and negative-lower-bound arrays; variable indices ignored (#61)
+- FOR loop bounds validation: `BY 0` flagged as error (infinite loop), reverse range with positive/negative BY flagged as warning (never executes), start equals end flagged as hint; only constant bounds checked (#62)
 
 ### Fixed
 - Multi-line FB calls with closing `)` on its own line falsely flagged as "Unmatched closing parenthesis"; fixed with cross-line depth tracking
