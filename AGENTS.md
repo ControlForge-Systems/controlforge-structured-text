@@ -146,3 +146,5 @@ Title format: `vX.Y.0 - Short Theme` (e.g. `v1.3.0 - Stability & Core LSP`). The
 ## Changelog
 
 Follow [Keep a Changelog](https://keepachangelog.com/) with Fixed/Added/Changed/Removed sections. No severity labels. Concise, no implementation details. Unreleased work goes under `[Unreleased]`.
+
+Issue references (`(#N)`) are allowed **only** in `CHANGELOG.md` and `docs/releases/` documents, and **only** on `### Fixed` entries (bug fixes). Do not add issue refs to Added/Changed/Removed entries, source code, comments, manual test fixtures, or any other file.
