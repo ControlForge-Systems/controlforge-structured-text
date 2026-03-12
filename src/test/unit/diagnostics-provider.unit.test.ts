@@ -435,6 +435,20 @@ END_VAR
     x := 1;
 END_PROGRAM`);
         });
+
+        test('should not false-positive on multi-line FB call closing paren', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    MyTimer : TON;
+    StartSig : BOOL;
+END_VAR
+    MyTimer(
+        IN := StartSig,
+        PT := T#10s
+    );
+END_PROGRAM`);
+        });
     });
 
     suite('Case Insensitivity', () => {

@@ -9,7 +9,7 @@
  *  - Unmatched block keywords (PROGRAM/END_PROGRAM, FUNCTION/END_FUNCTION, etc.)
  *  - Unmatched VAR section keywords (VAR/END_VAR, VAR_INPUT/END_VAR, etc.)
  *  - Unclosed string literals (single and double quotes)
- *  - Unmatched parentheses within lines
+ *  - Unmatched parentheses (cross-line aware)
  *  - ELSE IF should be ELSIF (IEC 61131-3 §3.3.2)
  *  - Missing THEN after IF/ELSIF, missing DO after FOR/WHILE
  *
@@ -1712,39 +1712,50 @@ function checkUnclosedStrings(cleanLines: CleanLine[]): Diagnostic[] {
 function checkUnmatchedParentheses(cleanLines: CleanLine[]): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
 
+    let crossLineDepth = 0; // tracks open parens spanning multiple lines
+    let crossLineOpenLineIndex = -1;
+    let crossLineOpenCol = -1;
+
     for (const cl of cleanLines) {
         const lineNoStrings = stripStringLiterals(cl.text);
 
-        let depth = 0;
-        let firstOpenCol = -1;
+        let lineDepth = crossLineDepth;
+        let firstOpenCol = crossLineDepth > 0 ? crossLineOpenCol : -1;
 
         for (let i = 0; i < lineNoStrings.length; i++) {
             if (lineNoStrings[i] === '(') {
-                if (depth === 0) firstOpenCol = i;
-                depth++;
+                if (lineDepth === 0) {
+                    firstOpenCol = i;
+                    crossLineOpenLineIndex = cl.lineIndex;
+                    crossLineOpenCol = i;
+                }
+                lineDepth++;
             } else if (lineNoStrings[i] === ')') {
-                depth--;
-                if (depth < 0) {
+                lineDepth--;
+                if (lineDepth < 0) {
                     diagnostics.push(createDiagnostic(
                         cl.lineIndex, i, 1,
                         'Unmatched closing parenthesis',
                         DiagnosticSeverity.Error
                     ));
-                    depth = 0;
+                    lineDepth = 0;
                 }
             }
         }
 
+        crossLineDepth = lineDepth;
+
         // Unclosed parens on a statement line (ends with ;) — multi-line FB
         // calls don't end with ; so we only flag genuine errors here.
-        if (depth > 0 && cl.text.trimEnd().endsWith(';')) {
+        if (lineDepth > 0 && cl.text.trimEnd().endsWith(';')) {
             diagnostics.push(createDiagnostic(
                 cl.lineIndex,
                 firstOpenCol >= 0 ? firstOpenCol : 0,
                 1,
-                `Unmatched opening parenthesis (${depth} unclosed)`,
+                `Unmatched opening parenthesis (${lineDepth} unclosed)`,
                 DiagnosticSeverity.Error
             ));
+            crossLineDepth = 0;
         }
     }
 
