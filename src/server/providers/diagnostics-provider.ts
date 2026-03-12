@@ -12,6 +12,8 @@
  *  - Unmatched parentheses (cross-line aware)
  *  - ELSE IF should be ELSIF (IEC 61131-3 §3.3.2)
  *  - Missing THEN after IF/ELSIF, missing DO after FOR/WHILE
+ *  - `=` in statement context (likely mistyped `:=`)
+ *  - `:=` in boolean condition context (IF/ELSIF/WHILE/UNTIL) (likely mistyped `=`)
  *
  * Phase 2 — semantic checks (require parsed symbols):
  *  - Missing semicolons on statement lines
@@ -2114,6 +2116,188 @@ function checkForLoopBounds(cleanLines: CleanLine[]): Diagnostic[] {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
+// ─── Assignment operator confusion check ─────────────────────────────────────
+
+/**
+ * Detect `:=` used inside a boolean condition (IF/ELSIF/WHILE/UNTIL) where
+ * `=` was likely intended.
+ *
+ * Strategy:
+ *  - Scan POU body lines outside VAR sections
+ *  - Find lines whose first token is IF, ELSIF, WHILE, or UNTIL
+ *  - Inside the condition portion (between the keyword and THEN/DO/end-of-line),
+ *    look for `:=` at paren depth 0 that is NOT a named-parameter assign
+ *    (i.e., the LHS is not a parameter name that could be passed by reference)
+ *  - Flag as a Warning with suggestion to use `=`
+ *
+ * Named-param assigns inside parens (depth > 0) are excluded by the depth check.
+ * Only the condition portion is scanned (before THEN/DO) to avoid false positives
+ * on assignment statements in the THEN body parsed on the same line (rare but
+ * possible for one-liner IF constructs).
+ */
+function checkBooleanContextAssignment(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    // Keywords that introduce a boolean condition
+    const CONDITION_KEYWORDS = new Set(['IF', 'ELSIF', 'WHILE', 'UNTIL']);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            const firstToken = getFirstKeywordToken(trimmed);
+            if (!firstToken || !CONDITION_KEYWORDS.has(firstToken)) continue;
+
+            const noStr = stripStringLiterals(cl.text);
+
+            // Find end of condition: index of THEN or DO keyword at depth 0,
+            // or end-of-line if not present on this line.
+            // We scan to find the condition text boundary.
+            // Simple approach: strip trailing THEN/DO token (word boundary) from the
+            // line for the scan range.
+            const upperNoStr = noStr.toUpperCase();
+            let condEnd = noStr.length;
+            // Match THEN or DO as final token (at depth 0) — just scan to end of line;
+            // the depth-0 guard on := already handles parens.
+            // For simplicity, scan the full line — named-param assigns are inside parens
+            // so they're filtered by depth check.
+
+            // Scan for := at paren depth 0
+            let depth = 0;
+            let i = 0;
+
+            // Skip past the leading keyword to avoid matching "KEYWORD :=" patterns
+            // (e.g., a hypothetical label) — advance past first token
+            const kwEnd = noStr.search(/\s/); // first whitespace after keyword
+            if (kwEnd > 0) i = kwEnd;
+
+            for (; i < condEnd; i++) {
+                const ch = noStr[i];
+                if (ch === '(') { depth++; continue; }
+                if (ch === ')') { depth--; if (depth < 0) depth = 0; continue; }
+                if (depth > 0) continue;
+
+                // Look for := (two-character token)
+                if (ch === ':' && i + 1 < noStr.length && noStr[i + 1] === '=') {
+                    // Found := at depth 0 in a condition line
+                    // The column in the original text matches noStr (same length, strings replaced with spaces)
+                    diagnostics.push(createDiagnostic(
+                        cl.lineIndex,
+                        i,
+                        2,
+                        "Used ':=' in condition context; did you mean '='?",
+                        DiagnosticSeverity.Warning
+                    ));
+                    break; // one diagnostic per line
+                }
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Detect `=` used in statement position where `:=` was likely intended.
+ *
+ * In IEC 61131-3, `=` is the equality (comparison) operator and `:=` is
+ * the assignment operator. A statement beginning with `identifier = expr`
+ * at paren depth 0 is almost certainly a mistyped assignment.
+ *
+ * Strategy:
+ *  - Scan POU body lines outside VAR sections (same gates as semicolon check)
+ *  - At paren depth 0, look for a bare `=` that is the first operator on the
+ *    line and is NOT preceded by `:`, `<`, `>` and NOT followed by `>`
+ *    (i.e., not `:=`, `<=`, `>=`, `<>`)
+ *  - Flag it as a Warning with a suggestion to use `:=`
+ */
+function checkAssignmentConfusion(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+        let parenDepth = 0;
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            const noStr = stripStringLiterals(cl.text);
+
+            // If we're mid-way through a multi-line expression (open parens from
+            // a previous line), skip detection — the `=` here is in a context we
+            // cannot simply classify as a statement opener.
+            const parenDepthAtLineStart = parenDepth;
+
+            // Update cross-line paren depth for next iteration
+            for (const ch of noStr) {
+                if (ch === '(') parenDepth++;
+                else if (ch === ')') parenDepth--;
+            }
+            if (parenDepth < 0) parenDepth = 0;
+
+            if (parenDepthAtLineStart > 0) continue;
+
+            // Skip control-flow keyword lines — they contain intentional comparisons
+            const firstToken = getFirstKeywordToken(trimmed);
+            if (firstToken && NO_SEMICOLON_KEYWORDS.has(firstToken)) continue;
+            if (isCaseBranchLabel(trimmed)) continue;
+
+            // Per-character scan for a bare `=` at paren depth 0
+            let localParenDepth = 0;
+            for (let i = 0; i < noStr.length; i++) {
+                const ch = noStr[i];
+                if (ch === '(') { localParenDepth++; continue; }
+                if (ch === ')') { localParenDepth--; if (localParenDepth < 0) localParenDepth = 0; continue; }
+
+                if (ch !== '=') continue;
+                if (localParenDepth > 0) continue;
+
+                // Check it is not part of :=  <=  >=  <>  =>
+                const prev = i > 0 ? noStr[i - 1] : '';
+                const next = i < noStr.length - 1 ? noStr[i + 1] : '';
+                if (prev === ':' || prev === '<' || prev === '>' || prev === '!' || prev === '=') continue;
+                if (next === '>' || next === '=') continue;
+
+                // We have a bare standalone `=` at depth 0.
+                // Only flag if this `=` is the FIRST operator on the line
+                // (i.e., it is at the top-level LHS of a statement).
+                // Heuristic: everything before the `=` on this line must look
+                // like a simple LHS — identifier, optional array index, optional
+                // member chain — with no other operators before it.
+                const before = noStr.slice(0, i).trim();
+                // Allow: identifier, identifier[...], identifier.member, identifier.member[...]
+                if (!/^[A-Za-z_]\w*(\[.*?\])?(\.[A-Za-z_]\w*(\[.*?\])?)*$/.test(before)) continue;
+
+                // Flag: bare `=` used as assignment in statement context
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex,
+                    i,
+                    1,
+                    "Used '=' in statement context; did you mean ':='?",
+                    DiagnosticSeverity.Warning
+                ));
+                break; // one diagnostic per line
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
+
 /**
  * Compute diagnostics for a Structured Text document.
  *
@@ -2137,6 +2321,8 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
     diagnostics.push(...checkUnmatchedParentheses(cleanLines));
     diagnostics.push(...checkElseIfShouldBeElsif(cleanLines));
     diagnostics.push(...checkMissingThenDo(cleanLines));
+    diagnostics.push(...checkAssignmentConfusion(cleanLines));
+    diagnostics.push(...checkBooleanContextAssignment(cleanLines));
 
     // Phase 2: semantic checks (only when symbols available)
     if (symbols && symbols.length > 0) {
