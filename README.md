@@ -98,6 +98,7 @@ END_PROGRAM
 - **Type mismatches**: Incompatible assignments (e.g., STRING to INT, BOOL to INT)
 - **CONSTANT assignment**: Assignment to `VAR CONSTANT` or `VAR_GLOBAL CONSTANT` variables flagged as error
 - **Array bounds**: Out-of-bounds literal index on `ARRAY[L..U]` variables flagged as error (single- and multi-dimensional)
+- **FOR loop bounds**: `BY 0` flagged as error; reverse range (e.g. `10 TO 1 BY 1`) flagged as warning; single-iteration (`5 TO 5`) flagged as hint; only constant bounds checked
 - **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
 - **Case-insensitive**: Keyword matching per IEC 61131-3
 

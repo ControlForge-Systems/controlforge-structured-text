@@ -1200,9 +1200,9 @@ END_PROGRAM`);
         });
     });
 
-    // ─── #57: ELSE IF → ELSIF ────────────────────────────────────────────────
+    // ─── ELSE IF → ELSIF ─────────────────────────────────────────────────────
 
-    suite('ELSE IF should be ELSIF (#57)', () => {
+    suite('ELSE IF should be ELSIF', () => {
         test('detects bare ELSE IF on same line', () => {
             const diags = diagnose(`
 PROGRAM Main
@@ -1340,9 +1340,9 @@ END_PROGRAM`);
         });
     });
 
-    // ─── #58: Missing THEN / DO ──────────────────────────────────────────────
+    // ─── Missing THEN / DO ───────────────────────────────────────────────────
 
-    suite('Missing THEN / DO (#58)', () => {
+    suite('Missing THEN / DO', () => {
         test('detects missing THEN after IF condition', () => {
             const diags = diagnose(`
 PROGRAM Main
@@ -1987,6 +1987,228 @@ END_PROGRAM`);
             assert.ok(d!.message.includes('temps'), 'message should include array name');
             assert.ok(d!.message.includes('[1..10]'), 'message should include declared bounds');
             assert.ok(d!.message.includes('20'), 'message should include offending index');
+        });
+    });
+
+    // ─── FOR loop bounds validation ──────────────────────────────────────────
+
+    suite('FOR loop bounds validation', () => {
+
+        // ── valid loops — no diagnostics ────────────────────────────────────
+
+        test('no diagnostic for normal ascending loop (default BY)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for ascending loop with explicit BY 1', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for descending loop with BY -1', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 BY -1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for loop with variable bounds', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i, start, stop : INT;
+END_VAR
+    FOR i := start TO stop DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for loop where start equals end with negative BY (immediate exit, not flagged as never-executes)', () => {
+            // start == end is flagged as hint regardless of step direction
+            // but start < end with negative BY is a warning — test start == end below
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 5 TO 3 BY -1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0, 'descending with negative step should be ok');
+        });
+
+        // ── BY 0: error ──────────────────────────────────────────────────────
+
+        test('BY 0 flagged as error', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 0 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('BY 0') || d.message.includes('infinite loop'));
+            assert.ok(d, 'BY 0 should be flagged');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('BY 0 message mentions infinite loop', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 0 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.toLowerCase().includes('infinite loop'));
+            assert.ok(d, 'message should mention infinite loop');
+        });
+
+        // ── reverse range + positive step: warning ───────────────────────────
+
+        test('start > end with positive BY flagged as warning', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 BY 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d, 'reverse range with positive step should warn');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('start > end default BY (no BY clause, implicit +1) flagged as warning', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d, 'reverse range with implicit +1 should warn');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('start < end with negative BY flagged as warning', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY -1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d, 'ascending range with negative step should warn');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('warning message includes start, end and BY values', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 BY 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d);
+            assert.ok(d!.message.includes('10'), 'message should include start value');
+            assert.ok(d!.message.includes('1'), 'message should include end value');
+        });
+
+        // ── single iteration: hint ───────────────────────────────────────────
+
+        test('start equals end flagged as hint', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 5 TO 5 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('exactly once') || d.message.includes('start equals end'));
+            assert.ok(d, 'start==end should be flagged as hint');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Hint);
+        });
+
+        test('hint message includes the repeated value', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 7 TO 7 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('exactly once') || d.message.includes('start equals end'));
+            assert.ok(d);
+            assert.ok(d!.message.includes('7'), 'message should include the repeated bound value');
+        });
+
+        // ── source: only 'ControlForge ST' ──────────────────────────────────
+
+        test('diagnostics have correct source', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 0 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.toLowerCase().includes('infinite loop'));
+            assert.ok(d);
+            assert.strictEqual(d!.source, 'ControlForge ST');
         });
     });
 });
