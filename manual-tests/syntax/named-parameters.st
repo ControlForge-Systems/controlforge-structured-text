@@ -27,8 +27,8 @@ MyTimer(IN := StartSig, PT := T#5s, Q => Result, ET => CountOut);
 (* Counter FB: CU, RESET, PV are variable.parameter.st; CV => is output *)
 MyCounter(CU := StartSig, RESET := StopSig, PV := 10, CV => CountOut);
 
-(* Function call with named params: Input1, Input2 are variable.parameter.st *)
-Result := MyFunc(Input1 := Val1, Input2 := Val2);
+(* FB call with multiple named input params: CU, RESET, PV are variable.parameter.st *)
+MyCounter(CU := Val1, RESET := StopSig, PV := Val2);
 
 (* Multi-line call: each param name on its own line should still be variable.parameter.st *)
 MyTimer(
