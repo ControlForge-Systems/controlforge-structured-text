@@ -2211,4 +2211,369 @@ END_PROGRAM`);
             assert.strictEqual(d!.source, 'ControlForge ST');
         });
     });
+
+    suite("Assignment/Comparison Confusion — '=' in statement context", () => {
+
+        // ── should flag ──────────────────────────────────────────────────────
+
+        test('flags simple identifier = expr as warning', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    counter : INT;
+END_VAR
+    counter = counter + 1;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d, "Should flag 'counter = counter + 1'");
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('diagnostic message suggests :=', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 42;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d);
+            assert.ok(d!.message.includes(":="), "Message should suggest ':='");
+        });
+
+        test('diagnostic points at the = character', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 42;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d);
+            // Line 5 (0-indexed): "    x = 42;"
+            // `=` is at column 6
+            assert.strictEqual(d!.range.start.line, 5);
+            assert.strictEqual(d!.range.start.character, 6);
+            assert.strictEqual(d!.range.end.character, 7); // length 1
+        });
+
+        test('flags array element assignment confusion', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    arr : ARRAY[0..9] OF INT;
+END_VAR
+    arr[0] = 5;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d, "Should flag 'arr[0] = 5'");
+        });
+
+        test('flags member access assignment confusion', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    fb : TON;
+END_VAR
+    fb.PT = T#1s;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d, "Should flag 'fb.PT = T#1s'");
+        });
+
+        test('diagnostic has correct source', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 1;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d);
+            assert.strictEqual(d!.source, 'ControlForge ST');
+        });
+
+        // ── should NOT flag ──────────────────────────────────────────────────
+
+        test('no false positive for correct := assignment', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 42;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag ':='");
+        });
+
+        test('no false positive for = in IF condition', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x = 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' in IF condition");
+        });
+
+        test('no false positive for <= comparison', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := x <= 10;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '<='");
+        });
+
+        test('no false positive for >= comparison', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := x >= 5;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '>='");
+        });
+
+        test('no false positive for <> comparison', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := x <> 0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '<>'");
+        });
+
+        test('no false positive for = inside VAR declaration', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT := 5;
+END_VAR
+    x := x + 1;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag = inside VAR section");
+        });
+
+        test('no false positive for = comparison inside parentheses in statement', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := (x = 5);
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' inside parens on RHS");
+        });
+
+        test('no false positive when = is inside inline FB call (paren depth > 0)', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    tmr : TON;
+END_VAR
+    tmr(IN := TRUE, PT := T#1s);
+    IF tmr.Q = TRUE THEN
+        tmr(IN := FALSE, PT := T#1s);
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' inside FB call parens or in IF condition");
+        });
+
+        test('no false positive for = in a complex BOOL expression on RHS', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    safeToStart : BOOL;
+    emergencyStop : BOOL;
+END_VAR
+    safeToStart := (emergencyStop = FALSE) AND (x > 0);
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' in parenthesised RHS expression");
+        });
+    });
+
+    suite("Assignment/Comparison Confusion — ':=' in boolean condition context", () => {
+
+        // ── should flag ──────────────────────────────────────────────────────
+
+        test("flags ':=' in IF condition as warning", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d, "Should flag ':=' in IF condition");
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test("diagnostic message suggests =", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d);
+            assert.ok(d!.message.includes("'='"), "Message should suggest '='");
+        });
+
+        test("diagnostic points at the := token (length 2)", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d);
+            // Line 5 (0-indexed): "    IF x := 10 THEN"
+            // ':=' is at column 9
+            assert.strictEqual(d!.range.start.line, 5);
+            assert.strictEqual(d!.range.start.character, 9);
+            assert.strictEqual(d!.range.end.character, 11); // length 2
+        });
+
+        test("flags ':=' in ELSIF condition", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x = 0 THEN
+        x := 1;
+    ELSIF x := 5 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d, "Should flag ':=' in ELSIF condition");
+        });
+
+        test("flags ':=' in WHILE condition", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    WHILE x := 0 DO
+        x := x + 1;
+    END_WHILE;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d, "Should flag ':=' in WHILE condition");
+        });
+
+        test("diagnostic has correct source", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 0 THEN
+        x := 1;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d);
+            assert.strictEqual(d!.source, 'ControlForge ST');
+        });
+
+        // ── should NOT flag ──────────────────────────────────────────────────
+
+        test("no false positive for correct = in IF condition", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x = 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' in IF condition");
+        });
+
+        test("no false positive for := in IF body (same line, after THEN — rare)", () => {
+            // This test verifies we don't accidentally flag correct := in statement body
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    y : INT;
+END_VAR
+    IF x = 0 THEN
+        y := 1;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag ':=' in IF body");
+        });
+
+        test("no false positive for named-param := inside parens in IF", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    tmr : TON;
+END_VAR
+    IF tmr.Q = TRUE THEN
+        tmr(IN := FALSE, PT := T#1s);
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag ':=' inside parens in IF body");
+        });
+
+        test("no false positive for correct FOR loop (uses := for loop var)", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 DO
+        i := i;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag ':=' in FOR loop header");
+        });
+    });
 });

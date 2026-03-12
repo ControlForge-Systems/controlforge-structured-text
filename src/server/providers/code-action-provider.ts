@@ -155,6 +155,20 @@ export function provideCodeActions(
                 actions.push(action);
             }
         }
+        // Assignment/comparison operator confusion — '=' used as ':='
+        else if (message.includes("Used '=' in statement context")) {
+            const action = createReplaceEqualsWithAssignAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Assignment/comparison operator confusion — ':=' used as '=' in condition
+        else if (message.includes("Used ':=' in condition context")) {
+            const action = createReplaceAssignWithEqualsAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
         // Missing variable declaration — infer type and insert into VAR block
         else if (message.startsWith("Undefined identifier '")) {
             const action = provideMissingDeclarationAction(document, diagnostic, symbols);
@@ -629,6 +643,56 @@ function createReplaceInvalidMemberAction(
 
     return {
         title: `Replace with '${suggestion}'`,
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
+    };
+}
+
+/**
+ * Replace a bare `=` used in statement context with `:=`.
+ *
+ * Message: "Used '=' in statement context; did you mean ':='?"
+ * The diagnostic range covers the single `=` character.
+ */
+function createReplaceEqualsWithAssignAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [TextEdit.replace(diagnostic.range, ':=')]
+        }
+    };
+
+    return {
+        title: "Replace '=' with ':='",
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
+    };
+}
+
+/**
+ * Replace `:=` used in a boolean condition context with `=`.
+ *
+ * Message: "Used ':=' in condition context; did you mean '='?"
+ * The diagnostic range covers the two-character `:=` token.
+ */
+function createReplaceAssignWithEqualsAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [TextEdit.replace(diagnostic.range, '=')]
+        }
+    };
+
+    return {
+        title: "Replace ':=' with '='",
         kind: CodeActionKind.QuickFix,
         diagnostics: [diagnostic],
         edit,
