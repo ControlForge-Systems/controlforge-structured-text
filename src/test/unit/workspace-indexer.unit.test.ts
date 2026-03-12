@@ -296,4 +296,55 @@ END_VAR`));
             assert.ok(stats.globalVariableCount >= 1, `expected >=1 global var, got ${stats.globalVariableCount}`);
         });
     });
+
+    // ─── File content cache ──────────────────────────────────────────
+
+    suite('file content cache', () => {
+        test('getFileContent returns text after indexing', () => {
+            const indexer = new WorkspaceIndexer();
+            const content = 'PROGRAM P\nEND_PROGRAM';
+            indexer.updateFileIndex(doc('file:///p.st', content));
+            assert.strictEqual(indexer.getFileContent('file:///p.st'), content);
+        });
+
+        test('getFileContent returns undefined for unknown URI', () => {
+            const indexer = new WorkspaceIndexer();
+            assert.strictEqual(indexer.getFileContent('file:///missing.st'), undefined);
+        });
+
+        test('getFileContent returns updated text after re-indexing', () => {
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(doc('file:///p.st', 'PROGRAM P\nEND_PROGRAM'));
+            indexer.updateFileIndex(doc('file:///p.st', 'PROGRAM P\nVAR\n    x : INT;\nEND_VAR\nEND_PROGRAM'));
+            const text = indexer.getFileContent('file:///p.st');
+            assert.ok(text?.includes('x : INT'));
+        });
+
+        test('getFileContent returns undefined after removeFileFromIndex', () => {
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(doc('file:///p.st', 'PROGRAM P\nEND_PROGRAM'));
+            indexer.removeFileFromIndex('file:///p.st');
+            assert.strictEqual(indexer.getFileContent('file:///p.st'), undefined);
+        });
+
+        test('getIndexedUris returns all indexed URIs', () => {
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(doc('file:///a.st', 'PROGRAM A\nEND_PROGRAM'));
+            indexer.updateFileIndex(doc('file:///b.st', 'PROGRAM B\nEND_PROGRAM'));
+            const uris = indexer.getIndexedUris();
+            assert.ok(uris.includes('file:///a.st'));
+            assert.ok(uris.includes('file:///b.st'));
+            assert.strictEqual(uris.length, 2);
+        });
+
+        test('getIndexedUris excludes removed file', () => {
+            const indexer = new WorkspaceIndexer();
+            indexer.updateFileIndex(doc('file:///a.st', 'PROGRAM A\nEND_PROGRAM'));
+            indexer.updateFileIndex(doc('file:///b.st', 'PROGRAM B\nEND_PROGRAM'));
+            indexer.removeFileFromIndex('file:///a.st');
+            const uris = indexer.getIndexedUris();
+            assert.ok(!uris.includes('file:///a.st'));
+            assert.ok(uris.includes('file:///b.st'));
+        });
+    });
 });

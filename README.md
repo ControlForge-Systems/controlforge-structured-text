@@ -12,7 +12,7 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 - **Code Formatting**: Format Document, Format Selection, configurable keyword casing, operator spacing, VAR alignment
 - **Real-time Diagnostics**: Errors and warnings as you type — missing semicolons, type mismatches, undefined/unused variables, unmatched blocks
 - **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, semicolons, duplicate/unused declarations, unclosed strings
-- **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
+- **Rename Symbol (F2)**: Rename variables, functions, FBs, programs across all workspace files with IEC 61131-3 validation
 - **Go to Definition & Find References**: Cross-file symbol navigation
 - **Signature Help**: Parameter hints for functions/FB calls with active argument highlight
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
@@ -82,7 +82,7 @@ END_PROGRAM
 ### Navigation
 - **Go to Definition**: Jump to symbol declarations across files
 - **Find References**: Locate all usages of a symbol
-- **Rename Symbol (F2)**: Rename with IEC 61131-3 validation — rejects keywords, data types, standard functions
+- **Rename Symbol (F2)**: Cross-file rename with IEC 61131-3 validation — rejects keywords, data types, standard functions
 - **Member Access Navigation**: Navigate from `instance.member` to FB definitions
 - **Hover Information**: Rich tooltips for standard FBs with parameter tables, behavior, and usage examples
 

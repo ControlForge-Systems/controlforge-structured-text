@@ -377,7 +377,13 @@ connection.onRenameRequest((params) => {
     if (!document) {
         return null;
     }
-    return provideRenameEdits(document, params.position, params.newName, workspaceIndexer, symbolIndex);
+    // Resolver: prefer the in-memory open document; fall back to disk cache.
+    const textResolver = (uri: string): string | undefined => {
+        const openDoc = documents.get(uri);
+        if (openDoc) return openDoc.getText();
+        return workspaceIndexer.getFileContent(uri);
+    };
+    return provideRenameEdits(document, params.position, params.newName, workspaceIndexer, symbolIndex, textResolver);
 });
 
 // Formatting settings cache

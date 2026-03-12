@@ -17,6 +17,7 @@
 - Diagnostic error for out-of-bounds array access with constant/literal indices; supports 1-D, multi-dimensional, zero-based, and negative-lower-bound arrays; variable indices ignored (#61)
 - FOR loop bounds validation: `BY 0` flagged as error (infinite loop), reverse range with positive/negative BY flagged as warning (never executes), start equals end flagged as hint; only constant bounds checked (#62)
 - Diagnostic warning and quick-fix code action for `:=` vs `=` confusion: bare `=` in statement position flagged with "Replace '=' with ':='" action; `:=` inside IF/ELSIF/WHILE/UNTIL condition flagged with "Replace ':=' with '='" action (#63)
+- Cross-file rename: F2 now renames symbols across all workspace files, not just the active document
 
 ### Fixed
 - Multi-line FB calls with closing `)` on its own line falsely flagged as "Unmatched closing parenthesis"; fixed with cross-line depth tracking
