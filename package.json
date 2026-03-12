@@ -72,6 +72,13 @@
         "injectTo": [
           "text.html.markdown"
         ]
+      },
+      {
+        "scopeName": "xml.structured-text.injection",
+        "path": "./syntaxes/structured-text.xml-injection.tmLanguage.json",
+        "injectTo": [
+          "text.xml"
+        ]
       }
     ],
     "snippets": [

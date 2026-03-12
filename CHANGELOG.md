@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- ST syntax highlighting injected into `<Declaration>`, `<ST>`, `<Implementation>`, and `<Interface>` XML elements in TwinCAT/CoDeSys export files (plain content and CDATA-wrapped)
 - Hardware address literals (`%IX0.0`, `%QW1`, `%MD100`, etc.) highlighted as `constant.other.hardware-address.st`
 - Pragma/attribute blocks (`{attribute 'xxx'}`, `{IF}`, `{ENDIF}`, etc.) highlighted as `meta.pragma.st` with `keyword.other.pragma.st` keyword scopes
 - SFC action qualifier keywords (`N`, `S`, `R`, `L`, `D`, `P`, `SD`, `DS`, `SL`) highlighted as `keyword.other.sfc-qualifier.st`

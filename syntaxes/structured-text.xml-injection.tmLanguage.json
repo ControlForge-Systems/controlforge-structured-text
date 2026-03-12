@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Structured Text (XML injection)",
+    "scopeName": "xml.structured-text.injection",
+    "injectionSelector": "R:text.xml - (meta.tag, string, comment)",
+    "patterns": [
+        {
+            "include": "#st-cdata"
+        },
+        {
+            "include": "#st-bare-text"
+        }
+    ],
+    "repository": {
+        "st-cdata": {
+            "comment": "ST inside CDATA in TwinCAT/CoDeSys export tags. R: priority wins the CDATA block before the XML grammar claims it as string.unquoted.cdata.xml. KNOWN LIMITATION: < and > operators are coloured red in Dark+ and similar themes because the XML grammar's string.unquoted.cdata.xml scope leaks into the scope stack; tracked in issue #138.",
+            "begin": "(?<=<(?:Declaration|ST|Implementation|Interface)>)\\s*<!\\[CDATA\\[",
+            "beginCaptures": {
+                "0": { "name": "punctuation.definition.string.begin.xml" }
+            },
+            "end": "\\]\\]>",
+            "endCaptures": {
+                "0": { "name": "punctuation.definition.string.end.xml" }
+            },
+            "contentName": "meta.embedded.block.structured-text",
+            "patterns": [
+                {
+                    "include": "source.structured-text"
+                }
+            ]
+        },
+        "st-bare-text": {
+            "comment": "ST inside bare (non-CDATA) known export tags. Safe only for content without literal < characters.",
+            "begin": "(?<=<(?:Declaration|ST|Implementation|Interface)>)(?!\\s*<!\\[CDATA\\[)",
+            "end": "(?=</(?:Declaration|ST|Implementation|Interface)>)",
+            "contentName": "meta.embedded.block.structured-text",
+            "patterns": [
+                {
+                    "include": "source.structured-text"
+                }
+            ]
+        }
+    }
+}
