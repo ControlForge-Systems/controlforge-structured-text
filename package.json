@@ -87,6 +87,12 @@
         "path": "./syntaxes/structured-text.code-snippets"
       }
     ],
+    "snippets": [
+      {
+        "language": "structured-text",
+        "path": "./syntaxes/structured-text.code-snippets"
+      }
+    ],
     "commands": [
       {
         "command": "controlforge-structured-text.validateSyntax",
