@@ -1,5 +1,6 @@
 # ControlForge Structured Text
 
+[![Website](https://img.shields.io/badge/controlforge.dev-0066b8?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQTEwIDEwIDAgMCAwIDIgMTJhMTAgMTAgMCAwIDAgMTAgMTAgMTAgMTAgMCAwIDAgMTAtMTBBMTAgMTAgMCAwIDAgMTIgMm0tMSAxNy45M1Y0LjA3YzIuODMuNDggNSAyLjk0IDUgNS45M3MtMi4xNyA1LjQ1LTUgNS45M3oiLz48L3N2Zz4=)](https://controlforge.dev)
 [![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/ControlForgeSystems.controlforge-structured-text?label=VS%20Marketplace&color=0066b8)](https://marketplace.visualstudio.com/items?itemName=ControlForgeSystems.controlforge-structured-text)
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/ControlForgeSystems.controlforge-structured-text)](https://marketplace.visualstudio.com/items?itemName=ControlForgeSystems.controlforge-structured-text)
 
@@ -24,10 +25,18 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 ## Getting Started
 
 ### Installation
+
+**Option 1 — Marketplace (recommended):**
+[Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ControlForgeSystems.controlforge-structured-text)
+
+**Option 2 — Inside VS Code:**
 1. Open **Visual Studio Code**
-2. Go to **Extensions** (`Ctrl+Shift+X`)
-3. Search for **"ControlForge Structured Text"**
+2. Open Extensions (`Ctrl+Shift+X`)
+3. Search **"ControlForge Structured Text"**
 4. Click **Install**
+
+**Option 3 — Quick Open:**
+Press `Ctrl+P`, paste `ext install ControlForgeSystems.controlforge-structured-text`, press `Enter`.
 
 ### Commands
 
