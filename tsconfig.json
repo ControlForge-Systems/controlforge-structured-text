@@ -9,6 +9,7 @@
         "sourceMap": true,
         "rootDir": "src",
         "strict": true,
+        "skipLibCheck": true,
         "types": [
             "node",
             "vscode",

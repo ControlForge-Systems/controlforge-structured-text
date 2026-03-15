@@ -12,8 +12,9 @@ Professional **Structured Text (IEC 61131-3)** development environment for **PLC
 - **Code Formatting**: Format Document, Format Selection, configurable keyword casing, operator spacing, VAR alignment
 - **Real-time Diagnostics**: Errors and warnings as you type — missing semicolons, type mismatches, undefined/unused variables, unmatched blocks
 - **Code Actions & Quick Fixes**: One-click fixes for missing END blocks, semicolons, duplicate/unused declarations, unclosed strings
-- **Rename Symbol (F2)**: Rename variables, functions, FBs, programs with IEC 61131-3 validation
+- **Rename Symbol (F2)**: Rename variables, functions, FBs, programs across all workspace files with IEC 61131-3 validation
 - **Go to Definition & Find References**: Cross-file symbol navigation
+- **Signature Help**: Parameter hints for functions/FB calls with active argument highlight
 - **Function Block IntelliSense**: Auto-complete for FB members (`myTimer.Q`, `upCounter.CV`)
 - **Rich Syntax Highlighting**: Complete IEC 61131-3 language support
 - **Smart Code Completion**: Context-aware suggestions for keywords, types, and variables
@@ -41,6 +42,7 @@ Access via the Command Palette (`Ctrl+Shift+P`):
 2. Start typing - syntax highlighting activates automatically
 3. Use `Ctrl+Space` for IntelliSense completion
 4. Type function block instances followed by `.` for member completion
+5. Type `(` or `,` in function/FB calls for parameter hints (`Ctrl+Shift+Space` manual trigger)
 
 ### Function Block Completion Example
 ```st
@@ -71,10 +73,16 @@ END_PROGRAM
 - **Variable Detection**: Automatically detects declared variables
 - **Code Snippets**: Templates for common patterns (IF-THEN, FOR loops, etc.)
 
+### Signature Help
+- **Call hints**: Shows function/FB signature on `(` and `,`
+- **Active parameter**: Highlights current argument as you move through call parameters
+- **Manual trigger**: Use `Ctrl+Shift+Space` to re-open parameter hints
+- **Coverage**: Standard functions (`LIMIT`, `ABS`, `SQRT`, `LEN`, etc.), standard FBs (`TON`, `CTU`, `R_TRIG`, etc.), and custom workspace functions/FBs
+
 ### Navigation
 - **Go to Definition**: Jump to symbol declarations across files
 - **Find References**: Locate all usages of a symbol
-- **Rename Symbol (F2)**: Rename with IEC 61131-3 validation — rejects keywords, data types, standard functions
+- **Rename Symbol (F2)**: Cross-file rename with IEC 61131-3 validation — rejects keywords, data types, standard functions
 - **Member Access Navigation**: Navigate from `instance.member` to FB definitions
 - **Hover Information**: Rich tooltips for standard FBs with parameter tables, behavior, and usage examples
 
@@ -88,6 +96,9 @@ END_PROGRAM
 - **Undefined variables**: Identifiers used but not declared, with fuzzy "did you mean?" matching
 - **Unused variables**: Local variables declared but never referenced in body
 - **Type mismatches**: Incompatible assignments (e.g., STRING to INT, BOOL to INT)
+- **CONSTANT assignment**: Assignment to `VAR CONSTANT` or `VAR_GLOBAL CONSTANT` variables flagged as error
+- **Array bounds**: Out-of-bounds literal index on `ARRAY[L..U]` variables flagged as error (single- and multi-dimensional)
+- **FOR loop bounds**: `BY 0` flagged as error; reverse range (e.g. `10 TO 1 BY 1`) flagged as warning; single-iteration (`5 TO 5`) flagged as hint; only constant bounds checked
 - **Problems panel**: All diagnostics surface in `Ctrl+Shift+M` with source "ControlForge ST"
 - **Case-insensitive**: Keyword matching per IEC 61131-3
 
@@ -98,6 +109,7 @@ END_PROGRAM
 - **Missing semicolons**: Insert `;` at end of statement
 - **Duplicate declarations**: Remove duplicate variable declaration line
 - **Unused variables**: Remove unused variable declaration line
+- **Missing variable declarations**: Auto-declare undefined variables with inferred types; batch-fix all missing declarations at once
 - **Light bulb menu**: Fixes appear via `Ctrl+.` or clicking the light bulb icon
 
 ### Code Formatting
@@ -140,7 +152,7 @@ END_PROGRAM
 - **Code actions & quick fixes**: Auto-insert missing END blocks, close unclosed strings, fix unmatched parentheses via light bulb menu
 - **Real-time diagnostics**: Unmatched blocks, unclosed strings, unmatched parentheses shown in Problems panel as you type
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly
-- **366 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
+- **465 unit tests**: Comprehensive coverage for all LSP providers, diagnostics, code actions, rename, and formatting
 
 ## What's New in v1.2.5
 - **Multi-line declaration parsing**: Arrays, structs, and complex initializers now parse correctly

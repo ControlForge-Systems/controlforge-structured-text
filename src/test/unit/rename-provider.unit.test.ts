@@ -543,7 +543,201 @@ END_PROGRAM`;
         });
     });
 
-    // ─── Edge cases ──────────────────────────────────────────────────
+    // ─── Cross-file rename ───────────────────────────────────────────
+
+    suite('Cross-file rename', () => {
+        /**
+         * Helper: index multiple documents into one indexer and run rename
+         * using a text resolver that covers all indexed docs.
+         */
+        function doRenameMultiFile(
+            files: { uri: string; content: string }[],
+            activeUri: string,
+            line: number,
+            character: number,
+            newName: string
+        ) {
+            const indexer = new WorkspaceIndexer();
+            const symbolIndex: SymbolIndex = { files: new Map(), symbolsByName: new Map() };
+
+            for (const f of files) {
+                const d = TextDocument.create(f.uri, 'structured-text', 1, f.content);
+                indexer.updateFileIndex(d);
+            }
+
+            const activeFile = files.find(f => f.uri === activeUri)!;
+            const activeDoc = TextDocument.create(activeFile.uri, 'structured-text', 1, activeFile.content);
+
+            const textResolver = (uri: string): string | undefined =>
+                uri === activeUri ? undefined : indexer.getFileContent(uri);
+
+            return provideRenameEdits(
+                activeDoc,
+                Position.create(line, character),
+                newName,
+                indexer,
+                symbolIndex,
+                textResolver
+            );
+        }
+
+        test('should rename symbol in two files', () => {
+            const files = [
+                {
+                    uri: 'file:///a.st',
+                    content: [
+                        'FUNCTION_BLOCK MyFB',
+                        'VAR_INPUT',
+                        '    speed : REAL;',
+                        'END_VAR',
+                        'END_FUNCTION_BLOCK'
+                    ].join('\n')
+                },
+                {
+                    uri: 'file:///b.st',
+                    content: [
+                        'PROGRAM Main',
+                        'VAR',
+                        '    ctrl : MyFB;',
+                        'END_VAR',
+                        '    ctrl(speed := 1.0);',
+                        'END_PROGRAM'
+                    ].join('\n')
+                }
+            ];
+
+            // Rename "MyFB" from file a.st (line 0, char 16)
+            const result = doRenameMultiFile(files, 'file:///a.st', 0, 16, 'MotorFB');
+
+            const editsA = result.changes?.['file:///a.st'];
+            const editsB = result.changes?.['file:///b.st'];
+
+            assert.ok(editsA, 'should have edits in file a');
+            assert.ok(editsB, 'should have edits in file b');
+
+            assert.ok(editsA.length >= 1, 'file a: at least declaration edit');
+            assert.ok(editsB.length >= 1, 'file b: at least type reference edit');
+
+            editsA.forEach(e => assert.strictEqual(e.newText, 'MotorFB'));
+            editsB.forEach(e => assert.strictEqual(e.newText, 'MotorFB'));
+        });
+
+        test('should rename global variable referenced in another file', () => {
+            const files = [
+                {
+                    uri: 'file:///globals.st',
+                    content: [
+                        'VAR_GLOBAL',
+                        '    systemReady : BOOL;',
+                        'END_VAR'
+                    ].join('\n')
+                },
+                {
+                    uri: 'file:///main.st',
+                    content: [
+                        'PROGRAM Main',
+                        'VAR_EXTERNAL',
+                        '    systemReady : BOOL;',
+                        'END_VAR',
+                        '    IF systemReady THEN',
+                        '        systemReady := FALSE;',
+                        '    END_IF',
+                        'END_PROGRAM'
+                    ].join('\n')
+                }
+            ];
+
+            // Rename from globals.st (line 1, char 4)
+            const result = doRenameMultiFile(files, 'file:///globals.st', 1, 4, 'sysReady');
+
+            const editsGlobals = result.changes?.['file:///globals.st'];
+            const editsMain = result.changes?.['file:///main.st'];
+
+            assert.ok(editsGlobals, 'globals.st should have edits');
+            assert.ok(editsMain, 'main.st should have edits');
+
+            // globals: 1 occurrence (declaration)
+            assert.strictEqual(editsGlobals.length, 1);
+            // main: VAR_EXTERNAL decl + 2 body usages
+            assert.strictEqual(editsMain.length, 3);
+        });
+
+        test('should not rename in file whose content is unavailable', () => {
+            const fileA = {
+                uri: 'file:///a.st',
+                content: 'PROGRAM Test\nVAR\n    counter : INT;\nEND_VAR\n    counter := 1;\nEND_PROGRAM'
+            };
+
+            const indexer = new WorkspaceIndexer();
+            const symbolIndex: SymbolIndex = { files: new Map(), symbolsByName: new Map() };
+            const docA = TextDocument.create(fileA.uri, 'structured-text', 1, fileA.content);
+            indexer.updateFileIndex(docA);
+
+            // Simulate a second file in index but resolver returns undefined for it
+            const docB = TextDocument.create(
+                'file:///b.st',
+                'structured-text',
+                1,
+                'PROGRAM Other\nVAR\n    counter : INT;\nEND_VAR\nEND_PROGRAM'
+            );
+            indexer.updateFileIndex(docB);
+
+            // Resolver returns undefined for b.st → should be skipped
+            const textResolver = (_uri: string): string | undefined => undefined;
+
+            const result = provideRenameEdits(
+                docA,
+                Position.create(2, 4),
+                'cnt',
+                indexer,
+                symbolIndex,
+                textResolver
+            );
+
+            // Active doc (docA) is read directly — edits exist for a.st
+            assert.ok(result.changes?.['file:///a.st']);
+            // b.st resolver returned undefined → no edits
+            assert.ok(!result.changes?.['file:///b.st']);
+        });
+
+        test('should use text resolver over cached content for open documents', () => {
+            // Simulate a file that has been edited in-memory (resolver has newer text)
+            const originalContent = 'PROGRAM P\nVAR\n    counter : INT;\nEND_VAR\n    counter := 0;\nEND_PROGRAM';
+            const modifiedContent = 'PROGRAM P\nVAR\n    counter : INT;\nEND_VAR\n    counter := counter + 1;\nEND_PROGRAM';
+
+            const indexer = new WorkspaceIndexer();
+            const symbolIndex: SymbolIndex = { files: new Map(), symbolsByName: new Map() };
+
+            // Index original (disk) version
+            const diskDoc = TextDocument.create('file:///p.st', 'structured-text', 1, originalContent);
+            indexer.updateFileIndex(diskDoc);
+
+            // Active doc is file:///a.st — separate from the cached file
+            const activeContent = 'PROGRAM A\nVAR\n    counter : INT;\nEND_VAR\nEND_PROGRAM';
+            const activeDoc = TextDocument.create('file:///a.st', 'structured-text', 1, activeContent);
+            indexer.updateFileIndex(activeDoc);
+
+            // Resolver returns modified (in-memory) version for p.st
+            const textResolver = (uri: string): string | undefined => {
+                if (uri === 'file:///p.st') return modifiedContent;
+                return indexer.getFileContent(uri);
+            };
+
+            const result = provideRenameEdits(
+                activeDoc,
+                Position.create(2, 4),
+                'cnt',
+                indexer,
+                symbolIndex,
+                textResolver
+            );
+
+            const editsP = result.changes?.['file:///p.st'];
+            assert.ok(editsP, 'p.st should have edits');
+            // modified version has 3 occurrences of "counter", original has 2
+            assert.strictEqual(editsP.length, 3);
+        });
+    });
 
     suite('Edge Cases', () => {
         test('should handle underscore-only variable', () => {

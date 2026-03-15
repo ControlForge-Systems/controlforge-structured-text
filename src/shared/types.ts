@@ -63,6 +63,14 @@ export interface SymbolIndex {
 }
 
 /**
+ * Array dimension bounds (e.g. ARRAY[1..10] gives lower=1, upper=10)
+ */
+export interface ArrayDimension {
+    lower: number;
+    upper: number;
+}
+
+/**
  * Enhanced symbol definition with more context
  */
 export interface STSymbolExtended extends STSymbol {
@@ -73,6 +81,8 @@ export interface STSymbolExtended extends STSymbol {
     references?: Location[];       // All reference locations
     literalType?: string;          // For literals, e.g., 'LTIME', 'WSTRING'
     normalizedName?: string;       // Lowercase name for case-insensitive lookups (IEC 61131-3 is case-insensitive)
+    isConstant?: boolean;          // Declared with CONSTANT qualifier — assignment is illegal
+    arrayDimensions?: ArrayDimension[]; // Parsed bounds for ARRAY types; undefined if not an array
 }
 
 /**

@@ -9,9 +9,11 @@
  *  - Unmatched block keywords (PROGRAM/END_PROGRAM, FUNCTION/END_FUNCTION, etc.)
  *  - Unmatched VAR section keywords (VAR/END_VAR, VAR_INPUT/END_VAR, etc.)
  *  - Unclosed string literals (single and double quotes)
- *  - Unmatched parentheses within lines
+ *  - Unmatched parentheses (cross-line aware)
  *  - ELSE IF should be ELSIF (IEC 61131-3 §3.3.2)
  *  - Missing THEN after IF/ELSIF, missing DO after FOR/WHILE
+ *  - `=` in statement context (likely mistyped `:=`)
+ *  - `:=` in boolean condition context (IF/ELSIF/WHILE/UNTIL) (likely mistyped `=`)
  *
  * Phase 2 — semantic checks (require parsed symbols):
  *  - Missing semicolons on statement lines
@@ -79,42 +81,47 @@ interface CleanLine {
 }
 
 /**
- * Strip all comments from the document and return per-line clean text.
+ * Strip all comments and pragma blocks from the document and return per-line clean text.
  *
  * Handles:
- *  - Block comments (* ... *) spanning multiple lines
+ *  - Block comments (* ... *) spanning multiple lines, including nested (* (* *) *)
  *  - Single-line comments //
- *
- * Does NOT handle nested block comments (consistent with the AST parser).
+ *  - Pragma blocks { ... } (IEC 61131-3 implementation-specific attributes)
  */
 function stripAllComments(lines: string[]): CleanLine[] {
     const result: CleanLine[] = [];
-    let inBlockComment = false;
+    let blockDepth = 0;
+    let inPragma = false;
 
     for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
+        const line = lines[i];
         let cleaned = '';
         let j = 0;
 
         while (j < line.length) {
-            if (inBlockComment) {
-                const endIdx = line.indexOf('*)', j);
-                if (endIdx === -1) {
-                    // Rest of line is inside block comment
-                    j = line.length;
+            if (inPragma) {
+                if (line[j] === '}') {
+                    inPragma = false;
+                }
+                j++;
+            } else if (blockDepth > 0) {
+                if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
+                    blockDepth++;
+                    j += 2;
+                } else if (j < line.length - 1 && line[j] === '*' && line[j + 1] === ')') {
+                    blockDepth--;
+                    j += 2;
                 } else {
-                    j = endIdx + 2;
-                    inBlockComment = false;
+                    j++;
                 }
             } else {
-                // Check for block comment start
-                if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
-                    inBlockComment = true;
+                if (line[j] === '{') {
+                    inPragma = true;
+                    j++;
+                } else if (j < line.length - 1 && line[j] === '(' && line[j + 1] === '*') {
+                    blockDepth++;
                     j += 2;
-                }
-                // Check for single-line comment
-                else if (j < line.length - 1 && line[j] === '/' && line[j + 1] === '/') {
-                    // Rest of line is comment
+                } else if (j < line.length - 1 && line[j] === '/' && line[j + 1] === '/') {
                     break;
                 } else {
                     cleaned += line[j];
@@ -500,6 +507,12 @@ function stripInlineComments(line: string): string {
             break; // block comment to end of line
         }
 
+        if (ch === '{') {
+            const endIdx = line.indexOf('}', i + 1);
+            i = endIdx !== -1 ? endIdx + 1 : line.length;
+            continue;
+        }
+
         result += ch;
         i++;
     }
@@ -848,6 +861,9 @@ function extractBodyIdentifiers(line: string): BodyToken[] {
         // Skip named parameter assigns in FB calls: "IN :=" — "IN" is a param name, not a variable
         const afterToken = noStrings.slice(col + name.length).trimStart();
         if (afterToken.startsWith(':=')) continue;
+
+        // Skip named output parameter assigns in FB calls: "Q =>" — "Q" is a param name, not a variable
+        if (afterToken.startsWith('=>')) continue;
 
         tokens.push({ name, column: col });
     }
@@ -1311,7 +1327,231 @@ function inferExpressionType(expr: string, symByName: Map<string, STSymbolExtend
     return null;
 }
 
-// ─── Fuzzy matching for "did you mean?" suggestions ─────────────────────────
+// ─── Array bounds checking ───────────────────────────────────────────────────
+
+/**
+ * Detect out-of-bounds array access with constant/literal indices.
+ *
+ * Scans POU body lines and global-scope lines for subscript expressions of the
+ * form  <ident>[<intLiteral>]  (single-dim) and  <ident>[<int>,<int>,...]
+ * (multi-dim).  Only checks dimensions where both bounds were parsed from the
+ * declaration.  Variable indices are ignored (not constant-foldable here).
+ *
+ * Case-insensitive per IEC 61131-3.
+ * Message format: "Array index <N> is out of bounds [<L>..<U>] for '<NAME>'"
+ */
+function checkArrayBoundsAccess(
+    cleanLines: CleanLine[],
+    rawLines: string[],
+    symbols: STSymbolExtended[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Build lookup: normalised name → arrayDimensions
+    const arraySymbols = new Map<string, { name: string; dims: { lower: number; upper: number }[] }>();
+    for (const sym of symbols) {
+        if (sym.arrayDimensions && sym.arrayDimensions.length > 0) {
+            arraySymbols.set(sym.name.toUpperCase(), { name: sym.name, dims: sym.arrayDimensions });
+        }
+    }
+    if (arraySymbols.size === 0) return diagnostics;
+
+    const pouRanges = buildPouRanges(symbols, rawLines);
+
+    function checkLine(cl: CleanLine): void {
+        const noStrings = stripStringLiterals(cl.text);
+
+        // Match: identifier followed by '['
+        // We then manually collect the bracket content to handle nested brackets correctly.
+        const identRegex = /\b([A-Za-z_]\w*)\s*\[/g;
+        let m: RegExpExecArray | null;
+
+        while ((m = identRegex.exec(noStrings)) !== null) {
+            const symInfo = arraySymbols.get(m[1].toUpperCase());
+            if (!symInfo) continue;
+
+            // Collect bracket content starting after the '[' we already matched
+            const bracketStart = m.index + m[0].length; // index just inside '['
+            let depth = 1;
+            let i = bracketStart;
+            while (i < noStrings.length && depth > 0) {
+                if (noStrings[i] === '[') depth++;
+                else if (noStrings[i] === ']') depth--;
+                i++;
+            }
+            if (depth !== 0) continue; // unmatched bracket — syntax error handled elsewhere
+
+            const bracketContent = noStrings.substring(bracketStart, i - 1); // exclude closing ']'
+
+            // Split by top-level commas (for multi-dim arrays)
+            const indexStrs = splitTopLevelCommas(bracketContent);
+
+            for (let d = 0; d < indexStrs.length; d++) {
+                const dimBounds = symInfo.dims[d];
+                if (!dimBounds) continue; // more indices than declared dims — not our problem here
+
+                const trimmed = indexStrs[d].trim();
+                // Only check pure integer literals (optionally signed)
+                if (!/^-?\d+$/.test(trimmed)) continue;
+
+                const idx = parseInt(trimmed, 10);
+                if (idx < dimBounds.lower || idx > dimBounds.upper) {
+                    // Find column of the literal in the raw line
+                    const rawLine = rawLines[cl.lineIndex] || '';
+                    // Search for the index literal within the bracket region
+                    const literalCol = rawLine.indexOf(trimmed, m.index);
+                    const col = literalCol >= 0 ? literalCol : m.index;
+
+                    diagnostics.push(createDiagnostic(
+                        cl.lineIndex,
+                        col,
+                        trimmed.length,
+                        `Array index ${idx} is out of bounds [${dimBounds.lower}..${dimBounds.upper}] for '${symInfo.name}'`,
+                        DiagnosticSeverity.Error
+                    ));
+                }
+            }
+        }
+    }
+
+    // Check inside POUs (body only, skip var sections)
+    for (const pou of pouRanges) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+            checkLine(cl);
+        }
+    }
+
+    // Check global scope (outside any POU)
+    const pouLineRanges = pouRanges.map(p => ({ start: p.startLine, end: p.endLine }));
+    for (const cl of cleanLines) {
+        if (pouLineRanges.some(r => cl.lineIndex >= r.start && cl.lineIndex <= r.end)) continue;
+        checkLine(cl);
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Split a string by top-level commas (not inside brackets or parens).
+ */
+function splitTopLevelCommas(s: string): string[] {
+    const parts: string[] = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === '(' || c === '[') depth++;
+        else if (c === ')' || c === ']') depth--;
+        else if (c === ',' && depth === 0) {
+            parts.push(s.substring(start, i));
+            start = i + 1;
+        }
+    }
+    parts.push(s.substring(start));
+    return parts;
+}
+
+// ─── Constant assignment detection ──────────────────────────────────────────
+
+/**
+ * Detect assignments to variables declared with the CONSTANT qualifier.
+ *
+ * Scans POU body lines (outside VAR sections) and global-scope lines for
+ * assignment statements whose LHS identifier is a known constant symbol.
+ * Case-insensitive per IEC 61131-3.
+ *
+ * Message format: "Cannot assign to constant '<NAME>'"
+ */
+function checkConstantAssignment(
+    cleanLines: CleanLine[],
+    rawLines: string[],
+    symbols: STSymbolExtended[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Build set of constant names (upper-case) — includes globals and locals
+    const constantNames = new Set<string>();
+    for (const sym of symbols) {
+        if (sym.isConstant) {
+            constantNames.add(sym.name.toUpperCase());
+        }
+    }
+    if (constantNames.size === 0) return diagnostics;
+
+    // Simple assignment LHS pattern: optional whitespace, identifier, optional
+    // whitespace, := (not preceded by another :, i.e. not a named-param assign
+    // at start of line — which is impossible, but guarded anyway).
+    // We only check the outermost (not inside parens) LHS to avoid flagging
+    // named-parameter assigns like  FB(IN := MAX_TEMP).
+    const pouRanges = buildPouRanges(symbols, rawLines);
+
+    // ── Check inside POUs ──
+    for (const pou of pouRanges) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            checkLineForConstantAssign(cl, constantNames, diagnostics);
+        }
+    }
+
+    // ── Check global scope (outside any POU) ──
+    // Build set of all POU line ranges so we can skip them
+    const pouLineRanges = pouRanges.map(p => ({ start: p.startLine, end: p.endLine }));
+
+    for (const cl of cleanLines) {
+        if (pouLineRanges.some(r => cl.lineIndex >= r.start && cl.lineIndex <= r.end)) continue;
+        checkLineForConstantAssign(cl, constantNames, diagnostics);
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Check a single clean line for a top-level (depth-0) assignment to a constant.
+ */
+function checkLineForConstantAssign(
+    cl: CleanLine,
+    constantNames: Set<string>,
+    diagnostics: Diagnostic[]
+): void {
+    const noStrings = stripStringLiterals(cl.text);
+
+    // Walk character-by-character tracking paren depth.
+    // At depth 0, look for:  <identifier> <whitespace>* :=
+    const identRegex = /\b([A-Za-z_]\w*)\s*:=/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = identRegex.exec(noStrings)) !== null) {
+        const colonEqIdx = match.index + match[0].lastIndexOf(':=');
+
+        // Verify paren depth at the position of ':='
+        let depth = 0;
+        for (let k = 0; k < colonEqIdx; k++) {
+            if (noStrings[k] === '(') depth++;
+            else if (noStrings[k] === ')') depth--;
+        }
+        if (depth !== 0) continue; // inside a parenthesised expression — named param
+
+        const name = match[1];
+        if (!constantNames.has(name.toUpperCase())) continue;
+
+        diagnostics.push(createDiagnostic(
+            cl.lineIndex,
+            match.index,
+            name.length,
+            `Cannot assign to constant '${name}'`,
+            DiagnosticSeverity.Error
+        ));
+    }
+}
+
+
 
 /**
  * Compute Levenshtein distance between two strings.
@@ -1493,39 +1733,50 @@ function checkUnclosedStrings(cleanLines: CleanLine[]): Diagnostic[] {
 function checkUnmatchedParentheses(cleanLines: CleanLine[]): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
 
+    let crossLineDepth = 0; // tracks open parens spanning multiple lines
+    let crossLineOpenLineIndex = -1;
+    let crossLineOpenCol = -1;
+
     for (const cl of cleanLines) {
         const lineNoStrings = stripStringLiterals(cl.text);
 
-        let depth = 0;
-        let firstOpenCol = -1;
+        let lineDepth = crossLineDepth;
+        let firstOpenCol = crossLineDepth > 0 ? crossLineOpenCol : -1;
 
         for (let i = 0; i < lineNoStrings.length; i++) {
             if (lineNoStrings[i] === '(') {
-                if (depth === 0) firstOpenCol = i;
-                depth++;
+                if (lineDepth === 0) {
+                    firstOpenCol = i;
+                    crossLineOpenLineIndex = cl.lineIndex;
+                    crossLineOpenCol = i;
+                }
+                lineDepth++;
             } else if (lineNoStrings[i] === ')') {
-                depth--;
-                if (depth < 0) {
+                lineDepth--;
+                if (lineDepth < 0) {
                     diagnostics.push(createDiagnostic(
                         cl.lineIndex, i, 1,
                         'Unmatched closing parenthesis',
                         DiagnosticSeverity.Error
                     ));
-                    depth = 0;
+                    lineDepth = 0;
                 }
             }
         }
 
+        crossLineDepth = lineDepth;
+
         // Unclosed parens on a statement line (ends with ;) — multi-line FB
         // calls don't end with ; so we only flag genuine errors here.
-        if (depth > 0 && cl.text.trimEnd().endsWith(';')) {
+        if (lineDepth > 0 && cl.text.trimEnd().endsWith(';')) {
             diagnostics.push(createDiagnostic(
                 cl.lineIndex,
                 firstOpenCol >= 0 ? firstOpenCol : 0,
                 1,
-                `Unmatched opening parenthesis (${depth} unclosed)`,
+                `Unmatched opening parenthesis (${lineDepth} unclosed)`,
                 DiagnosticSeverity.Error
             ));
+            crossLineDepth = 0;
         }
     }
 
@@ -1533,7 +1784,7 @@ function checkUnmatchedParentheses(cleanLines: CleanLine[]): Diagnostic[] {
 }
 
 /**
- * Strip string literals from a line, replacing them with spaces
+ * Strip string literals and pragma blocks from a line, replacing them with spaces
  * to preserve character positions.
  */
 function stripStringLiterals(line: string): string {
@@ -1570,6 +1821,19 @@ function stripStringLiterals(line: string): string {
                         i += 2;
                         continue;
                     }
+                    chars[i] = ' ';
+                    i++;
+                    break;
+                }
+                chars[i] = ' ';
+                i++;
+            }
+        } else if (chars[i] === '{') {
+            // Pragma block { ... } — blank entire block on this line
+            chars[i] = ' ';
+            i++;
+            while (i < chars.length) {
+                if (chars[i] === '}') {
                     chars[i] = ' ';
                     i++;
                     break;
@@ -1749,6 +2013,318 @@ function createDiagnostic(
     };
 }
 
+// ─── FOR loop bounds validation ──────────────────────────────────────────────
+
+/**
+ * Parsed components of a FOR loop header.
+ * Only populated when the component is a pure integer literal.
+ */
+interface ForLoopBounds {
+    /** Start value (constant integer) */
+    start: number | null;
+    /** End value (constant integer) */
+    end: number | null;
+    /** BY step value (constant integer); null when BY clause is absent */
+    by: number | null;
+    /** Whether BY clause was explicitly present in source */
+    hasByClause: boolean;
+}
+
+/**
+ * Parse a FOR loop header line (cleaned, comments stripped) into its bounds.
+ *
+ * Matches:  FOR <ident> := <expr> TO <expr> [BY <expr>] DO
+ * Returns null if the line is not a FOR header or bounds aren't constant integers.
+ *
+ * Per IEC 61131-3 §3.3.2.4 the default BY step is +1 when omitted.
+ */
+function parseForLoopHeader(line: string): ForLoopBounds | null {
+    // Case-insensitive. Capture the three numeric expressions.
+    // We allow optional whitespace and accept signed integers.
+    const forRegex = /^\s*FOR\s+\w+\s*:=\s*(.+?)\s+TO\s+(.+?)(?:\s+BY\s+(.+?))?\s+DO\s*$/i;
+    const match = line.match(forRegex);
+    if (!match) return null;
+
+    const parseConstant = (s: string): number | null => {
+        const trimmed = s.trim();
+        // Accept plain integer literals with optional leading sign
+        if (/^[+-]?\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+        return null;
+    };
+
+    return {
+        start: parseConstant(match[1]),
+        end: parseConstant(match[2]),
+        by: match[3] !== undefined ? parseConstant(match[3]) : null,
+        hasByClause: match[3] !== undefined,
+    };
+}
+
+/**
+ * Detect FOR loops with statically-provable bound problems.
+ *
+ * Checks (only when all relevant bounds are integer literals):
+ *  - BY 0          → error   (infinite loop)
+ *  - start > end with BY > 0 → warning (loop body never executes)
+ *  - start < end with BY < 0 → warning (loop body never executes)
+ *  - start === end           → info/hint (single iteration, likely unintended)
+ *
+ * Non-constant bounds (variables, expressions) are silently skipped.
+ */
+function checkForLoopBounds(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            // Quick pre-filter: must start with FOR (case-insensitive)
+            if (!/^FOR\b/i.test(trimmed)) continue;
+
+            const bounds = parseForLoopHeader(trimmed);
+            if (!bounds) continue;
+
+            const { start, end, by, hasByClause } = bounds;
+
+            // ── BY 0: always an error ────────────────────────────────
+            if (hasByClause && by === 0) {
+                // Point squiggle at the BY keyword
+                const byIdx = cl.text.toUpperCase().indexOf(' BY ');
+                const col = byIdx >= 0 ? byIdx + 1 : 0; // +1: skip the leading space
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, col, 2,
+                    'FOR loop step BY 0 causes an infinite loop',
+                    DiagnosticSeverity.Error
+                ));
+                continue; // don't stack more diagnostics on same line
+            }
+
+            // ── Range checks (only when start and end are constants) ──
+            if (start === null || end === null) continue;
+
+            // Effective step: explicit BY, or default +1
+            const step = by !== null ? by : 1;
+
+            if (start === end) {
+                // Single-iteration loop: start == end, body runs exactly once
+                const forCol = cl.text.search(/\bFOR\b/i);
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, forCol >= 0 ? forCol : 0, 3,
+                    `FOR loop executes exactly once (start equals end: ${start})`,
+                    DiagnosticSeverity.Hint
+                ));
+            } else if (start > end && step > 0) {
+                // Descending range with positive step: body never executes
+                const forCol = cl.text.search(/\bFOR\b/i);
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, forCol >= 0 ? forCol : 0, 3,
+                    `FOR loop body never executes: counting up (BY ${step}) but start (${start}) > end (${end}); use BY -1 or swap bounds`,
+                    DiagnosticSeverity.Warning
+                ));
+            } else if (start < end && step < 0) {
+                // Ascending range with negative step: body never executes
+                const forCol = cl.text.search(/\bFOR\b/i);
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex, forCol >= 0 ? forCol : 0, 3,
+                    `FOR loop body never executes: counting down (BY ${step}) but start (${start}) < end (${end}); use BY 1 or swap bounds`,
+                    DiagnosticSeverity.Warning
+                ));
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
+
+// ─── Assignment operator confusion check ─────────────────────────────────────
+
+/**
+ * Detect `:=` used inside a boolean condition (IF/ELSIF/WHILE/UNTIL) where
+ * `=` was likely intended.
+ *
+ * Strategy:
+ *  - Scan POU body lines outside VAR sections
+ *  - Find lines whose first token is IF, ELSIF, WHILE, or UNTIL
+ *  - Inside the condition portion (between the keyword and THEN/DO/end-of-line),
+ *    look for `:=` at paren depth 0 that is NOT a named-parameter assign
+ *    (i.e., the LHS is not a parameter name that could be passed by reference)
+ *  - Flag as a Warning with suggestion to use `=`
+ *
+ * Named-param assigns inside parens (depth > 0) are excluded by the depth check.
+ * Only the condition portion is scanned (before THEN/DO) to avoid false positives
+ * on assignment statements in the THEN body parsed on the same line (rare but
+ * possible for one-liner IF constructs).
+ */
+function checkBooleanContextAssignment(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    // Keywords that introduce a boolean condition
+    const CONDITION_KEYWORDS = new Set(['IF', 'ELSIF', 'WHILE', 'UNTIL']);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            const firstToken = getFirstKeywordToken(trimmed);
+            if (!firstToken || !CONDITION_KEYWORDS.has(firstToken)) continue;
+
+            const noStr = stripStringLiterals(cl.text);
+
+            // Find end of condition: index of THEN or DO keyword at depth 0,
+            // or end-of-line if not present on this line.
+            // We scan to find the condition text boundary.
+            // Simple approach: strip trailing THEN/DO token (word boundary) from the
+            // line for the scan range.
+            const upperNoStr = noStr.toUpperCase();
+            let condEnd = noStr.length;
+            // Match THEN or DO as final token (at depth 0) — just scan to end of line;
+            // the depth-0 guard on := already handles parens.
+            // For simplicity, scan the full line — named-param assigns are inside parens
+            // so they're filtered by depth check.
+
+            // Scan for := at paren depth 0
+            let depth = 0;
+            let i = 0;
+
+            // Skip past the leading keyword to avoid matching "KEYWORD :=" patterns
+            // (e.g., a hypothetical label) — advance past first token
+            const kwEnd = noStr.search(/\s/); // first whitespace after keyword
+            if (kwEnd > 0) i = kwEnd;
+
+            for (; i < condEnd; i++) {
+                const ch = noStr[i];
+                if (ch === '(') { depth++; continue; }
+                if (ch === ')') { depth--; if (depth < 0) depth = 0; continue; }
+                if (depth > 0) continue;
+
+                // Look for := (two-character token)
+                if (ch === ':' && i + 1 < noStr.length && noStr[i + 1] === '=') {
+                    // Found := at depth 0 in a condition line
+                    // The column in the original text matches noStr (same length, strings replaced with spaces)
+                    diagnostics.push(createDiagnostic(
+                        cl.lineIndex,
+                        i,
+                        2,
+                        "Used ':=' in condition context; did you mean '='?",
+                        DiagnosticSeverity.Warning
+                    ));
+                    break; // one diagnostic per line
+                }
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+/**
+ * Detect `=` used in statement position where `:=` was likely intended.
+ *
+ * In IEC 61131-3, `=` is the equality (comparison) operator and `:=` is
+ * the assignment operator. A statement beginning with `identifier = expr`
+ * at paren depth 0 is almost certainly a mistyped assignment.
+ *
+ * Strategy:
+ *  - Scan POU body lines outside VAR sections (same gates as semicolon check)
+ *  - At paren depth 0, look for a bare `=` that is the first operator on the
+ *    line and is NOT preceded by `:`, `<`, `>` and NOT followed by `>`
+ *    (i.e., not `:=`, `<=`, `>=`, `<>`)
+ *  - Flag it as a Warning with a suggestion to use `:=`
+ */
+function checkAssignmentConfusion(cleanLines: CleanLine[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const pouBoundaries = findPouBoundaries(cleanLines);
+
+    for (const pou of pouBoundaries) {
+        const varSections = findVarSections(cleanLines, pou.startLine, pou.endLine);
+        let parenDepth = 0;
+
+        for (const cl of cleanLines) {
+            if (cl.lineIndex <= pou.startLine || cl.lineIndex >= pou.endLine) continue;
+            if (isInVarSection(cl.lineIndex, varSections)) continue;
+
+            const trimmed = cl.text.trim();
+            if (!trimmed) continue;
+
+            const noStr = stripStringLiterals(cl.text);
+
+            // If we're mid-way through a multi-line expression (open parens from
+            // a previous line), skip detection — the `=` here is in a context we
+            // cannot simply classify as a statement opener.
+            const parenDepthAtLineStart = parenDepth;
+
+            // Update cross-line paren depth for next iteration
+            for (const ch of noStr) {
+                if (ch === '(') parenDepth++;
+                else if (ch === ')') parenDepth--;
+            }
+            if (parenDepth < 0) parenDepth = 0;
+
+            if (parenDepthAtLineStart > 0) continue;
+
+            // Skip control-flow keyword lines — they contain intentional comparisons
+            const firstToken = getFirstKeywordToken(trimmed);
+            if (firstToken && NO_SEMICOLON_KEYWORDS.has(firstToken)) continue;
+            if (isCaseBranchLabel(trimmed)) continue;
+
+            // Per-character scan for a bare `=` at paren depth 0
+            let localParenDepth = 0;
+            for (let i = 0; i < noStr.length; i++) {
+                const ch = noStr[i];
+                if (ch === '(') { localParenDepth++; continue; }
+                if (ch === ')') { localParenDepth--; if (localParenDepth < 0) localParenDepth = 0; continue; }
+
+                if (ch !== '=') continue;
+                if (localParenDepth > 0) continue;
+
+                // Check it is not part of :=  <=  >=  <>  =>
+                const prev = i > 0 ? noStr[i - 1] : '';
+                const next = i < noStr.length - 1 ? noStr[i + 1] : '';
+                if (prev === ':' || prev === '<' || prev === '>' || prev === '!' || prev === '=') continue;
+                if (next === '>' || next === '=') continue;
+
+                // We have a bare standalone `=` at depth 0.
+                // Only flag if this `=` is the FIRST operator on the line
+                // (i.e., it is at the top-level LHS of a statement).
+                // Heuristic: everything before the `=` on this line must look
+                // like a simple LHS — identifier, optional array index, optional
+                // member chain — with no other operators before it.
+                const before = noStr.slice(0, i).trim();
+                // Allow: identifier, identifier[...], identifier.member, identifier.member[...]
+                if (!/^[A-Za-z_]\w*(\[.*?\])?(\.[A-Za-z_]\w*(\[.*?\])?)*$/.test(before)) continue;
+
+                // Flag: bare `=` used as assignment in statement context
+                diagnostics.push(createDiagnostic(
+                    cl.lineIndex,
+                    i,
+                    1,
+                    "Used '=' in statement context; did you mean ':='?",
+                    DiagnosticSeverity.Warning
+                ));
+                break; // one diagnostic per line
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -1774,6 +2350,8 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
     diagnostics.push(...checkUnmatchedParentheses(cleanLines));
     diagnostics.push(...checkElseIfShouldBeElsif(cleanLines));
     diagnostics.push(...checkMissingThenDo(cleanLines));
+    diagnostics.push(...checkAssignmentConfusion(cleanLines));
+    diagnostics.push(...checkBooleanContextAssignment(cleanLines));
 
     // Phase 2: semantic checks (only when symbols available)
     if (symbols && symbols.length > 0) {
@@ -1784,6 +2362,9 @@ export function computeDiagnostics(document: TextDocument, symbols?: STSymbolExt
         diagnostics.push(...checkTypeMismatches(cleanLines, symbols));
         diagnostics.push(...checkFBCallInvalidMembers(cleanLines, rawLines, symbols));
         diagnostics.push(...checkFBCallDuplicateParams(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkConstantAssignment(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkArrayBoundsAccess(cleanLines, rawLines, symbols));
+        diagnostics.push(...checkForLoopBounds(cleanLines));
     }
 
     return diagnostics;

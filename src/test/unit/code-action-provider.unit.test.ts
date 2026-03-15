@@ -682,7 +682,7 @@ END_PROGRAM`;
         });
     });
 
-    suite("ELSE IF → ELSIF (#57)", () => {
+    suite("ELSE IF → ELSIF", () => {
         test('replaces ELSE IF with ELSIF', () => {
             const content = `PROGRAM Main
 VAR x : INT; END_VAR
@@ -751,7 +751,7 @@ END_PROGRAM`;
         });
     });
 
-    suite("Missing THEN / DO (#58)", () => {
+    suite("Missing THEN / DO", () => {
         test('inserts THEN for IF missing THEN', () => {
             const content = `PROGRAM Main
 VAR x : INT; END_VAR
@@ -851,6 +851,146 @@ END_PROGRAM`;
             // Insert position on line 2: "IF x > 10" is 9 chars
             assert.strictEqual(edit.range.start.line, 2);
             assert.strictEqual(edit.range.start.character, 9);
+        });
+    });
+
+    suite("Assignment/Comparison Confusion — replace '=' with ':='", () => {
+
+        test("provides Replace '=' with ':=' action", () => {
+            const content = `PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 42;
+END_PROGRAM`;
+            const document = doc(content);
+            // line 4: "    x = 42;"  — `=` is at column 6
+            const diagnostic = createDiagnostic(4, 6, 1, "Used '=' in statement context; did you mean ':='?");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, "Replace '=' with ':='");
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+            assert.strictEqual(actions[0].isPreferred, true);
+        });
+
+        test('replacement edit replaces only the = character with :=', () => {
+            const content = `PROGRAM Main
+VAR
+    counter : INT;
+END_VAR
+    counter = counter + 1;
+END_PROGRAM`;
+            const document = doc(content);
+            // line 4: "    counter = counter + 1;"  — `=` is at column 12
+            const diagnostic = createDiagnostic(4, 12, 1, "Used '=' in statement context; did you mean ':='?");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 1);
+
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits.length, 1);
+            assert.strictEqual(edits[0].newText, ':=');
+            assert.strictEqual(edits[0].range.start.character, 12);
+            assert.strictEqual(edits[0].range.end.character, 13);
+        });
+
+        test('diagnostic is attached to the action', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+    x = 1;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 6, 1, "Used '=' in statement context; did you mean ':='?");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 1);
+            assert.ok(actions[0].diagnostics);
+            assert.strictEqual(actions[0].diagnostics!.length, 1);
+            assert.strictEqual(actions[0].diagnostics![0].message, diagnostic.message);
+        });
+
+        test('no action for unrelated diagnostic message', () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+    x := 1;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 0, 5, 'Some other diagnostic');
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 0);
+        });
+    });
+
+    suite("Assignment/Comparison Confusion — replace ':=' with '='", () => {
+
+        test("provides Replace ':=' with '=' action", () => {
+            const content = `PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            // line 4: "    IF x := 10 THEN"  — ':=' is at column 9
+            const diagnostic = createDiagnostic(4, 9, 2, "Used ':=' in condition context; did you mean '='?");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+
+            assert.strictEqual(actions.length, 1);
+            assert.strictEqual(actions[0].title, "Replace ':=' with '='");
+            assert.strictEqual(actions[0].kind, CodeActionKind.QuickFix);
+            assert.strictEqual(actions[0].isPreferred, true);
+        });
+
+        test("replacement edit replaces := with = (single char)", () => {
+            const content = `PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(4, 9, 2, "Used ':=' in condition context; did you mean '='?");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 1);
+
+            const edits = actions[0].edit!.changes![document.uri];
+            assert.strictEqual(edits.length, 1);
+            assert.strictEqual(edits[0].newText, '=');
+            assert.strictEqual(edits[0].range.start.character, 9);
+            assert.strictEqual(edits[0].range.end.character, 11); // 2-char := range
+        });
+
+        test("diagnostic is attached to the action", () => {
+            const content = `PROGRAM Main
+VAR x : INT; END_VAR
+    IF x := 5 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`;
+            const document = doc(content);
+            const diagnostic = createDiagnostic(2, 7, 2, "Used ':=' in condition context; did you mean '='?");
+            const params = createParams(document, [diagnostic]);
+
+            const actions = provideCodeActions(document, params);
+            assert.strictEqual(actions.length, 1);
+            assert.ok(actions[0].diagnostics);
+            assert.strictEqual(actions[0].diagnostics!.length, 1);
+            assert.strictEqual(actions[0].diagnostics![0].message, diagnostic.message);
         });
     });
 });

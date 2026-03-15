@@ -3,7 +3,13 @@
     "name": "Structured Text",
     "patterns": [
         {
+            "include": "#pragmas"
+        },
+        {
             "include": "#keywords"
+        },
+        {
+            "include": "#hardware-addresses"
         },
         {
             "include": "#strings"
@@ -21,23 +27,59 @@
             "include": "#data-types"
         },
         {
-            "include": "#functions"
+            "include": "#function-calls"
         }
     ],
     "repository": {
+        "pragmas": {
+            "comment": "Pragma/attribute blocks: {attribute 'xxx'} or {warning 'disable' ...}",
+            "begin": "\\{",
+            "end": "\\}",
+            "name": "meta.pragma.st",
+            "beginCaptures": {
+                "0": { "name": "punctuation.definition.pragma.begin.st" }
+            },
+            "endCaptures": {
+                "0": { "name": "punctuation.definition.pragma.end.st" }
+            },
+            "patterns": [
+                {
+                    "name": "keyword.other.pragma.st",
+                    "match": "\\b(attribute|warning|error|message|obsolete|hide|show|enable|disable|pack_mode|qualified_only|namespace_in_expression|no_check|allow_implicit_type_conversion|analysis|generate_code|define|ifdef|ifndef|endif|else|region|endregion|IF|ELSE|ELSIF|ENDIF)\\b"
+                },
+                {
+                    "include": "#strings"
+                }
+            ]
+        },
+        "hardware-addresses": {
+            "comment": "IEC 61131-3 hardware addresses: %IX0.0, %QW1, %MD100, etc. Format: %[IQM][XBWDL]?[digits[.digits]*]",
+            "name": "constant.other.hardware-address.st",
+            "match": "%[IQM][XBWDL]?[0-9]+(\\.[0-9]+)*"
+        },
         "keywords": {
             "patterns": [
+                {
+                    "comment": "OF in ARRAY declarations scoped as keyword.other.array-of",
+                    "name": "keyword.other.array-of.st",
+                    "match": "(?<=\\]\\s{0,32})\\bOF\\b"
+                },
                 {
                     "name": "keyword.control.st",
                     "match": "\\b(IF|THEN|ELSE|ELSIF|END_IF|CASE|OF|END_CASE|FOR|TO|BY|DO|END_FOR|WHILE|END_WHILE|REPEAT|UNTIL|END_REPEAT|EXIT|RETURN|CONTINUE)\\b"
                 },
                 {
                     "name": "keyword.declaration.st",
-                    "match": "\\b(VAR|VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR_GLOBAL|VAR_ACCESS|VAR_CONFIG|VAR_EXTERNAL|END_VAR|CONSTANT|RETAIN|NON_RETAIN|PERSISTENT|AT|PROGRAM|END_PROGRAM|FUNCTION|END_FUNCTION|FUNCTION_BLOCK|END_FUNCTION_BLOCK|TYPE|END_TYPE|STRUCT|END_STRUCT|ARRAY|STRING|WSTRING|CONFIGURATION|END_CONFIGURATION|RESOURCE|END_RESOURCE|TASK)\\b"
+                    "match": "\\b(VAR|VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR_GLOBAL|VAR_ACCESS|VAR_CONFIG|VAR_EXTERNAL|END_VAR|CONSTANT|RETAIN|NON_RETAIN|PERSISTENT|AT|PROGRAM|END_PROGRAM|FUNCTION|END_FUNCTION|FUNCTION_BLOCK|END_FUNCTION_BLOCK|TYPE|END_TYPE|STRUCT|END_STRUCT|ARRAY|CONFIGURATION|END_CONFIGURATION|RESOURCE|END_RESOURCE|TASK|CLASS|END_CLASS|INTERFACE|END_INTERFACE|METHOD|END_METHOD|EXTENDS|IMPLEMENTS|PRIVATE|PROTECTED|PUBLIC|INTERNAL|NAMESPACE|END_NAMESPACE|USING)\\b"
                 },
                 {
                     "name": "keyword.other.st",
-                    "match": "\\b(TRUE|FALSE|NULL|THIS|SUPER|ABSTRACT|FINAL|IMPLEMENTS|EXTENDS|INTERFACE|METHOD|PROPERTY|NAMESPACE|USING|WITH|RESOURCE|ON|PRIORITY|SINGLE|INTERVAL|PROGRAM|WITH|VAR_GLOBAL|VAR_ACCESS|READ_WRITE|READ_ONLY|WRITE_ONLY)\\b"
+                    "match": "\\b(TRUE|FALSE|NULL|THIS|SUPER|ABSTRACT|FINAL|READ_WRITE|READ_ONLY|WRITE_ONLY|WITH|SINGLE|PRIORITY|ON|INTERVAL|PROPERTY)\\b"
+                },
+                {
+                    "comment": "SFC action qualifier keywords (IEC 61131-3 SFC); longer alternatives listed first",
+                    "name": "keyword.other.sfc-qualifier.st",
+                    "match": "\\b(SD|DS|SL|[NSRLDP])\\b"
                 }
             ]
         },
@@ -45,17 +87,64 @@
             "patterns": [
                 {
                     "name": "storage.type.st",
-                    "match": "\\b(BOOL|BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL|TIME|LTIME|DATE|LDATE|TIME_OF_DAY|TOD|DATE_AND_TIME|DT|STRING|WSTRING|CHAR|WCHAR|POINTER|REFERENCE|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_BIT|ANY_STRING|ANY_DATE|TON|TOF|TP|CTU|CTD|CTUD|R_TRIG|F_TRIG|RS|SR)\\b"
+                    "match": "\\b(BOOL|BYTE|WORD|DWORD|LWORD|SINT|USINT|INT|UINT|DINT|UDINT|LINT|ULINT|REAL|LREAL|TIME|LTIME|DATE|LDATE|TIME_OF_DAY|TOD|DATE_AND_TIME|DT|STRING|WSTRING|CHAR|WCHAR|POINTER|REFERENCE|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_BIT|ANY_STRING|ANY_DATE|ANY_CHAR|ANY_CHARS|TON|TOF|TP|CTU|CTD|CTUD|R_TRIG|F_TRIG|RS|SR)\\b"
                 }
             ]
         },
-        "functions": {
+        "function-calls": {
+            "comment": "Function/FB call: name(...). Named params (Identifier := or Identifier =>) inside the arg list are scoped as variable.parameter.st.",
+            "begin": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
+            "beginCaptures": {
+                "1": { "name": "entity.name.function.st" },
+                "2": { "name": "punctuation.section.parens.begin.st" }
+            },
+            "end": "\\)",
+            "endCaptures": {
+                "0": { "name": "punctuation.section.parens.end.st" }
+            },
             "patterns": [
                 {
-                    "name": "entity.name.function.st",
-                    "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+                    "include": "#keywords"
+                },
+                {
+                    "include": "#strings"
+                },
+                {
+                    "include": "#comments"
+                },
+                {
+                    "include": "#numbers"
+                },
+                {
+                    "include": "#operators"
+                },
+                {
+                    "include": "#data-types"
+                },
+                {
+                    "include": "#named-parameter-input"
+                },
+                {
+                    "include": "#named-parameter-output"
+                },
+                {
+                    "include": "#function-calls"
                 }
             ]
+        },
+        "named-parameter-input": {
+            "comment": "Input named parameter: ParamName := value",
+            "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*:=)",
+            "captures": {
+                "1": { "name": "variable.parameter.st" }
+            }
+        },
+        "named-parameter-output": {
+            "comment": "Output named parameter: ParamName => variable",
+            "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*=>)",
+            "captures": {
+                "1": { "name": "variable.parameter.st" }
+            }
         },
         "strings": {
             "patterns": [
@@ -66,7 +155,7 @@
                     "patterns": [
                         {
                             "name": "constant.character.escape.st",
-                            "match": "\\\\."
+                            "match": "\\$."
                         }
                     ]
                 },
@@ -77,7 +166,7 @@
                     "patterns": [
                         {
                             "name": "constant.character.escape.st",
-                            "match": "\\\\."
+                            "match": "\\$."
                         }
                     ]
                 }
@@ -93,7 +182,21 @@
                 {
                     "name": "comment.block.st",
                     "begin": "\\(\\*",
-                    "end": "\\*\\)"
+                    "end": "\\*\\)",
+                    "patterns": [
+                        {
+                            "name": "comment.block.st",
+                            "begin": "\\(\\*",
+                            "end": "\\*\\)",
+                            "patterns": [
+                                {
+                                    "name": "comment.block.st",
+                                    "begin": "\\(\\*",
+                                    "end": "\\*\\)"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         },

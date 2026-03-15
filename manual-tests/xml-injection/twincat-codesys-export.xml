@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MANUAL TEST: XML injection — ST highlighting in TwinCAT/CoDeSys export files
+  HOW TO OPEN: Open this file in VS Code with the ControlForge extension active.
+  WHAT TO DO:  Visually inspect the syntax highlighting inside each XML tag.
+  PASS:        ST keywords, types, operators, and comments are coloured as they
+               would be in a .st file. Surrounding XML (tags, attributes) retains
+               normal XML highlighting with no bleed.
+-->
+
+<!-- ── TwinCAT-style export ─────────────────────────────────────────── -->
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="MainProgram" Id="{abc123}">
+
+    <!-- EXPECT: VAR, INT, BOOL, END_VAR highlighted as ST keywords/types -->
+    <Declaration><![CDATA[PROGRAM MainProgram
+VAR
+    counter : INT := 0;
+    limit   : INT := 100;
+    running : BOOL := TRUE;
+END_VAR
+]]></Declaration>
+
+    <!-- EXPECT: IF, THEN, ELSIF, END_IF, := highlighted; (* *) comment coloured -->
+    <!-- KNOWN LIMITATION (#138): < and > comparison operators appear red in Dark+
+         and similar themes due to string.unquoted.cdata.xml scope stack leakage. -->
+    <Implementation>
+      <ST><![CDATA[(* Main control loop *)
+IF running AND (counter < limit) THEN
+    counter := counter + 1;
+ELSIF counter >= limit THEN
+    running := FALSE;
+END_IF;
+]]></ST>
+    </Implementation>
+
+  </POU>
+
+  <POU Name="TimerFB" Id="{def456}">
+
+    <!-- EXPECT: FUNCTION_BLOCK, VAR_INPUT, VAR_OUTPUT, TIME highlighted -->
+    <Declaration><![CDATA[FUNCTION_BLOCK TimerFB
+VAR_INPUT
+    enable : BOOL;
+    preset : TIME := T#5s;
+END_VAR
+VAR_OUTPUT
+    done : BOOL;
+END_VAR
+VAR
+    elapsed : TIME;
+END_VAR
+]]></Declaration>
+
+    <Implementation>
+      <ST><![CDATA[IF enable THEN
+    elapsed := elapsed + T#100ms;
+    done := elapsed >= preset;
+ELSE
+    elapsed := T#0s;
+    done := FALSE;
+END_IF;
+]]></ST>
+    </Implementation>
+
+  </POU>
+</TcPlcObject>
+
+<!-- ── CoDeSys-style export (Interface tag) ──────────────────────────── -->
+<project>
+  <pou name="Valve" type="functionBlock">
+
+    <!-- EXPECT: FUNCTION_BLOCK, VAR_IN_OUT, REAL highlighted -->
+    <interface>
+      <Interface><![CDATA[FUNCTION_BLOCK Valve
+VAR_IN_OUT
+    flow : REAL;
+END_VAR
+]]></Interface>
+    </interface>
+
+    <body>
+      <ST><![CDATA[flow := flow * 0.95;
+]]></ST>
+    </body>
+
+  </pou>
+</project>
+
+<!-- ── Bare tags without CDATA (plain text, no < or > operators) ─────── -->
+<!-- EXPECT: ST keywords/types highlighted; no < comparison here because
+     bare < in XML element text is invalid XML and would show as invalid
+     regardless of ST injection — real exports always use CDATA for such code -->
+<snippet>
+  <Declaration>VAR x : DINT := 42; END_VAR</Declaration>
+  <ST>x := x + 1;</ST>
+</snippet>
+
+<!-- ── Unrelated XML (must NOT be affected) ──────────────────────────── -->
+<!-- EXPECT: plain XML colouring only; no ST colour bleed -->
+<config version="2.0">
+  <setting name="timeout" value="5000" />
+  <description>This is a plain XML element with no ST content.</description>
+</config>

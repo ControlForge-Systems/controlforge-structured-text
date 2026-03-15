@@ -6,23 +6,23 @@ This directory contains test files specifically designed for manual testing and 
 
 ### `/completion/` - IntelliSense & Completion Tests
 Files for testing auto-completion features:
-- `test_completion.st` - General completion testing
-- `test_instance_members.st` - Function block member completion (dot notation)
-- `test-lsp.st` - Basic Language Server Protocol completion features
-- `test-lsp-stage2.st` - Advanced LSP completion and feature testing
+- `completion.st` - General completion testing
+- `instance-members.st` - Function block member completion (dot notation)
+- `lsp.st` - Basic Language Server Protocol completion features
+- `lsp-stage2.st` - Advanced LSP completion and feature testing
 
 ### `/navigation/` - Code Navigation Tests  
 Files for testing go-to-definition and find-references:
-- `test-member-access.st` - Member access navigation testing
-- `test-navigation-targets.st` - Cross-file navigation targets
-- `test-local-vars.st` - Local variable navigation and indexing
-- `test-find-references.st` - Find All References (Shift+F12) testing
+- `member-access.st` - Member access navigation testing
+- `navigation-targets.st` - Cross-file navigation targets
+- `local-vars.st` - Local variable navigation and indexing
+- `find-references.st` - Find All References (Shift+F12) testing
 
 ### `/syntax/` - Syntax Highlighting Tests
 Files for testing syntax highlighting and language features:
-- `test_highlighting.st` - Comprehensive syntax highlighting verification
-- `test_literals.st` - Literal value highlighting (numbers, strings, etc.)
-- `test_function_blocks.st` - Function block syntax highlighting
+- `highlighting.st` - Comprehensive syntax highlighting verification
+- `literals.st` - Literal value highlighting (numbers, strings, etc.)
+- `function-blocks.st` - Function block syntax highlighting
 - `test.st` - General syntax and language feature testing
 - `test.iecst` - Verify `.iecst` extension activates correctly
 
@@ -32,7 +32,7 @@ Files for testing F2 rename functionality:
 
 ### `/commands/` - Extension Command Tests
 Files for testing Command Palette commands:
-- `test-commands.st` - Validate Syntax, Show Index Statistics, Check LSP Status
+- `commands.st` - Validate Syntax, Show Index Statistics, Check LSP Status
 
 ### `/diagnostics/` - Diagnostic & Linting Tests
 Files for testing real-time diagnostics and semantic analysis:
