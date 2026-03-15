@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-03-15
+
 ### Added
 - ST syntax highlighting injected into `<Declaration>`, `<ST>`, `<Implementation>`, and `<Interface>` XML elements in TwinCAT/CoDeSys export files (plain content and CDATA-wrapped)
 - Hardware address literals (`%IX0.0`, `%QW1`, `%MD100`, etc.) highlighted as `constant.other.hardware-address.st`
