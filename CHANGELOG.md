@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- Website and VS Code Marketplace badge links at the top of README
+- Improved Installation section: direct marketplace link + Quick Open install command
+
 ## [1.4.0] - 2026-03-15
 
 ### Added
