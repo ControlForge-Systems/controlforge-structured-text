@@ -15,7 +15,8 @@ import {
     STSymbolKind,
     STScope,
     STParameter,
-    STSymbolExtended
+    STSymbolExtended,
+    ArrayDimension
 } from '../shared/types';
 
 /**
@@ -31,6 +32,7 @@ interface ParsedDeclaration {
     isArray: boolean;
     isPointer: boolean;
     isReference: boolean;
+    arrayDimensions?: ArrayDimension[]; // parsed bounds for each dimension
 }
 
 /**
@@ -173,6 +175,10 @@ export class STASTParser {
         for (let i = 0; i < this.lines.length; i++) {
             if (!regex.test(this.lines[i])) continue;
 
+            // Detect CONSTANT qualifier on VAR_GLOBAL line
+            const sectionMatch = this.matchVarSectionStart(this.stripComments(this.lines[i]).trim());
+            const isConstant = sectionMatch ? sectionMatch.qualifiers.includes('CONSTANT') : false;
+
             // Find END_VAR
             let endLine = i + 1;
             while (endLine < this.lines.length) {
@@ -199,7 +205,7 @@ export class STASTParser {
                         description = `Global instance of ${decl.baseType}`;
                     }
 
-                    globals.push({
+                    const sym: STSymbolExtended = {
                         name: varName,
                         normalizedName: varName.toLowerCase(),
                         kind,
@@ -209,7 +215,9 @@ export class STASTParser {
                         description,
                         literalType: this.getLiteralType(decl.initialValue, decl.baseType),
                         references: []
-                    });
+                    };
+                    if (isConstant) sym.isConstant = true;
+                    globals.push(sym);
                 }
             }
 
@@ -236,6 +244,7 @@ export class STASTParser {
             if (!sectionMatch) continue;
 
             const scope = this.getVarScope(sectionMatch.suffix);
+            const isConstant = sectionMatch.qualifiers.includes('CONSTANT');
 
             // Scan until END_VAR
             const sectionEnd = this.findEndVar(i + 1, endLine);
@@ -264,7 +273,7 @@ export class STASTParser {
 
                     const varLocation = this.createLocation(lineIndex, this.findColumnOf(lineIndex, varName), varName.length);
 
-                    variables.push({
+                    const sym: STSymbolExtended = {
                         name: varName,
                         normalizedName: varName.toLowerCase(),
                         kind,
@@ -274,7 +283,10 @@ export class STASTParser {
                         description,
                         literalType: this.getLiteralType(decl.initialValue, decl.baseType),
                         references: []
-                    });
+                    };
+                    if (isConstant) sym.isConstant = true;
+                    if (decl.arrayDimensions) sym.arrayDimensions = decl.arrayDimensions;
+                    variables.push(sym);
                 }
             }
 
@@ -359,7 +371,7 @@ export class STASTParser {
     /**
      * Collect complete declarations from a line range.
      * Accumulates text across lines until ';', then parses.
-     * This is the core fix for #41 — multi-line declarations.
+     * Supports multi-line declarations by accumulating across lines until ';'.
      */
     private collectDeclarationsInRange(
         startLine: number,
@@ -476,6 +488,7 @@ export class STASTParser {
         const isArray = upperType.startsWith('ARRAY');
 
         const baseType = this.extractBaseType(typeText);
+        const arrayDimensions = isArray ? this.parseArrayDimensions(typeText) : undefined;
 
         return {
             names,
@@ -486,7 +499,8 @@ export class STASTParser {
             atAddress,
             isArray,
             isPointer,
-            isReference
+            isReference,
+            arrayDimensions
         };
     }
 
@@ -556,35 +570,38 @@ export class STASTParser {
 
     /**
      * Strip single-line (//) and block ((* *)) comments from a line.
-     * Does not handle nested block comments.
+     * Handles nested block comments.
      */
     private stripComments(line: string): string {
         if (!line) return '';
-        let result = line;
-        let modified = true;
+        let result = '';
+        let depth = 0;
+        let i = 0;
 
-        while (modified) {
-            modified = false;
-
-            const slIdx = result.indexOf('//');
-            if (slIdx !== -1) {
-                result = result.substring(0, slIdx);
-                modified = true;
-                continue;
-            }
-
-            const bsIdx = result.indexOf('(*');
-            if (bsIdx !== -1) {
-                const beIdx = result.indexOf('*)', bsIdx);
-                if (beIdx !== -1) {
-                    result = result.substring(0, bsIdx) + ' ' + result.substring(beIdx + 2);
-                    modified = true;
+        while (i < line.length) {
+            if (depth > 0) {
+                if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
+                    depth++;
+                    i += 2;
+                } else if (i + 1 < line.length && line[i] === '*' && line[i + 1] === ')') {
+                    depth--;
+                    i += 2;
                 } else {
-                    result = result.substring(0, bsIdx);
+                    i++;
+                }
+            } else {
+                if (i + 1 < line.length && line[i] === '(' && line[i + 1] === '*') {
+                    depth++;
+                    i += 2;
+                } else if (i + 1 < line.length && line[i] === '/' && line[i + 1] === '/') {
                     break;
+                } else {
+                    result += line[i];
+                    i++;
                 }
             }
         }
+
         return result.trim();
     }
 
@@ -619,6 +636,26 @@ export class STASTParser {
         if (strLenMatch) return strLenMatch[1].toUpperCase();
 
         return t;
+    }
+
+    /**
+     * Parse ARRAY dimension bounds from a type text.
+     * e.g. "ARRAY[1..10] OF REAL"       → [{lower:1, upper:10}]
+     *      "ARRAY[1..10, 0..5] OF INT"  → [{lower:1,upper:10},{lower:0,upper:5}]
+     * Returns undefined if not an array or bounds can't be parsed.
+     */
+    private parseArrayDimensions(typeText: string): ArrayDimension[] | undefined {
+        const match = typeText.match(/ARRAY\s*\[([^\]]+)\]\s*OF/i);
+        if (!match) return undefined;
+
+        const dimStrings = match[1].split(',');
+        const dims: ArrayDimension[] = [];
+        for (const dim of dimStrings) {
+            const rangeMatch = dim.trim().match(/^(-?\d+)\s*\.\.\s*(-?\d+)$/);
+            if (!rangeMatch) return undefined; // non-literal bound — bail
+            dims.push({ lower: parseInt(rangeMatch[1], 10), upper: parseInt(rangeMatch[2], 10) });
+        }
+        return dims.length > 0 ? dims : undefined;
     }
 
     /**

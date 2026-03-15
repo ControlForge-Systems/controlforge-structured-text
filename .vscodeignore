@@ -30,7 +30,6 @@ out/**
 # Exclude documentation folder (except IEC61131_SPECIFICATION.md which we should include)
 docs/**
 !docs/IEC61131_SPECIFICATION.md
-images/README.md
 images/*.mp4
 publish-extension.sh
 

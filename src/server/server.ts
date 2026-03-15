@@ -15,7 +15,8 @@ import {
     DefinitionParams,
     Location,
     Position,
-    CodeAction
+    CodeAction,
+    SignatureHelp
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -30,6 +31,7 @@ import { computeDiagnostics } from './providers/diagnostics-provider';
 import { provideCodeActions } from './providers/code-action-provider';
 import { prepareRename, provideRenameEdits } from './providers/rename-provider';
 import { formatDocument, FormattingOptions, DEFAULT_FORMATTING_OPTIONS } from './providers/formatting-provider';
+import { SignatureHelpProvider } from './providers/signature-help-provider';
 
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
@@ -57,6 +59,7 @@ const workspaceIndexer = new WorkspaceIndexer();
 const memberAccessProvider = new MemberAccessProvider();
 const enhancedDefinitionProvider = new EnhancedDefinitionProvider(memberAccessProvider);
 const memberCompletionProvider = new MemberCompletionProvider(memberAccessProvider);
+const signatureHelpProvider = new SignatureHelpProvider();
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -87,6 +90,10 @@ connection.onInitialize((params: InitializeParams) => {
                 completionProvider: {
                     resolveProvider: true,
                     triggerCharacters: ['.', '(']
+                },
+                signatureHelpProvider: {
+                    triggerCharacters: ['(', ','],
+                    retriggerCharacters: [',']
                 },
                 codeActionProvider: true,
                 renameProvider: {
@@ -313,6 +320,15 @@ connection.onCompletion((params): CompletionItem[] => {
     return completionItems;
 });
 
+connection.onSignatureHelp((params): SignatureHelp | null => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return null;
+    }
+
+    return signatureHelpProvider.provideSignatureHelp(document, params.position, workspaceIndexer);
+});
+
 // References handler - now with cross-file support
 connection.onReferences((params): Location[] => {
     const document = documents.get(params.textDocument.uri);
@@ -341,7 +357,10 @@ connection.onCodeAction((params): CodeAction[] => {
         return [];
     }
 
-    return provideCodeActions(document, params);
+    const fileSymbols = symbolIndex.files.get(document.uri);
+    const symbols = fileSymbols ? (fileSymbols.symbols as STSymbolExtended[]) : [];
+
+    return provideCodeActions(document, params, symbols);
 });
 
 // Rename handlers
@@ -358,7 +377,13 @@ connection.onRenameRequest((params) => {
     if (!document) {
         return null;
     }
-    return provideRenameEdits(document, params.position, params.newName, workspaceIndexer, symbolIndex);
+    // Resolver: prefer the in-memory open document; fall back to disk cache.
+    const textResolver = (uri: string): string | undefined => {
+        const openDoc = documents.get(uri);
+        if (openDoc) return openDoc.getText();
+        return workspaceIndexer.getFileContent(uri);
+    };
+    return provideRenameEdits(document, params.position, params.newName, workspaceIndexer, symbolIndex, textResolver);
 });
 
 // Formatting settings cache

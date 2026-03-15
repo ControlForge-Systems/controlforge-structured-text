@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-03-15
+
+### Added
+- ST syntax highlighting injected into `<Declaration>`, `<ST>`, `<Implementation>`, and `<Interface>` XML elements in TwinCAT/CoDeSys export files (plain content and CDATA-wrapped)
+- Hardware address literals (`%IX0.0`, `%QW1`, `%MD100`, etc.) highlighted as `constant.other.hardware-address.st`
+- Pragma/attribute blocks (`{attribute 'xxx'}`, `{IF}`, `{ENDIF}`, etc.) highlighted as `meta.pragma.st` with `keyword.other.pragma.st` keyword scopes
+- SFC action qualifier keywords (`N`, `S`, `R`, `L`, `D`, `P`, `SD`, `DS`, `SL`) highlighted as `keyword.other.sfc-qualifier.st`
+- `ANY_CHAR` and `ANY_CHARS` generic types added to `storage.type.st`
+- `CLASS`, `END_CLASS`, `INTERFACE`, `END_INTERFACE`, `METHOD`, `END_METHOD`, `PRIVATE`, `PROTECTED`, `PUBLIC`, `INTERNAL`, `END_NAMESPACE` added to `keyword.declaration.st`
+- `PROPERTY` added to `keyword.other.st`
+- Named parameters: IEC 61131-3 escape character `$` (not `\`) used in string escape patterns
+- `OF` in `ARRAY [..] OF` scoped as `keyword.other.array-of.st` (distinct from `CASE...OF` control scope)
+- Named parameters in FB/function calls (`Param :=`, `Param =>`) now scoped as `variable.parameter.st` in syntax highlighting (#94)
+- Signature Help for function and function block calls: triggers on `(` and `,`, supports manual trigger, highlights active parameter, includes standard + workspace signatures (#33)
+- Diagnostic error for assignment to CONSTANT-qualified variables (VAR CONSTANT, VAR_GLOBAL CONSTANT); paren-depth guard avoids false positives on named FB parameters (#60)
+- Diagnostic error for out-of-bounds array access with constant/literal indices; supports 1-D, multi-dimensional, zero-based, and negative-lower-bound arrays; variable indices ignored (#61)
+- FOR loop bounds validation: `BY 0` flagged as error (infinite loop), reverse range with positive/negative BY flagged as warning (never executes), start equals end flagged as hint; only constant bounds checked (#62)
+- Diagnostic warning and quick-fix code action for `:=` vs `=` confusion: bare `=` in statement position flagged with "Replace '=' with ':='" action; `:=` inside IF/ELSIF/WHILE/UNTIL condition flagged with "Replace ':=' with '='" action (#63)
+- Cross-file rename: F2 now renames symbols across all workspace files, not just the active document
+
+### Fixed
+- Multi-line FB calls with closing `)` on its own line falsely flagged as "Unmatched closing parenthesis"; fixed with cross-line depth tracking
+- Output named parameters (`Param =>`) falsely flagged as undefined identifiers; `=>` pattern now excluded from identifier extraction
+
+### Changed
+- Bump `@types/node` to `^25.0.0`, `glob` to `^13.0.0`; add `skipLibCheck` to tsconfig for TS 5.x / `@types/node` 25 compatibility (#124)
+- Standardized manual test fixture naming (removed `test_`/`test-` prefixes) and updated references
+- Removed redundant QA and screenshot placeholder docs from repo (`docs/QA_CHECKLIST.md`, `images/README.md`)
+
 ## [1.3.0] - 2026-02-20
 
 ### Added

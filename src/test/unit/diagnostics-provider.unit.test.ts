@@ -435,6 +435,20 @@ END_VAR
     x := 1;
 END_PROGRAM`);
         });
+
+        test('should not false-positive on multi-line FB call closing paren', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    MyTimer : TON;
+    StartSig : BOOL;
+END_VAR
+    MyTimer(
+        IN := StartSig,
+        PT := T#10s
+    );
+END_PROGRAM`);
+        });
     });
 
     suite('Case Insensitivity', () => {
@@ -479,6 +493,39 @@ END_VAR
     IF x > 0 THEN
         This IF has no END_IF but it's in a comment
     *)
+    x := 1;
+END_PROGRAM`);
+        });
+
+        test('should not false-positive on unmatched parens in nested block comments', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    (* outer (* inner *) outer *)
+    x := 1;
+END_PROGRAM`);
+        });
+
+        test('should not false-positive on 3-level nested block comments', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    (* level1 (* level2 (* level3 *) level2 *) level1 *)
+    x := 1;
+END_PROGRAM`);
+        });
+
+        test('should not false-positive on nested comment with keywords inside', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    (* outer (* IF x > 0 THEN *) outer *)
     x := 1;
 END_PROGRAM`);
         });
@@ -814,6 +861,22 @@ END_PROGRAM`);
             assert.strictEqual(undef.length, 0);
         });
 
+        test('should not flag output named parameters (=>) in FB calls', () => {
+            assertNoDiagnostics(`
+PROGRAM Main
+VAR
+    MyTimer   : TON;
+    MyCounter : CTU;
+    StartSig  : BOOL;
+    StopSig   : BOOL;
+    Result    : BOOL;
+    CountOut  : INT;
+END_VAR
+    MyTimer(IN := StartSig, PT := T#5s, Q => Result, ET => CountOut);
+    MyCounter(CU := StartSig, RESET := StopSig, PV := 10, CV => CountOut);
+END_PROGRAM`);
+        });
+
         test('should not flag identifiers inside CASE branches', () => {
             const diags = diagnoseWithSymbols(`
 PROGRAM Main
@@ -1137,9 +1200,9 @@ END_PROGRAM`);
         });
     });
 
-    // ─── #57: ELSE IF → ELSIF ────────────────────────────────────────────────
+    // ─── ELSE IF → ELSIF ─────────────────────────────────────────────────────
 
-    suite('ELSE IF should be ELSIF (#57)', () => {
+    suite('ELSE IF should be ELSIF', () => {
         test('detects bare ELSE IF on same line', () => {
             const diags = diagnose(`
 PROGRAM Main
@@ -1277,9 +1340,9 @@ END_PROGRAM`);
         });
     });
 
-    // ─── #58: Missing THEN / DO ──────────────────────────────────────────────
+    // ─── Missing THEN / DO ───────────────────────────────────────────────────
 
-    suite('Missing THEN / DO (#58)', () => {
+    suite('Missing THEN / DO', () => {
         test('detects missing THEN after IF condition', () => {
             const diags = diagnose(`
 PROGRAM Main
@@ -1629,6 +1692,888 @@ END_PROGRAM`);
             const pts = diags.filter(d => d.message.includes("Duplicate parameter 'PT'"));
             assert.strictEqual(ins.length, 1);
             assert.strictEqual(pts.length, 1);
+        });
+    });
+
+    suite('Constant Assignment Detection', () => {
+
+        test('flags assignment to VAR_GLOBAL CONSTANT', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    temp : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Cannot assign to constant 'MAX_TEMP'"));
+            assert.ok(d, 'Should flag assignment to VAR_GLOBAL CONSTANT');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('flags assignment to VAR CONSTANT', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR CONSTANT
+    PI : REAL := 3.14159;
+END_VAR
+VAR
+    result : REAL;
+END_VAR
+    PI := 3.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Cannot assign to constant 'PI'"));
+            assert.ok(d, 'Should flag assignment to VAR CONSTANT');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('does not flag assignment to non-constant variable', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL
+    counter : INT := 0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    counter := 1;
+    x := counter + 1;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Cannot assign to constant'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('does not flag constant used as named FB parameter (depth > 0)', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TIME : TIME := T#10s;
+END_VAR
+
+PROGRAM Main
+VAR
+    myTimer : TON;
+END_VAR
+    myTimer(IN := TRUE, PT := MAX_TIME);
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Cannot assign to constant'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('constant assignment check is case-insensitive', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    max_temp := 50.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.toLowerCase().includes("cannot assign to constant 'max_temp'"));
+            assert.ok(d, 'Case-insensitive constant check should flag lowercase usage');
+        });
+
+        test('flags multiple assignments to same constant', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+    MAX_TEMP := 300.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes("Cannot assign to constant 'MAX_TEMP'"));
+            assert.strictEqual(d.length, 2, 'Both assignments should be flagged');
+        });
+
+        test('flags assignments to multiple different constants', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL CONSTANT
+    MAX_TEMP : REAL := 100.0;
+    MIN_TEMP : REAL := 0.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+    MIN_TEMP := -10.0;
+END_PROGRAM`);
+            const maxD = diags.find(d => d.message.includes("Cannot assign to constant 'MAX_TEMP'"));
+            const minD = diags.find(d => d.message.includes("Cannot assign to constant 'MIN_TEMP'"));
+            assert.ok(maxD, 'MAX_TEMP assignment should be flagged');
+            assert.ok(minD, 'MIN_TEMP assignment should be flagged');
+        });
+
+        test('does not flag VAR_GLOBAL without CONSTANT qualifier', () => {
+            const diags = diagnoseWithSymbols(`
+VAR_GLOBAL
+    MAX_TEMP : REAL := 100.0;
+END_VAR
+
+PROGRAM Main
+VAR
+    x : REAL;
+END_VAR
+    MAX_TEMP := 200.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('Cannot assign to constant'));
+            assert.strictEqual(d.length, 0);
+        });
+    });
+
+    suite('Array Bounds Checking', () => {
+        test('flags index above upper bound', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[15] := 25.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('15'));
+            assert.ok(d, 'index 15 out of [1..10] should be flagged');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('flags index below lower bound', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[0] := 10.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('0'));
+            assert.ok(d, 'index 0 below [1..10] should be flagged');
+        });
+
+        test('does not flag valid in-bounds access', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[1] := 0.0;
+    temps[5] := 12.5;
+    temps[10] := 99.9;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0, 'valid accesses should not be flagged');
+        });
+
+        test('does not flag variable (non-literal) index', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+    i : INT;
+END_VAR
+    temps[i] := 0.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0, 'variable index should not be flagged');
+        });
+
+        test('flags out-of-bounds on zero-based array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    buf : ARRAY[0..7] OF BYTE;
+END_VAR
+    buf[8] := 255;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('8'));
+            assert.ok(d, 'index 8 out of [0..7] should be flagged');
+        });
+
+        test('flags negative-lower-bound array: below lower', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    offsets : ARRAY[-5..5] OF INT;
+END_VAR
+    offsets[-6] := 0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('-6'));
+            assert.ok(d, 'index -6 below [-5..5] should be flagged');
+        });
+
+        test('does not flag valid access on negative-lower-bound array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    offsets : ARRAY[-5..5] OF INT;
+END_VAR
+    offsets[-5] := 0;
+    offsets[0] := 1;
+    offsets[5] := 2;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('flags out-of-bounds in second dimension of multi-dim array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+    matrix[2, 5] := 1.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('5'));
+            assert.ok(d, 'column index 5 out of [1..4] should be flagged');
+        });
+
+        test('flags out-of-bounds in first dimension of multi-dim array', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+    matrix[0, 2] := 1.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('0'));
+            assert.ok(d, 'row index 0 out of [1..4] should be flagged');
+        });
+
+        test('does not flag valid multi-dim access', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+    matrix[1, 1] := 0.0;
+    matrix[4, 4] := 0.0;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.includes('out of bounds'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('flags read (RHS) as well as write (LHS)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    arr : ARRAY[1..5] OF INT;
+    x : INT;
+END_VAR
+    x := arr[99];
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds') && d.message.includes('99'));
+            assert.ok(d, 'out-of-bounds read should also be flagged');
+        });
+
+        test('message includes array name and bounds', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+    temps[20] := 0.0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('out of bounds'));
+            assert.ok(d);
+            assert.ok(d!.message.includes('temps'), 'message should include array name');
+            assert.ok(d!.message.includes('[1..10]'), 'message should include declared bounds');
+            assert.ok(d!.message.includes('20'), 'message should include offending index');
+        });
+    });
+
+    // ─── FOR loop bounds validation ──────────────────────────────────────────
+
+    suite('FOR loop bounds validation', () => {
+
+        // ── valid loops — no diagnostics ────────────────────────────────────
+
+        test('no diagnostic for normal ascending loop (default BY)', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for ascending loop with explicit BY 1', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for descending loop with BY -1', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 BY -1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for loop with variable bounds', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i, start, stop : INT;
+END_VAR
+    FOR i := start TO stop DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0);
+        });
+
+        test('no diagnostic for loop where start equals end with negative BY (immediate exit, not flagged as never-executes)', () => {
+            // start == end is flagged as hint regardless of step direction
+            // but start < end with negative BY is a warning — test start == end below
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 5 TO 3 BY -1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.filter(d => d.message.toLowerCase().includes('for loop'));
+            assert.strictEqual(d.length, 0, 'descending with negative step should be ok');
+        });
+
+        // ── BY 0: error ──────────────────────────────────────────────────────
+
+        test('BY 0 flagged as error', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 0 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('BY 0') || d.message.includes('infinite loop'));
+            assert.ok(d, 'BY 0 should be flagged');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Error);
+        });
+
+        test('BY 0 message mentions infinite loop', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 0 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.toLowerCase().includes('infinite loop'));
+            assert.ok(d, 'message should mention infinite loop');
+        });
+
+        // ── reverse range + positive step: warning ───────────────────────────
+
+        test('start > end with positive BY flagged as warning', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 BY 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d, 'reverse range with positive step should warn');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('start > end default BY (no BY clause, implicit +1) flagged as warning', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d, 'reverse range with implicit +1 should warn');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('start < end with negative BY flagged as warning', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY -1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d, 'ascending range with negative step should warn');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('warning message includes start, end and BY values', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 10 TO 1 BY 1 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('never executes'));
+            assert.ok(d);
+            assert.ok(d!.message.includes('10'), 'message should include start value');
+            assert.ok(d!.message.includes('1'), 'message should include end value');
+        });
+
+        // ── single iteration: hint ───────────────────────────────────────────
+
+        test('start equals end flagged as hint', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 5 TO 5 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('exactly once') || d.message.includes('start equals end'));
+            assert.ok(d, 'start==end should be flagged as hint');
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Hint);
+        });
+
+        test('hint message includes the repeated value', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 7 TO 7 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes('exactly once') || d.message.includes('start equals end'));
+            assert.ok(d);
+            assert.ok(d!.message.includes('7'), 'message should include the repeated bound value');
+        });
+
+        // ── source: only 'ControlForge ST' ──────────────────────────────────
+
+        test('diagnostics have correct source', () => {
+            const diags = diagnoseWithSymbols(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 BY 0 DO
+        i := i + 1;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.toLowerCase().includes('infinite loop'));
+            assert.ok(d);
+            assert.strictEqual(d!.source, 'ControlForge ST');
+        });
+    });
+
+    suite("Assignment/Comparison Confusion — '=' in statement context", () => {
+
+        // ── should flag ──────────────────────────────────────────────────────
+
+        test('flags simple identifier = expr as warning', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    counter : INT;
+END_VAR
+    counter = counter + 1;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d, "Should flag 'counter = counter + 1'");
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test('diagnostic message suggests :=', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 42;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d);
+            assert.ok(d!.message.includes(":="), "Message should suggest ':='");
+        });
+
+        test('diagnostic points at the = character', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 42;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d);
+            // Line 5 (0-indexed): "    x = 42;"
+            // `=` is at column 6
+            assert.strictEqual(d!.range.start.line, 5);
+            assert.strictEqual(d!.range.start.character, 6);
+            assert.strictEqual(d!.range.end.character, 7); // length 1
+        });
+
+        test('flags array element assignment confusion', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    arr : ARRAY[0..9] OF INT;
+END_VAR
+    arr[0] = 5;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d, "Should flag 'arr[0] = 5'");
+        });
+
+        test('flags member access assignment confusion', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    fb : TON;
+END_VAR
+    fb.PT = T#1s;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d, "Should flag 'fb.PT = T#1s'");
+        });
+
+        test('diagnostic has correct source', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x = 1;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.ok(d);
+            assert.strictEqual(d!.source, 'ControlForge ST');
+        });
+
+        // ── should NOT flag ──────────────────────────────────────────────────
+
+        test('no false positive for correct := assignment', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    x := 42;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag ':='");
+        });
+
+        test('no false positive for = in IF condition', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x = 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' in IF condition");
+        });
+
+        test('no false positive for <= comparison', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := x <= 10;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '<='");
+        });
+
+        test('no false positive for >= comparison', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := x >= 5;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '>='");
+        });
+
+        test('no false positive for <> comparison', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := x <> 0;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '<>'");
+        });
+
+        test('no false positive for = inside VAR declaration', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT := 5;
+END_VAR
+    x := x + 1;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag = inside VAR section");
+        });
+
+        test('no false positive for = comparison inside parentheses in statement', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    ok : BOOL;
+END_VAR
+    ok := (x = 5);
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' inside parens on RHS");
+        });
+
+        test('no false positive when = is inside inline FB call (paren depth > 0)', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    tmr : TON;
+END_VAR
+    tmr(IN := TRUE, PT := T#1s);
+    IF tmr.Q = TRUE THEN
+        tmr(IN := FALSE, PT := T#1s);
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' inside FB call parens or in IF condition");
+        });
+
+        test('no false positive for = in a complex BOOL expression on RHS', () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    safeToStart : BOOL;
+    emergencyStop : BOOL;
+END_VAR
+    safeToStart := (emergencyStop = FALSE) AND (x > 0);
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used '=' in statement context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' in parenthesised RHS expression");
+        });
+    });
+
+    suite("Assignment/Comparison Confusion — ':=' in boolean condition context", () => {
+
+        // ── should flag ──────────────────────────────────────────────────────
+
+        test("flags ':=' in IF condition as warning", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d, "Should flag ':=' in IF condition");
+            assert.strictEqual(d!.severity, DiagnosticSeverity.Warning);
+        });
+
+        test("diagnostic message suggests =", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d);
+            assert.ok(d!.message.includes("'='"), "Message should suggest '='");
+        });
+
+        test("diagnostic points at the := token (length 2)", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d);
+            // Line 5 (0-indexed): "    IF x := 10 THEN"
+            // ':=' is at column 9
+            assert.strictEqual(d!.range.start.line, 5);
+            assert.strictEqual(d!.range.start.character, 9);
+            assert.strictEqual(d!.range.end.character, 11); // length 2
+        });
+
+        test("flags ':=' in ELSIF condition", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x = 0 THEN
+        x := 1;
+    ELSIF x := 5 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d, "Should flag ':=' in ELSIF condition");
+        });
+
+        test("flags ':=' in WHILE condition", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    WHILE x := 0 DO
+        x := x + 1;
+    END_WHILE;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d, "Should flag ':=' in WHILE condition");
+        });
+
+        test("diagnostic has correct source", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x := 0 THEN
+        x := 1;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.ok(d);
+            assert.strictEqual(d!.source, 'ControlForge ST');
+        });
+
+        // ── should NOT flag ──────────────────────────────────────────────────
+
+        test("no false positive for correct = in IF condition", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+END_VAR
+    IF x = 10 THEN
+        x := 0;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag '=' in IF condition");
+        });
+
+        test("no false positive for := in IF body (same line, after THEN — rare)", () => {
+            // This test verifies we don't accidentally flag correct := in statement body
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    x : INT;
+    y : INT;
+END_VAR
+    IF x = 0 THEN
+        y := 1;
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag ':=' in IF body");
+        });
+
+        test("no false positive for named-param := inside parens in IF", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    tmr : TON;
+END_VAR
+    IF tmr.Q = TRUE THEN
+        tmr(IN := FALSE, PT := T#1s);
+    END_IF;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag ':=' inside parens in IF body");
+        });
+
+        test("no false positive for correct FOR loop (uses := for loop var)", () => {
+            const diags = diagnose(`
+PROGRAM Main
+VAR
+    i : INT;
+END_VAR
+    FOR i := 1 TO 10 DO
+        i := i;
+    END_FOR;
+END_PROGRAM`);
+            const d = diags.find(d => d.message.includes("Used ':=' in condition context"));
+            assert.strictEqual(d, undefined, "Should not flag ':=' in FOR loop header");
         });
     });
 });

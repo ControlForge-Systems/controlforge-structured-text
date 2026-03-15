@@ -1,4 +1,4 @@
-(* Manual test: FB hover tooltips (#22)
+(* Manual test: FB hover tooltips
    Hover over type names and instance names to verify rich tooltips
    with parameter tables, behavior descriptions, and usage examples. *)
 

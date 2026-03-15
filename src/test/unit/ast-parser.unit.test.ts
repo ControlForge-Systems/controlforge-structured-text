@@ -83,7 +83,7 @@ END_PROGRAM`);
         });
     });
 
-    suite('Multi-Line Declarations (#41)', () => {
+    suite('Multi-Line Declarations', () => {
         test('should parse multi-line array initialization', () => {
             const symbols = parse(`
 PROGRAM Test
@@ -521,6 +521,91 @@ END_PROGRAM`);
             const v = findSymbol(symbols, 'myvar');
             assert.ok(v, 'case-insensitive lookup should work');
             assert.strictEqual(v!.name, 'MyVar', 'original case should be preserved');
+        });
+    });
+
+    suite('Array Dimension Parsing', () => {
+        test('should parse single-dimension array bounds', () => {
+            const symbols = parse(`
+PROGRAM Test
+VAR
+    temps : ARRAY[1..10] OF REAL;
+END_VAR
+END_PROGRAM`);
+            const temps = findSymbol(symbols, 'temps');
+            assert.ok(temps, 'temps should exist');
+            assert.ok(temps!.arrayDimensions, 'arrayDimensions should be set');
+            assert.strictEqual(temps!.arrayDimensions!.length, 1);
+            assert.strictEqual(temps!.arrayDimensions![0].lower, 1);
+            assert.strictEqual(temps!.arrayDimensions![0].upper, 10);
+        });
+
+        test('should parse zero-based array bounds', () => {
+            const symbols = parse(`
+PROGRAM Test
+VAR
+    buf : ARRAY[0..255] OF BYTE;
+END_VAR
+END_PROGRAM`);
+            const buf = findSymbol(symbols, 'buf');
+            assert.ok(buf!.arrayDimensions);
+            assert.strictEqual(buf!.arrayDimensions![0].lower, 0);
+            assert.strictEqual(buf!.arrayDimensions![0].upper, 255);
+        });
+
+        test('should parse negative lower bound', () => {
+            const symbols = parse(`
+PROGRAM Test
+VAR
+    offsets : ARRAY[-5..5] OF INT;
+END_VAR
+END_PROGRAM`);
+            const offsets = findSymbol(symbols, 'offsets');
+            assert.ok(offsets!.arrayDimensions);
+            assert.strictEqual(offsets!.arrayDimensions![0].lower, -5);
+            assert.strictEqual(offsets!.arrayDimensions![0].upper, 5);
+        });
+
+        test('should parse multi-dimensional array bounds', () => {
+            const symbols = parse(`
+PROGRAM Test
+VAR
+    matrix : ARRAY[1..4, 1..4] OF REAL;
+END_VAR
+END_PROGRAM`);
+            const matrix = findSymbol(symbols, 'matrix');
+            assert.ok(matrix!.arrayDimensions);
+            assert.strictEqual(matrix!.arrayDimensions!.length, 2);
+            assert.strictEqual(matrix!.arrayDimensions![0].lower, 1);
+            assert.strictEqual(matrix!.arrayDimensions![0].upper, 4);
+            assert.strictEqual(matrix!.arrayDimensions![1].lower, 1);
+            assert.strictEqual(matrix!.arrayDimensions![1].upper, 4);
+        });
+
+        test('non-array variable should not have arrayDimensions', () => {
+            const symbols = parse(`
+PROGRAM Test
+VAR
+    x : INT;
+END_VAR
+END_PROGRAM`);
+            const x = findSymbol(symbols, 'x');
+            assert.ok(x);
+            assert.strictEqual(x!.arrayDimensions, undefined);
+        });
+
+        test('should preserve element dataType', () => {
+            const symbols = parse(`
+PROGRAM Test
+VAR
+    flags : ARRAY[0..7] OF BOOL;
+END_VAR
+END_PROGRAM`);
+            const flags = findSymbol(symbols, 'flags');
+            assert.strictEqual(flags!.dataType, 'BOOL');
+            assert.ok(flags!.arrayDimensions);
+            assert.strictEqual(flags!.arrayDimensions![0].lower, 0);
+            assert.strictEqual(flags!.arrayDimensions![0].upper, 7);
         });
     });
 });

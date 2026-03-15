@@ -13,6 +13,7 @@
  *  - Insert missing semicolons
  *  - Remove duplicate variable declarations
  *  - Remove unused variable declarations
+ *  - Declare missing (undefined) variables with inferred type
  */
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -26,6 +27,11 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { STSymbolExtended } from '../../shared/types';
+import {
+    provideMissingDeclarationAction,
+    provideAddAllMissingDeclarationsAction
+} from './missing-declaration-provider';
 
 // ─── POU keywords (top-level blocks) ────────────────────────────────────────
 
@@ -56,11 +62,13 @@ const VAR_SECTION_KEYWORDS = new Set([
  *
  * @param document The text document
  * @param params Code action request params (includes diagnostics)
+ * @param symbols Parsed symbols for the document (used for missing-declaration fixes)
  * @returns Array of code actions (quick fixes)
  */
 export function provideCodeActions(
     document: TextDocument,
-    params: CodeActionParams
+    params: CodeActionParams,
+    symbols: STSymbolExtended[] = []
 ): CodeAction[] {
     const actions: CodeAction[] = [];
 
@@ -147,6 +155,33 @@ export function provideCodeActions(
                 actions.push(action);
             }
         }
+        // Assignment/comparison operator confusion — '=' used as ':='
+        else if (message.includes("Used '=' in statement context")) {
+            const action = createReplaceEqualsWithAssignAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Assignment/comparison operator confusion — ':=' used as '=' in condition
+        else if (message.includes("Used ':=' in condition context")) {
+            const action = createReplaceAssignWithEqualsAction(document, diagnostic);
+            if (action) {
+                actions.push(action);
+            }
+        }
+        // Missing variable declaration — infer type and insert into VAR block
+        else if (message.startsWith("Undefined identifier '")) {
+            const action = provideMissingDeclarationAction(document, diagnostic, symbols);
+            if (action) {
+                actions.push(action);
+            }
+        }
+    }
+
+    // Batch fix: declare all undefined vars in one action (only if 2+)
+    const batchAction = provideAddAllMissingDeclarationsAction(document, params.context.diagnostics, symbols);
+    if (batchAction) {
+        actions.push(batchAction);
     }
 
     return actions;
@@ -495,7 +530,7 @@ function createRemoveUnusedVariableAction(
     };
 }
 
-// ─── #57 / #58 action creators ──────────────────────────────────────────────
+// ─── ELSE IF → ELSIF / Missing THEN / DO action creators ────────────────────
 
 /**
  * Replace `ELSE IF` with `ELSIF` on the diagnostic line.
@@ -608,6 +643,56 @@ function createReplaceInvalidMemberAction(
 
     return {
         title: `Replace with '${suggestion}'`,
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
+    };
+}
+
+/**
+ * Replace a bare `=` used in statement context with `:=`.
+ *
+ * Message: "Used '=' in statement context; did you mean ':='?"
+ * The diagnostic range covers the single `=` character.
+ */
+function createReplaceEqualsWithAssignAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [TextEdit.replace(diagnostic.range, ':=')]
+        }
+    };
+
+    return {
+        title: "Replace '=' with ':='",
+        kind: CodeActionKind.QuickFix,
+        diagnostics: [diagnostic],
+        edit,
+        isPreferred: true,
+    };
+}
+
+/**
+ * Replace `:=` used in a boolean condition context with `=`.
+ *
+ * Message: "Used ':=' in condition context; did you mean '='?"
+ * The diagnostic range covers the two-character `:=` token.
+ */
+function createReplaceAssignWithEqualsAction(
+    document: TextDocument,
+    diagnostic: Diagnostic
+): CodeAction | null {
+    const edit: WorkspaceEdit = {
+        changes: {
+            [document.uri]: [TextEdit.replace(diagnostic.range, '=')]
+        }
+    };
+
+    return {
+        title: "Replace ':=' with '='",
         kind: CodeActionKind.QuickFix,
         diagnostics: [diagnostic],
         edit,
