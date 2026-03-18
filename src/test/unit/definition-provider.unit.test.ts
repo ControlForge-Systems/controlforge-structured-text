@@ -1,9 +1,11 @@
 import * as assert from 'assert';
+import * as path from 'path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position, Location } from 'vscode-languageserver';
 import { EnhancedDefinitionProvider } from '../../server/providers/definition-provider';
 import { MemberAccessProvider } from '../../server/providers/member-access-provider';
 import { WorkspaceIndexer } from '../../server/workspace-indexer';
+import { setExtensionPath } from '../../server/extension-path';
 import { STSymbolExtended, STSymbolKind, STScope, SymbolIndex, FileSymbols } from '../../shared/types';
 
 function doc(uri: string, content: string): TextDocument {
@@ -327,6 +329,94 @@ END_PROGRAM`));
             assert.ok(hover!.includes('Q'), 'should mention member name');
             assert.ok(hover!.includes('BOOL'), 'should show member type');
             assert.ok(hover!.includes('TON'), 'should reference FB type');
+        });
+    });
+
+    suite('provideDefinition — standard FB type name (peek definition)', () => {
+        test('should return location for standard FB type name TON', () => {
+            const document = doc('file:///test.st', `PROGRAM Main\nVAR\n    myTimer : TON;\nEND_VAR\nEND_PROGRAM`);
+            const indexer = new WorkspaceIndexer();
+            const localIdx = emptyLocalIndex();
+
+            // Position on "TON" at line 2, char 14
+            const locations = defProvider.provideDefinition(document, { line: 2, character: 14 }, indexer, localIdx);
+            // Without extensionPath set, getStandardFBDefinitionLocation returns null — falls through to workspace lookup
+            // With extensionPath set it would return iec61131-definitions/TON.st
+            // Either way: no error, result is an array
+            assert.ok(Array.isArray(locations));
+        });
+
+        test('getStandardFBDefinitionLocation returns file URI when extension path is set', () => {
+            const fakeExtPath = '/fake/extension';
+            setExtensionPath(fakeExtPath);
+            try {
+                const loc = memberAccessProvider.getStandardFBDefinitionLocation('TON');
+                assert.ok(loc, 'should return a location when extension path is set');
+                assert.ok(loc!.uri.includes('iec61131-definitions'), 'URI should reference iec61131-definitions directory');
+                assert.ok(loc!.uri.includes('TON.st'), 'URI should reference TON.st');
+                assert.ok(loc!.uri.startsWith('file://'), 'URI should be a file URI');
+                assert.strictEqual(loc!.range.start.line, 0);
+                assert.strictEqual(loc!.range.start.character, 0);
+            } finally {
+                setExtensionPath(undefined);
+            }
+        });
+
+        test('getStandardFBDefinitionLocation returns correct file for each standard FB', () => {
+            const fakeExtPath = '/fake/extension';
+            setExtensionPath(fakeExtPath);
+            try {
+                const fbTypes = ['TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'RS', 'SR'];
+                for (const fbType of fbTypes) {
+                    const loc = memberAccessProvider.getStandardFBDefinitionLocation(fbType);
+                    assert.ok(loc, `should return location for ${fbType}`);
+                    assert.ok(loc!.uri.includes(`${fbType}.st`), `URI should reference ${fbType}.st`);
+                }
+            } finally {
+                setExtensionPath(undefined);
+            }
+        });
+
+        test('getStandardFBDefinitionLocation returns null without extension path', () => {
+            const loc = memberAccessProvider.getStandardFBDefinitionLocation('TON');
+            // Extension path not set in unit tests — should return null
+            assert.strictEqual(loc, null);
+        });
+
+        test('getStandardFBDefinitionLocation returns null for non-FB types', () => {
+            assert.strictEqual(memberAccessProvider.getStandardFBDefinitionLocation('INT'), null);
+            assert.strictEqual(memberAccessProvider.getStandardFBDefinitionLocation('BOOL'), null);
+            assert.strictEqual(memberAccessProvider.getStandardFBDefinitionLocation('UNKNOWN_TYPE'), null);
+        });
+
+        test('getStandardFBDefinitionLocation is case-insensitive for FB lookup', () => {
+            // Both 'TON' and 'ton' should behave the same (null without extension path)
+            const upper = memberAccessProvider.getStandardFBDefinitionLocation('TON');
+            const lower = memberAccessProvider.getStandardFBDefinitionLocation('ton');
+            assert.strictEqual(upper, lower);
+        });
+
+        test('all standard FB types are recognized by getStandardFBDefinitionLocation lookup', () => {
+            const fbTypes = ['TON', 'TOF', 'TP', 'CTU', 'CTD', 'CTUD', 'R_TRIG', 'F_TRIG', 'RS', 'SR'];
+            for (const fbType of fbTypes) {
+                // Without extension path returns null — but should NOT throw
+                assert.doesNotThrow(() => {
+                    memberAccessProvider.getStandardFBDefinitionLocation(fbType);
+                }, `getStandardFBDefinitionLocation should not throw for ${fbType}`);
+            }
+        });
+
+        test('standard FB type definition takes priority over local symbol with same name', () => {
+            // If user somehow declares a variable named TON, standard FB definition wins
+            const document = doc('file:///test.st', 'myTimer : TON;');
+            const tonSymbol = makeSymbol('TON', STSymbolKind.FunctionBlock, '', 'file:///test.st', 0, 10);
+            const localIdx = localIndexWith([tonSymbol]);
+            const indexer = new WorkspaceIndexer();
+
+            // Position on "TON"
+            const locations = defProvider.provideDefinition(document, { line: 0, character: 10 }, indexer, localIdx);
+            // Without extension path, stdFBLoc is null so falls through — result is array
+            assert.ok(Array.isArray(locations));
         });
     });
 

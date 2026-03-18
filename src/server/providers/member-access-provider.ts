@@ -477,4 +477,31 @@ export class MemberAccessProvider {
     public isStandardFBType(dataType: string): boolean {
         return this.standardFBMembers.has(dataType);
     }
+
+    /**
+     * Return a Location pointing to the iec61131-definitions file for a standard FB type.
+     * Returns null if the type is not a standard FB or extension path is unavailable.
+     */
+    public getStandardFBDefinitionLocation(fbType: string): Location | null {
+        const normalized = fbType.toUpperCase();
+        if (!this.standardFBMembers.has(normalized)) {
+            return null;
+        }
+
+        const extensionPath = getExtensionPath();
+        if (!extensionPath) {
+            return null;
+        }
+
+        const definitionPath = path.join(extensionPath, 'iec61131-definitions', `${normalized}.st`);
+        const definitionUri = `file://${definitionPath}`;
+
+        return {
+            uri: definitionUri,
+            range: {
+                start: { line: 0, character: 0 },
+                end: { line: 0, character: 0 }
+            }
+        };
+    }
 }

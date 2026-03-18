@@ -100,6 +100,12 @@ export class EnhancedDefinitionProvider {
             // Standard symbol navigation
             const symbolName = this.findSymbolAtPosition(document, position);
             if (symbolName) {
+                // Check if it's a standard FB type — resolve to iec61131-definitions file
+                const stdFBLoc = this.memberAccessProvider.getStandardFBDefinitionLocation(symbolName.toUpperCase());
+                if (stdFBLoc) {
+                    return [stdFBLoc];
+                }
+
                 // Try exact match first
                 let localSymbols = localSymbolIndex.symbolsByName.get(symbolName);
 
