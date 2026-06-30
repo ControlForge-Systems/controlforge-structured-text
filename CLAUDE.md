@@ -98,7 +98,7 @@ Feature folders live under status subfolders: `tasks/01-todo/`, `tasks/02-in-pro
 - Dispose all disposables via `context.subscriptions`
 - **Git commits:** Conventional Commit format (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`).
 - **Attribution:** do NOT add "Co-Authored-By: Claude" or "Generated with Claude Code" trailers to commits or PR bodies. The `attribution` setting in `.claude/settings.json` controls this; do not bypass it by hand-typing the trailer.
-- **Em dashes:** do not use em dashes in documents, comments, or output. Use a hyphen (-) or rewrite the sentence.
+- **ASCII only:** do not use any character that is not on a standard US keyboard, in documents, code, comments, commit messages, or output. This bans em dashes and en dashes (use `-`), smart/curly quotes (use `'` and `"`), ellipsis (use `...`), arrows (use `->` / `<-`), non-breaking spaces, and section signs (write `clause` or `Sec.`). When tempted to use one, pick the ASCII equivalent or rewrite the sentence.
 
 ## Issues
 
@@ -116,16 +116,16 @@ Add `Priority:` and `Effort:` labels manually per issue. No emoji/icons in title
 ## Branching
 
 ```
-main                   ← stable, tagged releases only; never commit directly
-release-X.Y.0          ← integration branch per milestone; PRs merge here
-feature/issue-N-desc   ← new functionality
-fix/issue-N-desc       ← bug fixes
-chore/desc             ← tooling, config, deps
-docs/desc              ← documentation only
+main                   <- stable, tagged releases only; never commit directly
+release-X.Y.0          <- integration branch per milestone; PRs merge here
+feature/issue-N-desc   <- new functionality
+fix/issue-N-desc       <- bug fixes
+chore/desc             <- tooling, config, deps
+docs/desc              <- documentation only
 ```
 
 - All branch types target the active `release-X.Y.0` via PR - no direct pushes, no exceptions
-- **`main`** updated only when releasing - merge `release-X.Y.0` → `main` via a release PR, then tag
+- **`main`** updated only when releasing - merge `release-X.Y.0` -> `main` via a release PR, then tag
 - **Hotfixes** branch off `main`, PR back to both `main` and the active release branch
 - Create `release-X.Y.0` at milestone start; delete after merge to `main`
 - Active release branch is the one matching the current in-progress milestone
@@ -158,7 +158,7 @@ docs/desc              ← documentation only
 
 **When QA complete - ship:**
 1. Move `CHANGELOG.md` `[Unreleased]` entries to `[X.Y.0] - YYYY-MM-DD`
-2. Open PR `release-X.Y.0` → `main`
+2. Open PR `release-X.Y.0` -> `main`
 3. Merge PR, tag `vX.Y.0` on `main`
 4. `npm run webpack-prod`, then `vsce package && vsce publish` and `ovsx publish`
 5. Close the milestone

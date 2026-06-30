@@ -24,7 +24,7 @@ Steps:
    - If conflicts arise, resolve them before proceeding:
      - Prefer the current branch's changes unless the conflict is clearly a structural or path issue
      - Stage resolved files with `git add`
-     - Commit the merge: `git commit -m "chore: merge origin/<release> into <branch>"` (Conventional Commit format; no em dashes)
+     - Commit the merge: `git commit -m "chore: merge origin/<release> into <branch>"` (Conventional Commit format; ASCII only)
      - Push: `git push`
    - If conflicts cannot be resolved cleanly, stop and explain what needs manual attention.
 5. **Pre-PR checks (blocking - all must pass before creating the PR):**

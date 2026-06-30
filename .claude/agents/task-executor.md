@@ -108,7 +108,7 @@ OUT-OF-SCOPE OBSERVATIONS (if any):
 - **If a DoD item is impossible, return with it unchecked and explain why** - do not skip silently
 - **Verification commands must actually pass** - do not tick an item without running its check
 - Do NOT add `Co-Authored-By: Claude` or `Generated with Claude Code` trailers (suppressed via `.claude/settings.json`)
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 
 ## Updating project knowledge
 When your change affects durable conventions or decisions (architecture, layer boundaries, build, testing, a gotcha or pattern not already documented), record it in `CLAUDE.md`. When you confirm a language/spec finding, record it in `docs/IEC61131_SPECIFICATION.md`. Only do this when genuinely warranted; otherwise omit.

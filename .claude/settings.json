@@ -76,7 +76,10 @@
       "Bash(gh run list:*)",
       "Bash(gh run watch:*)",
       "Bash(gh label list:*)",
-      "Bash(gh api repos/:owner/:repo/milestones:*)"
+      "Bash(gh api repos/:owner/:repo/milestones:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh issue create:*)"
     ],
     "ask": [
       "Bash(curl:*)",
@@ -86,12 +89,9 @@
       "Bash(npm version:*)",
       "Bash(vsce publish:*)",
       "Bash(ovsx publish:*)",
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
       "Bash(gh pr close:*)",
-      "Bash(gh release create:*)",
-      "Bash(gh issue create:*)"
+      "Bash(gh release create:*)"
     ],
     "deny": [
       "Bash(ssh:*)",

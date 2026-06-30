@@ -9,7 +9,7 @@ All validation lives in `src/server/providers/diagnostics-provider.ts`. The expo
 
 ## Read first
 
-- `docs/IEC61131_SPECIFICATION.md` - the authoritative source. Find the clause that your rule enforces; cite it in the diagnostic message or in the check's doc comment (existing messages reference clauses, e.g. the ELSE IF check cites IEC 61131-3 §3.3.2).
+- `docs/IEC61131_SPECIFICATION.md` - the authoritative source. Find the clause that your rule enforces; cite it in the diagnostic message or in the check's doc comment (existing messages reference clauses, e.g. the ELSE IF check cites IEC 61131-3 clause 3.3.2).
 - `src/server/providers/diagnostics-provider.ts` - study an existing check to copy its shape. Good models:
   - Syntax (no symbols needed): `checkElseIfShouldBeElsif`, `checkMissingThenDo`, `checkUnclosedStrings`.
   - Semantic (needs parsed symbols): `checkDuplicateDeclarations`, `checkConstantAssignment`, `checkFBCallInvalidMembers`.
@@ -25,7 +25,7 @@ All validation lives in `src/server/providers/diagnostics-provider.ts`. The expo
        // ...detect the violation, then:
        diagnostics.push(createDiagnostic(
            lineIndex, column, length,
-           "VAR_OUTPUT is not allowed in a FUNCTION (IEC 61131-3 §2.5.1.3)",
+           "VAR_OUTPUT is not allowed in a FUNCTION (IEC 61131-3 clause 2.5.1.3)",
            DiagnosticSeverity.Error
        ));
        return diagnostics;
@@ -33,7 +33,7 @@ All validation lives in `src/server/providers/diagnostics-provider.ts`. The expo
    ```
    Reuse the existing helpers rather than re-tokenizing; strip comments/strings via `CleanLine.text` / `stripStringLiterals` to avoid false positives inside comments and string literals. Pick severity deliberately: `Error` for spec violations, `Warning` for likely mistakes, `Hint`/`Information` for style.
 
-2. **Cite the spec** in the message and/or the function's doc comment so the diagnostic is traceable to `docs/IEC61131_SPECIFICATION.md`. Keep the clause reference in the message text where it aids the user (use `§`, not invented codes).
+2. **Cite the spec** in the message and/or the function's doc comment so the diagnostic is traceable to `docs/IEC61131_SPECIFICATION.md`. Keep the clause reference in the message text where it aids the user (write `clause N.N.N` in plain ASCII, e.g. `clause 3.3.2`, not the section sign or invented codes).
 
 3. **Register it in `computeDiagnostics`** (bottom of the file). Add to the Phase 1 block (`diagnostics.push(...checkX(cleanLines))`) for pure-syntax checks, or inside the `if (symbols && symbols.length > 0)` Phase 2 block for checks that need parsed symbols.
 
@@ -54,4 +54,4 @@ All validation lives in `src/server/providers/diagnostics-provider.ts`. The expo
 - Fixture added under `manual-tests/diagnostics/` covering positive and negative cases.
 - `npm run test:unit` passes (all existing + new tests).
 - `npm run webpack-prod` succeeds.
-- Conventional Commit, e.g. `feat: flag VAR_OUTPUT inside FUNCTION`. No Claude attribution trailers. No em dashes.
+- Conventional Commit, e.g. `feat: flag VAR_OUTPUT inside FUNCTION`. No Claude attribution trailers. ASCII only (no em/en dashes, smart quotes, or other non-keyboard glyphs).

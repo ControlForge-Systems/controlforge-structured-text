@@ -78,7 +78,7 @@ Flag any roadmap item that implies:
 
 ## Rules
 - Do NOT ask the user directly - if business context is missing, return asking the orchestrator to resend
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 
 ## Updating project knowledge
 Roadmap decisions and priority rationale are recorded in `docs/roadmap.md` (the output of this agent). For broader durable project context (e.g. a new business constraint that affects future planning), record it in `CLAUDE.md` when genuinely warranted.

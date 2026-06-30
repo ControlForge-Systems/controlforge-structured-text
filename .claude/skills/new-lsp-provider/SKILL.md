@@ -65,4 +65,4 @@ Add a new feature provider to the Structured Text language server. Providers are
 - Unit test added and asserts the provider output directly.
 - `npm run test:unit` passes (all existing + new tests).
 - `npm run webpack-prod` succeeds (the `dist/` bundle shipped in the `.vsix` builds clean).
-- Conventional Commit, e.g. `feat: add selection range provider`. No Claude attribution trailers. No em dashes.
+- Conventional Commit, e.g. `feat: add selection range provider`. No Claude attribution trailers. ASCII only (no em/en dashes, smart quotes, or other non-keyboard glyphs).

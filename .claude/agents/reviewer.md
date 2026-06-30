@@ -94,6 +94,6 @@ Looks good:
 ## Rules
 - Never modify files - this agent is read-only
 - Do NOT ask the user directly - return all findings in the structured output
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 - Cite specific file:line for every blocker - "somewhere in the parser" is not actionable
 - Cite the documented rule for every blocker - "violates X rule from CLAUDE.md"

@@ -177,7 +177,7 @@ Once every preceding task has its Definition of Done met and committed, move the
 - Reference patterns must be real files in the repo. Verify they exist before listing.
 - Every code-touching parent task MUST include a "tests pass" DoD item AND list the analogous existing test file as a Reference pattern. Exemptions (pure git state, docs-only, no-behavior config) must be called out in Notes.
 - Do NOT include step-by-step sub-task lists under each parent
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 
 ## Definition of Done (per task file)
 
@@ -191,4 +191,4 @@ Before saving each file:
 - [ ] `Definition of Done` has 3-6 items, each verifiable outcomes
 - [ ] For code-touching tasks: DoD includes a "new/updated tests for <module> pass: `<command>`" item. For exempt tasks (git state, docs-only, no-behavior config), the exemption is stated explicitly in Notes.
 - [ ] No step-by-step sub-tasks - no `- [ ] N.1 do X` lists
-- [ ] No em dashes in the file
+- [ ] ASCII only (no em/en dashes, smart quotes, ellipsis, arrows) in the file

@@ -67,7 +67,7 @@ ADDITIONAL EVIDENCE NEEDED (if confidence is low): <list>
 - Never refactor or improve unrelated code during a bug fix
 - If the cause is unclear after investigation, return with low confidence and list what evidence would help
 - Do NOT ask the user directly - return ADDITIONAL EVIDENCE NEEDED in your summary and let the orchestrator gather it
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 
 ## Updating project knowledge
 When you confirm a root cause or resolution worth keeping, record it where it belongs: durable conventions, gotchas, or failure patterns in `CLAUDE.md`; language/spec findings in `docs/IEC61131_SPECIFICATION.md`. Only do this when genuinely warranted; otherwise omit.

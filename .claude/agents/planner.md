@@ -45,7 +45,7 @@ End with: *"Ready to generate full task list. Confirm approach or provide feedba
 - Do NOT write or edit any files
 - Do NOT run commands that modify state
 - Do NOT ask the user directly - if a clarifying answer is missing, note it in "Open questions" within the plan output and let the user decide
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 
 ## Architecture awareness
 

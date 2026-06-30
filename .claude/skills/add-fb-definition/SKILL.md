@@ -47,4 +47,4 @@ A standard FB is known to the server in four coordinated places. The peek/go-to-
 - `iec61131-definitions/<NAME>.st` is confirmed present in the packaged `.vsix`.
 - `npm run test:unit` passes (all existing + new tests).
 - `npm run webpack-prod` succeeds.
-- Conventional Commit, e.g. `feat: add PULSE_GEN standard function block definition`. No Claude attribution trailers. No em dashes.
+- Conventional Commit, e.g. `feat: add PULSE_GEN standard function block definition`. No Claude attribution trailers. ASCII only (no em/en dashes, smart quotes, or other non-keyboard glyphs).

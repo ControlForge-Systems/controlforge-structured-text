@@ -20,7 +20,7 @@ Steps:
    ```
 4. Update the changelog on `release-X.Y.0`. Move `CHANGELOG.md` `[Unreleased]` entries into a new `[X.Y.0] - YYYY-MM-DD` section (use today's date). Leave `[Unreleased]` empty.
 5. Bump `package.json` `version` to `X.Y.0`.
-6. Commit the changelog + version bump on `release-X.Y.0` (Conventional Commit format, no em dashes):
+6. Commit the changelog + version bump on `release-X.Y.0` (Conventional Commit format, ASCII only):
    ```
    git add CHANGELOG.md package.json
    git commit -m "chore: release vX.Y.0"

@@ -133,7 +133,7 @@ Before saving:
 - [ ] Tradeoffs section documents at least one alternative that was considered and rejected
 - [ ] No REMAINING QUESTIONS - if any exist, return them to the orchestrator instead of saving
 - [ ] Saved to the target file path from the brief
-- [ ] No em dashes in the document
+- [ ] ASCII only (no em/en dashes, smart quotes, ellipsis, arrows) in the document
 
 ## Updating project knowledge
 When you make a durable architectural decision or identify a convention not already documented, record it in `CLAUDE.md`. For language/spec findings, record them in `docs/IEC61131_SPECIFICATION.md`. Only do this when genuinely warranted; otherwise omit.

@@ -90,11 +90,11 @@ Before saving, verify:
 - [ ] Non-Goals explicitly list what is out of scope (minimum 3 items)
 - [ ] Open Questions contains only questions deferred to design phase with a stated reason
 - [ ] Saved to the target file path from the brief
-- [ ] No em dashes in the document
+- [ ] ASCII only (no em/en dashes, smart quotes, ellipsis, arrows) in the document
 
 ## Rules
 - Do NOT ask the user directly - return REMAINING QUESTIONS to the orchestrator
-- Do NOT use em dashes; use hyphens (-) instead
+- Use only US-keyboard ASCII characters; no em/en dashes, smart quotes, ellipsis, arrows, or other non-ASCII glyphs (use hyphens and straight quotes)
 
 ## Updating project knowledge
 When you make a durable scope decision or identify a convention not already documented, record it in `CLAUDE.md`. For language/spec findings, record them in `docs/IEC61131_SPECIFICATION.md`. Only do this when genuinely warranted; otherwise omit.
