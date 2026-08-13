@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-13
+
+### Added
+- Author link (michaeldistel.com) in the README Support section and package.json metadata
+
 ## [1.4.0] - 2026-03-15
 
 ### Added
