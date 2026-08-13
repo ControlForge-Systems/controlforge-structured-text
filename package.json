@@ -2,7 +2,7 @@
   "name": "controlforge-structured-text",
   "displayName": "ControlForge Structured Text",
   "description": "Professional Structured Text (IEC 61131-3) IDE with real-time diagnostics, code actions & quick fixes, function block IntelliSense, and smart code completion for PLC programming",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "author": {
     "name": "Michael Distel",
     "url": "https://michaeldistel.com"
@@ -90,18 +90,6 @@
         "path": "./syntaxes/structured-text.code-snippets"
       }
     ],
-    "snippets": [
-      {
-        "language": "structured-text",
-        "path": "./syntaxes/structured-text.code-snippets"
-      }
-    ],
-    "snippets": [
-      {
-        "language": "structured-text",
-        "path": "./syntaxes/structured-text.code-snippets"
-      }
-    ],
     "commands": [
       {
         "command": "controlforge-structured-text.validateSyntax",
@@ -121,7 +109,11 @@
       "properties": {
         "structured-text.format.keywordCase": {
           "type": "string",
-          "enum": ["upper", "lower", "preserve"],
+          "enum": [
+            "upper",
+            "lower",
+            "preserve"
+          ],
           "default": "upper",
           "description": "Keyword casing preference: UPPER, lower, or preserve existing case"
         },
