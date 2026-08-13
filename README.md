@@ -172,6 +172,7 @@ END_PROGRAM
 ## Support & Feedback
 
 - **Website**: [controlforge.dev](https://controlforge.dev/)
+- **Author**: [Michael Distel](https://michaeldistel.com)
 - **Issues**: [GitHub Issues](https://github.com/ControlForge-Systems/controlforge-structured-text/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ControlForge-Systems/controlforge-structured-text/discussions)
 - **Rate & Review**: [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ControlForgeSystems.controlforge-structured-text)
