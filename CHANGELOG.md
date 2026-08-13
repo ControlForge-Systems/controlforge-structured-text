@@ -5,6 +5,7 @@
 ### Added
 - Website and VS Code Marketplace badge links at the top of README
 - Improved Installation section: direct marketplace link + Quick Open install command
+- Author link (michaeldistel.com) in the README Support section and package.json metadata
 
 ## [1.4.0] - 2026-03-15
 
