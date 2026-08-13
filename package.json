@@ -3,7 +3,10 @@
   "displayName": "ControlForge Structured Text",
   "description": "Professional Structured Text (IEC 61131-3) IDE with real-time diagnostics, code actions & quick fixes, function block IntelliSense, and smart code completion for PLC programming",
   "version": "1.4.0",
-  "author": "Michael Distel",
+  "author": {
+    "name": "Michael Distel",
+    "url": "https://michaeldistel.com"
+  },
   "publisher": "ControlForgeSystems",
   "license": "MIT",
   "repository": {
