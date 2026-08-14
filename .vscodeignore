@@ -41,3 +41,11 @@ publish-extension.sh
 # LICENSE
 # icon.png
 # images/ (for screenshots)
+
+# Internal agent/dev instructions and repo tooling - never ship in the VSIX
+.claude/**
+tasks/**
+CLAUDE.md
+AGENTS.md
+.github/**
+.nvmrc
